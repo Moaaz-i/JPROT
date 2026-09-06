@@ -7,7 +7,7 @@
   "types": "./jprot.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Moaaz-i/JPROT.git"
+    "url": "git+https://github.com/Moaaz-i/JPROT.git"
   },
   "homepage": "https://github.com/Moaaz-i/JPROT#readme",
   "bugs": {
