@@ -36,7 +36,7 @@
   "scripts": {
     "dev": "node core/cli.js",
     "start": "node core/cli.js",
-    "test": "node --test \"test/*.test.js\""
+    "test": "node --test test/*.test.js"
   },
   "engines": {
     "node": ">=18"
