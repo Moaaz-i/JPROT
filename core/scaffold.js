@@ -179,6 +179,7 @@ export async function scaffoldSite({ root, type = 'portfolio' } = {}) {
   const themeDir = join(projectRoot, 'theme')
 
   const files = [
+    ['package.json', '{\n  "private": true,\n  "type": "module"\n}\n'],
     ['jprot.config.js', configTemplate({ type })],
     ['content/index.md', indexTemplate({ type })],
     ['content/about.md', aboutTemplate],
