@@ -54,6 +54,9 @@ test('exportSite prefixes URLs for a project GitHub Pages site', async () => {
     for (const rel of ['quick-start', 'getting-started', 'content', 'configuration', 'customization', 'deploy', 'cli-reference', 'api-reference', 'examples']) {
       assert.ok(await exists(join(dest, rel, 'index.html')), `missing page index for ${rel}`)
     }
+    const quickStart = await readFile(join(dest, 'quick-start', 'index.html'), 'utf8')
+    assert.match(quickStart, /href="\/JPROT\/getting-started\/"/)
+    assert.doesNotMatch(quickStart, /href="\/JPROT\/quick-start\/getting-started/)
   } finally {
     const { rm } = await import('node:fs/promises')
     await rm(out, { recursive: true, force: true })

@@ -34,10 +34,17 @@ function addBasePath(body, basePath, pageUrls = new Set()) {
     return path.replace(/\/?$/, '/') + (match[2] || '')
   }
   const rewriteAttribute = (match, name, value) => {
+    if (value.includes("' + ") || value.includes('" + ')) return match
     // Header links historically normalize external URLs to `/https://...`.
     // Restore those values before applying the project base path.
     if (/^\/(?:https?:|mailto:|tel:|data:)/i.test(value)) {
       return `${name}="${value.slice(1)}"`
+    }
+    if (name === 'href' && value && !value.startsWith('/') && !value.startsWith('#') &&
+        !/^(?:https?:|mailto:|tel:|data:|javascript:|vbscript:)/i.test(value)) {
+      const rootRelative = '/' + value.replace(/^(\.\/|\.\.\/)+/, '')
+      const path = withPageSlash(rootRelative)
+      return `${name}="${basePath}${path}"`
     }
     if (!value.startsWith('/') || value.startsWith('//')) return match
     const path = withPageSlash(value)
