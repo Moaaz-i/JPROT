@@ -84,7 +84,23 @@ export async function createJprot(options = {}) {
       const hint = suggestConfigKey(key)
       if (hint) console.warn(`[jprot] config key "${key}" not recognized — did you mean "${hint}"?`)
     }
-    instanceState = { projectRoot, contentDir, publicDir, userThemeDir, themeDir, theme, site, labels, markdown, nav, docsNav, components, blogDir, projectsDir, prod: options.prod === true }
+    // Index live stylesheets by content hash. Pages link to /@jprot/css/<sha>.css,
+    // so the URLs are stable, immutable-cacheable, and never leak the absolute
+    // disk path of the theme in the raw HTML.
+    const cssRegistry = new Map()
+    const cssOrder = [
+      themeDir ? join(themeDir, 'styles.css') : null,
+      userThemeDir ? join(userThemeDir, 'custom.css') : null,
+    ]
+    for (const p of cssOrder) {
+      if (!p) continue
+      try {
+        if (!(await stat(p)).isFile()) continue
+        const body = await readFile(p)
+        cssRegistry.set(createHash('sha256').update(body).digest('hex').slice(0, 16), p)
+      } catch { /* unreadable → just skip */ }
+    }
+    instanceState = { projectRoot, contentDir, publicDir, userThemeDir, themeDir, theme, site, labels, markdown, nav, docsNav, components, blogDir, projectsDir, prod: options.prod === true, cssRegistry }
     setFallbackState(instanceState)
   }
 
@@ -183,6 +199,19 @@ export async function createJprot(options = {}) {
         const location = absUrl(site, canonical) || `http://${host}:${boundPort}${canonical}`
         res.writeHead(301, { Location: location, ...SECURITY_HEADERS, 'Cache-Control': 'no-cache' })
         return res.end()
+      }
+
+      // trailing slashes on directory pages (/docs/ → /docs) collapse into one
+      // canonical URL so search engines and links never see duplicate content;
+      // the homepage and index.html are handled above.
+      if (pathname.length > 1 && pathname.endsWith('/')) {
+        const clean = pathname.replace(/\/+$/, '')
+        if (await resolveContent(contentDir, clean)) {
+          const { site = {} } = state()
+          const location = absUrl(site, clean) || `http://${host}:${boundPort}${clean}`
+          res.writeHead(301, { Location: location, ...SECURITY_HEADERS, 'Cache-Control': 'no-cache' })
+          return res.end()
+        }
       }
 
       const contentFile = await resolveContent(contentDir, pathname)
@@ -1194,27 +1223,12 @@ const spaScript = (nonce) => `
 `
 
 async function collectCss() {
-  const { userThemeDir, themeDir } = state()
+  const { cssRegistry } = state()
   // no theme resolved (standalone render call with no built instance) → no links
-  if (!themeDir && !userThemeDir) return ''
-  const files = [
-    { path: themeDir ? join(themeDir, 'styles.css') : null },
-    { path: userThemeDir ? join(userThemeDir, 'custom.css') : null },
-  ]
-  const seen = new Set()
+  if (!cssRegistry || !cssRegistry.size) return ''
   const lines = []
-  for (const f of files) {
-    if (!f.path || seen.has(f.path)) continue
-    if (!(await isFile(f.path))) continue
-    seen.add(f.path)
-    // content hash in the query so the URL busts when the file changes; the
-    // response may then be served immutable in production
-    let v = ''
-    try {
-      const body = await readFile(f.path)
-      v = '&v=' + createHash('sha256').update(body).digest('hex').slice(0, 10)
-    } catch { /* keep the un-hashed URL */ }
-    const href = `/@jprot/css?f=${encodeURIComponent(f.path)}${v}`
+  for (const sha of cssRegistry.keys()) {
+    const href = `/@jprot/css/${sha}.css`
     lines.push(`<link rel="preload" as="style" href="${href}">`)
     lines.push(`<link rel="stylesheet" href="${href}">`)
   }
@@ -1241,6 +1255,15 @@ async function serveFile(req, res, file, fingerprinted = false) {
 
 async function serveThemeCss(req, res, pathname) {
   const url = new URL(req.url, 'http://x')
+  // hash-based: /@jprot/css/<sha>.css — the URL used by every rendered page
+  const m = pathname.match(/^\/@jprot\/css\/([0-9a-f]{16})\.css$/)
+  if (m) {
+    const { cssRegistry } = state()
+    const file = cssRegistry && cssRegistry.get(m[1])
+    if (file) return serveFile(req, res, file, true)
+    return notFound(res, url)
+  }
+  // legacy: ?f=(absolute path inside the theme dir) — kept for compatibility
   const p = url.searchParams.get('f')
   if (p) {
     return serveCssFromTrustedDir(req, res, url, p, 'theme')

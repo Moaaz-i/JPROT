@@ -53,6 +53,46 @@ test('content pages redirect their .md form to the clean URL', async () => {
   assert.equal(bogus.status, 404)
 })
 
+test('trailing slashes redirect to the canonical clean URL', async () => {
+  const res = await fetch(base + '/getting-started/', { redirect: 'manual' })
+  assert.equal(res.status, 301)
+  assert.equal(new URL(res.headers.get('location')).pathname, '/getting-started')
+  const dir = await fetch(base + '/blog/', { redirect: 'manual' })
+  assert.equal(dir.status, 301)
+  assert.equal(new URL(dir.headers.get('location')).pathname, '/blog')
+  // the homepage keeps its trailing forward slash
+  const home = await fetch(base + '/', { redirect: 'manual' })
+  assert.equal(home.status, 200)
+  // a synthetic trailing slash for a nonexistent page is still a 404
+  assert.equal((await fetch(base + '/nope/', { redirect: 'manual' })).status, 404)
+})
+
+test('theme CSS is served by content hash without leaking absolute paths', async () => {
+  const home = await (await fetch(base + '/')).text()
+  const hrefs = [...home.matchAll(/<link rel="stylesheet" href="([^"]+)">/g)].map((m) => m[1])
+  assert.ok(hrefs.length > 0, 'page links its stylesheet')
+  for (const href of hrefs) {
+    assert.match(href, /^\/@jprot\/css\/[0-9a-f]{16}\.css$/, 'hash URL, no query, no disk path')
+  }
+  const css = await fetch(base + hrefs[0])
+  assert.equal(css.status, 200)
+  assert.match(css.headers.get('content-type'), /css/)
+  // hashed files are immutable-cacheable in production
+  const prodApp = await createJprot({ root, watch: false, prod: true })
+  const prodBase = `http://127.0.0.1:${await prodApp.listen(0)}`
+  try {
+    const prodCss = await fetch(prodBase + hrefs[0])
+    assert.match(prodCss.headers.get('cache-control'), /immutable/)
+  } finally {
+    await new Promise((r) => prodApp.server.close(r))
+    prodApp.closeWatcher && prodApp.closeWatcher()
+  }
+  // the legacy ?f= route still works but traversal stays blocked
+  const legacy = await fetch(base + '/@jprot/css?f=' + encodeURIComponent(join(root, 'theme', 'default', 'styles.css')))
+  assert.equal(legacy.status, 200)
+  assert.equal((await fetch(base + '/@jprot/css?f=/etc/passwd')).status, 404)
+})
+
 test('HTTP security headers: strict CSP prevents nonce-less inline scripts', async () => {
   const htmlRes = await fetch(base + '/')
   const csp = htmlRes.headers.get('content-security-policy') || ''

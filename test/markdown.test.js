@@ -29,6 +29,12 @@ test('fenced code block is escaped', () => {
   assert.match(html, /<pre class="code-block"><button[^>]+>Copy<\/button><code class="language-js">const x = &quot;&lt;tag&gt;&quot;<\/code><\/pre>/)
 })
 
+test('indented fenced code renders as code (matches buffer logic)', () => {
+  const html = md.render('- item\n\n    ```js\n    const y = 1\n    ```\n')
+  assert.match(html, /<pre class="code-block">/)
+  assert.match(html, /language-js/)
+})
+
 test('code blocks have copy controls and callouts render by severity', () => {
   const html = md.render('```js\nconst x = 1\n```\n\n> [!WARNING] Be careful')
   assert.match(html, /data-action="copy-code"/)

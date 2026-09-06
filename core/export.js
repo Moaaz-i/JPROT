@@ -81,16 +81,24 @@ export async function exportSite({ root, outDir, basePath } = {}) {
     const pageUrls = ['/', ...entries.map((e) => e.url)]
     const pageUrlSet = new Set(pageUrls)
 
+    // Fingerprint the theme CSS so exports stay immutable-cacheable. The live
+    // server already emits hash URLs (/@jprot/css/<sha>.css); legacy ?f= hrefs
+    // are still recognized and rewritten to hashed files for old themes.
     const homeHtml = await (await fetch(base + '/')).text()
-
-    // Fingerprint the theme CSS so exports stay immutable-cacheable.
-    const cssHrefs = [...new Set(homeHtml.match(/\/@jprot\/css\?f=[^"'()\s]+/g) || [])]
+    const cssHrefs = [...new Set([
+      ...(homeHtml.match(/\/@jprot\/css\/[0-9a-f]{16}\.css/g) || []),
+      ...(homeHtml.match(/\/@jprot\/css\?f=[^"'()\s]+/g) || []),
+    ])]
     const cssMap = new Map()
     for (const href of cssHrefs) {
       const css = await (await fetch(base + href)).text()
-      const file = '/@jprot/css/' + sha(css) + '.css'
-      await writeOut(dest, file.replace(/^\//, ''), css)
-      cssMap.set(href, file)
+      if (href.includes('?f=')) {
+        const file = '/@jprot/css/' + sha(css) + '.css'
+        await writeOut(dest, file.replace(/^\//, ''), css)
+        cssMap.set(href, file)
+      } else {
+        await writeOut(dest, href.replace(/^\//, ''), css)
+      }
     }
     const rewriteCss = (html) => {
       for (const [orig, fp] of cssMap) html = html.split(orig).join(fp)
