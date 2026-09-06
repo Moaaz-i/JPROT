@@ -16,9 +16,25 @@ async function writeOut(outDir, rel, body) {
   await writeFile(full, body)
 }
 
-export async function exportSite({ root, outDir } = {}) {
+function normalizeBasePath(value) {
+  if (!value) return ''
+  const path = String(value).trim()
+  if (!path || path === '/') return ''
+  return '/' + path.replace(/^\/+|\/+$/g, '')
+}
+
+function addBasePath(body, basePath) {
+  if (!basePath) return body
+  return body
+    .replace(/(href|src|action|poster)="\/(?!\/)/g, `$1="${basePath}/`)
+    .replace(/fetch\('\/@jprot\//g, `fetch('${basePath}/@jprot/`)
+    .replace(/href="' \+ e\.url/g, `href="${basePath}" + e.url`)
+}
+
+export async function exportSite({ root, outDir, basePath } = {}) {
   const projectRoot = root || process.cwd()
   const dest = outDir || join(projectRoot, 'dist')
+  const siteBasePath = normalizeBasePath(basePath)
 
   const app = await createJprot({ root: projectRoot, watch: false, prod: true })
   const port = await app.listen(0)
@@ -53,8 +69,9 @@ export async function exportSite({ root, outDir } = {}) {
     // Standalone pages: one <rel>/index.html each; home → index.html.
     for (const u of pageUrls) {
       const res = await fetch(base + u)
-      const html = rewriteCss(await res.text())
-      for (const m of html.matchAll(/\/@jprot\/og\/[0-9a-z]{16}\.svg/g)) pendingOg.add(m[0])
+      const sourceHtml = rewriteCss(await res.text())
+      for (const m of sourceHtml.matchAll(/\/@jprot\/og\/[0-9a-z]{16}\.svg/g)) pendingOg.add(m[0])
+      const html = addBasePath(sourceHtml, siteBasePath)
       const rel = u === '/'
         ? 'index.html'
         : u.replace(/^\//, '').replace(/\/$/, '') + '/index.html'
@@ -73,7 +90,7 @@ export async function exportSite({ root, outDir } = {}) {
 
     // Custom (or default) 404 page → dist/404.html.
     const nf = await fetch(base + '/__jprot_missing_page__')
-    await writeOut(dest, '404.html', rewriteCss(await nf.text()))
+    await writeOut(dest, '404.html', addBasePath(rewriteCss(await nf.text()), siteBasePath))
 
     // Copy og images referenced by exported pages.
     for (const ogPath of pendingOg) {

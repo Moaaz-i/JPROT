@@ -7,6 +7,9 @@ JPROT serves Markdown directly as a portfolio site with SSR, SPA navigation, dar
 Project repository: [github.com/Moaaz-i/JPROT](https://github.com/Moaaz-i/JPROT).
 JPROT requires Node.js 18 or newer.
 
+The project documentation is published at
+[Moaaz-i.github.io/JPROT](https://moaaz-i.github.io/JPROT/).
+
 ---
 
 ## Quick Start

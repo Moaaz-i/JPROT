@@ -35,3 +35,18 @@ test('exportSite renders the whole site to dist/', async () => {
     await rm(out, { recursive: true, force: true })
   }
 })
+
+test('exportSite prefixes URLs for a project GitHub Pages site', async () => {
+  const out = join(tmpdir(), 'jprot-pages-' + Date.now())
+  const dest = await exportSite({ root, outDir: out, basePath: '/JPROT' })
+  try {
+    const home = await readFile(join(dest, 'index.html'), 'utf8')
+    assert.match(home, /href="\/JPROT\/getting-started"/)
+    assert.match(home, /href="\/JPROT\/@jprot\/css\/[0-9a-f]{16}\.css"/)
+    assert.doesNotMatch(home, /href="\/getting-started"/)
+    assert.ok(await exists(join(dest, '@jprot', 'og')), 'og assets directory exported')
+  } finally {
+    const { rm } = await import('node:fs/promises')
+    await rm(out, { recursive: true, force: true })
+  }
+})

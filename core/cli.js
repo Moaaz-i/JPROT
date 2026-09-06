@@ -21,6 +21,7 @@ function printHelp() {
   Options:
     --port <n>           Port to listen on (default 4114)
     --out <dir>          Export output directory (default dist/)
+    --base-path <path>   Prefix exported URLs for a project site (e.g. /JPROT)
     --draft              'jprot new': mark the page as a draft
     --template <name>    'jprot new': use templates/<name>.md
     --prod               Production mode: immutable cache headers, drafts hidden
@@ -57,7 +58,9 @@ export async function bootstrap() {
     const { exportSite } = await import("./export.js");
     const outIdx = args.indexOf("--out");
     const outDir = outIdx >= 0 ? args[outIdx + 1] : undefined;
-    const dest = await exportSite({ outDir });
+    const baseIdx = args.indexOf("--base-path");
+    const basePath = baseIdx >= 0 ? args[baseIdx + 1] : undefined;
+    const dest = await exportSite({ outDir, basePath });
     console.log(`  Exported site to: ${dest}`);
     return;
   }
