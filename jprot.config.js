@@ -16,13 +16,15 @@ export default {
   lang: "en",
   dir: "ltr",
   url: "http://127.0.0.1:4114", // used for sitemap.xml, Open Graph and RSS
+  basePath: "/JPROT", // static export prefix; remove for a root-domain deployment
+  docs: true,
   author: "Moaaz",
   // Set this to an address you want visitors to use for contact.
   email: "hello@example.com",
   themeColor: "#4f46e5",
 
   // Sidebar: shows on regular (Page) docs pages. Set false to disable.
-  sidebar: false,
+  sidebar: true,
 
   // Navbar links: set false to hide the nav links (brand stays).
   showNav: true,

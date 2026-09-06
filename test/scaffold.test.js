@@ -32,6 +32,18 @@ test('scaffoldSite writes the full skeleton', async () => {
   }
 })
 
+test('docs scaffold enables the documentation shell', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'jprot-docs-'))
+  try {
+    await scaffoldSite({ root: dir, type: 'docs' })
+    const config = await readFile(join(dir, 'jprot.config.js'), 'utf8')
+    assert.match(config, /docs: true/)
+    assert.match(config, /sidebar: true/)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+
 test('scaffoldNew creates a post and rejects duplicates', async () => {
   const dir = await makeProject()
   try {

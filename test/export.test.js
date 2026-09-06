@@ -12,10 +12,10 @@ async function exists(p) { try { await stat(p); return true } catch { return fal
 
 test('exportSite renders the whole site to dist/', async () => {
   const out = join(tmpdir(), 'jprot-export-' + Date.now())
-  const dest = await exportSite({ root, outDir: out })
+  const dest = await exportSite({ root, outDir: out, basePath: '' })
   try {
     // home + a clean-URL page + a blog post
-    for (const rel of ['index.html', 'getting-started/index.html', 'blog/jprot-vs-vitepress/index.html', '404.html', 'feed.xml', 'sitemap.xml', 'robots.txt', 'llms.txt', 'manifest.json']) {
+    for (const rel of ['index.html', 'getting-started/index.html', 'blog/jprot-vs-vitepress/index.html', '404.html', '.nojekyll', 'feed.xml', 'sitemap.xml', 'robots.txt', 'llms.txt', 'manifest.json']) {
       assert.ok(await exists(join(dest, rel)), `missing ${rel}`)
     }
     // draft content must not appear

@@ -7,6 +7,19 @@ nav: Customize
 
 This is where JPROT stands out: you can restyle the site **entirely** without touching a single component — or go further and replace whole layout components.
 
+For a documentation site, set `docs: true` and `sidebar: true` in
+`jprot.config.js`. Regular pages then get breadcrumbs, an on-page table of
+contents, and previous/next navigation. Portfolio sites can leave `docs` off.
+
+Markdown callouts use a blockquote marker:
+
+```markdown
+> [!TIP] Keep your first site small while you learn the content model.
+```
+
+Use `NOTE`, `TIP`, `WARNING`, or `DANGER`. Fenced code blocks include a
+client-side **Copy** button automatically.
+
 ## 1) Restyle with CSS variables (easiest)
 
 Create or edit **`theme/custom.css`** (already exists in the project). It loads automatically after the theme. Redefine any variable:

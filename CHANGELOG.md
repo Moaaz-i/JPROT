@@ -6,6 +6,9 @@ aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- Docs mode: optional sidebar, breadcrumbs, on-page navigation, previous/next
+  links, callouts, copy-code controls, and configurable export `basePath`.
+- Static exports now include `.nojekyll` for GitHub Pages deployments.
 - Security and reliability: validated request paths and methods, stronger
   cross-origin headers, safe Markdown URL schemes, and frontmatter diagnostics.
 - Architecture: extracted HTTP/security, URL, and component-rendering helpers

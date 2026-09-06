@@ -118,6 +118,7 @@ browser (`npm start` → open the links) or directly on GitHub:
 - **Instant search** (`Cmd/Ctrl + K`) backed by a live-generated index over the full body text, code blocks, frontmatter and site config, with highlighted matches.
 - **Printable resume** via `layout: resume`.
 - **Deep type support** — `jprot.d.ts` for the programmatic API and config autocomplete.
+- **Docs mode** — optional sidebar, breadcrumbs, on-page headings, previous/next links, callouts, and copy-code buttons.
 
 ## Configuration (`jprot.config.js`)
 

@@ -26,7 +26,14 @@ test('inline code content is not parsed as bold/emphasis', () => {
 
 test('fenced code block is escaped', () => {
   const html = md.render('```js\nconst x = "<tag>"\n```')
-  assert.match(html, /<pre><code class="language-js">const x = &quot;&lt;tag&gt;&quot;<\/code><\/pre>/)
+  assert.match(html, /<pre class="code-block"><button[^>]+>Copy<\/button><code class="language-js">const x = &quot;&lt;tag&gt;&quot;<\/code><\/pre>/)
+})
+
+test('code blocks have copy controls and callouts render by severity', () => {
+  const html = md.render('```js\nconst x = 1\n```\n\n> [!WARNING] Be careful')
+  assert.match(html, /data-action="copy-code"/)
+  assert.match(html, /callout callout-warning/)
+  assert.match(html, /<strong>Warning<\/strong>/)
 })
 
 test('links and images render', () => {

@@ -48,6 +48,17 @@ repository path when exporting:
 jprot export --out dist --base-path /REPOSITORY
 ```
 
+You can set the same value once in `jprot.config.js`:
+
+```js
+export default {
+  basePath: '/REPOSITORY',
+}
+```
+
+The export writes `.nojekyll` so GitHub Pages serves underscore-prefixed
+generated assets and routes correctly.
+
 The base path is applied to internal links, assets, and the client search
 request. Deploy the contents of `dist/` with GitHub Pages. For a user site at
 `https://ACCOUNT.github.io/`, omit `--base-path`.

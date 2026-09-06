@@ -5,7 +5,7 @@ import { join, dirname, basename } from 'node:path'
 import { slugify } from './utils.js'
 
 const CONFIG_KEYS = [
-  'title', 'tagline', 'description', 'url', 'lang', 'dir', 'author', 'avatar',
+  'title', 'tagline', 'description', 'url', 'basePath', 'docs', 'lang', 'dir', 'author', 'avatar',
   'email', 'themeColor', 'ogImage', 'ogColor', 'ogTextColor', 'logo', 'searchUrl',
   'twitter', 'ogLocale', 'sameAs', 'alternateLangs', 'icon', 'head', 'footerText',
   'blogDir', 'projectsDir', 'defaultLayout', 'homeLayout', 'sidebar', 'showNav',
@@ -57,8 +57,11 @@ export default {
   description: 'a short line used in SEO and Open Graph',
   // Replace this with your public site URL before deploying.
   url: 'https://yoursite.com',
+  basePath: '${type === 'docs' ? '/your-repository' : ''}',
+  docs: ${type === 'docs'},
   lang: 'en',
   email: 'you@example.com',
+  sidebar: ${type === 'docs'},
   themeColor: '#4f46e5',
   // Add only social profiles you own; these are intentionally left configurable.
   social: [

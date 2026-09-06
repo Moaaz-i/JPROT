@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, writeFile, cp, stat } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { createJprot } from './server.js'
+import { loadSiteConfig } from './config.js'
 
 function sha(b) {
   return createHash('sha256').update(b).digest('hex').slice(0, 16)
@@ -51,7 +52,8 @@ function addBasePath(body, basePath, pageUrls = new Set()) {
 export async function exportSite({ root, outDir, basePath } = {}) {
   const projectRoot = root || process.cwd()
   const dest = outDir || join(projectRoot, 'dist')
-  const siteBasePath = normalizeBasePath(basePath)
+  const config = await loadSiteConfig(projectRoot)
+  const siteBasePath = normalizeBasePath(basePath ?? config.basePath)
 
   const app = await createJprot({ root: projectRoot, watch: false, prod: true })
   const port = await app.listen(0)
@@ -59,6 +61,7 @@ export async function exportSite({ root, outDir, basePath } = {}) {
 
   try {
     await mkdir(dest, { recursive: true })
+    await writeFile(join(dest, '.nojekyll'), '')
 
     // Content index from the live server (drafts already excluded).
     const entries = await (await fetch(base + '/@jprot/search.json')).json()

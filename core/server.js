@@ -24,7 +24,7 @@ export { resolveRelativeUrl } from './urls.js'
 
 // Site-config keys the hint checker can ingest (complements scaffold's list).
 const CONFIG_KEY_HINTS = new Set([
-  'url', 'title', 'tagline', 'description', 'lang', 'dir', 'author', 'avatar',
+  'url', 'basePath', 'docs', 'title', 'tagline', 'description', 'lang', 'dir', 'author', 'avatar',
   'email', 'themeColor', 'ogImage', 'ogColor', 'ogTextColor', 'logo', 'searchUrl',
   'twitter', 'ogLocale', 'sameAs', 'alternateLangs', 'icon', 'head', 'footerText',
   'blogDir', 'projectsDir', 'defaultLayout', 'homeLayout', 'sidebar', 'showNav',
@@ -794,6 +794,16 @@ const themeScript = (nonce, configuredThemes) => {
         var hdr = document.querySelector('.site-header')
         if (hdr) hdr.classList.toggle('nav-open')
         btn.setAttribute('aria-expanded', hdr ? hdr.classList.contains('nav-open') : 'false')
+      }
+      else if (action === 'copy-code') {
+        var code = btn.parentElement && btn.parentElement.querySelector('code')
+        if (code && navigator.clipboard) {
+          navigator.clipboard.writeText(code.textContent).then(function () {
+            var old = btn.textContent
+            btn.textContent = 'Copied'
+            setTimeout(function () { btn.textContent = old }, 1200)
+          })
+        }
       }
       return
     }

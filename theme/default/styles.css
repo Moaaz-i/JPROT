@@ -202,12 +202,38 @@ a:hover { text-decoration: underline; }
 .page-content p, .page-content ul, .page-content ol, .page-content blockquote, .page-content table { margin: 0 0 1rem; }
 
 .page-content pre {
+  position: relative;
   background: var(--color-code-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 1rem;
   overflow-x: auto;
 }
+.copy-code {
+  position: absolute; top: 0.45rem; right: 0.5rem;
+  border: 1px solid var(--color-border); border-radius: 6px;
+  background: var(--color-surface); color: var(--color-muted);
+  padding: 0.2rem 0.45rem; font: inherit; font-size: 0.75rem; cursor: pointer;
+}
+.copy-code:hover { color: var(--color-accent); border-color: var(--color-accent); }
+.callout {
+  margin: 1rem 0; padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border); border-inline-start: 4px solid var(--color-accent);
+  border-radius: var(--radius); background: var(--color-surface);
+}
+.callout strong { display: block; margin-bottom: 0.2rem; color: var(--color-accent); }
+.callout p { margin-bottom: 0.35rem; }
+.callout-warning { --color-accent: #d97706; }
+.callout-danger { --color-accent: #dc2626; }
+.callout-tip { --color-accent: #059669; }
+.docs-breadcrumbs { display: flex; gap: 0.5rem; color: var(--color-muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+.docs-breadcrumbs a { color: inherit; }
+.docs-pagination { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--color-border); }
+.docs-pagination a { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius); min-width: 10rem; }
+.docs-pagination a:hover { border-color: var(--color-accent); text-decoration: none; }
+.docs-pagination small { color: var(--color-muted); }
+.docs-pagination strong { color: var(--color-text); }
+.docs-next { text-align: right; }
 .page-content code {
   font-family: var(--font-mono);
   font-size: 0.9em;

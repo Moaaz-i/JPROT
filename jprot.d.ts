@@ -23,6 +23,10 @@ export interface JprotConfig {
   description?: string
   /** Canonical site URL, e.g. https://yoursite.com (used in sitemap/feed/OG). */
   url?: string
+  /** Static export prefix for project sites such as GitHub Pages `/repository`. */
+  basePath?: string
+  /** Enable documentation navigation, breadcrumbs, and previous/next links. */
+  docs?: boolean
   /** HTML lang attribute. Default 'en'. */
   lang?: string
   /** Text direction: 'ltr' | 'rtl'. Default 'ltr'. */
