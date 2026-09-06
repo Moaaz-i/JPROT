@@ -8,11 +8,26 @@ import { join, dirname, basename } from 'node:path'
 import { parseFrontmatter } from '../lib/frontmatter.js'
 import { listMarkdown } from './content.js'
 import { isInside } from './utils.js'
+import { loadSiteConfig } from './config.js'
 
 const SIZE_LIMIT = 400 * 1024
 
 async function isFile(p) {
   try { return (await stat(p)).isFile() } catch { return false }
+}
+
+// A minimal glob → RegExp, where `**` spans directories and `*` stays within
+// one segment. Used to match `lint.ignore` patterns against repo-relative
+// paths such as `blog.md`, `projects/*.md` or `archive/**/*.md`.
+function globToRegExp(pattern) {
+  const parts = String(pattern || '').split('/')
+  let re = '^'
+  for (const [i, part] of parts.entries()) {
+    if (i) re += '/'
+    if (part === '**') re += '.*'
+    else re += part.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]')
+  }
+  return new RegExp(re + '($|\\.md$)')
 }
 
 // Canonical page URL for a resolved path: trailing slashes off, .md off and
@@ -32,6 +47,13 @@ export async function runLint({ root } = {}) {
   const projectRoot = root || process.cwd()
   const contentDir = join(projectRoot, 'content')
   const publicDir = join(projectRoot, 'public')
+
+  // Files matched by `lint.ignore` in jprot.config.js are skipped. Patterns
+  // are globs against the repo-relative Markdown path (e.g. `blog.md`,
+  // `projects/*.md`, `drafts/**`); the `.md` suffix is optional.
+  const config = await loadSiteConfig(projectRoot)
+  const ignore = Array.isArray(config.lint?.ignore) ? config.lint.ignore.map(globToRegExp) : []
+  const ignored = (rel) => ignore.some((re) => re.test(rel))
 
   const files = await listMarkdown(contentDir)
   const reads = new Map()
@@ -53,6 +75,10 @@ export async function runLint({ root } = {}) {
     const raw = reads.get(f)
     const { data, body } = parseFrontmatter(raw)
     const rel = f.slice(contentDir.length + 1)
+
+    // opt out per file (frontmatter) or via config unless — used for content
+    // that is intentionally stale, machine-generated or mirroring external posts
+    if (ignored(rel) || data.lint === false) continue
 
     if (!data.title) push(f, 'frontmatter', 'missing `title`')
     if (data.draft !== true && !data.description && !data.subtitle && !data.excerpt) {

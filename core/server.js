@@ -29,7 +29,7 @@ const CONFIG_KEY_HINTS = new Set([
   'twitter', 'ogLocale', 'sameAs', 'alternateLangs', 'icon', 'head', 'footerText',
   'blogDir', 'projectsDir', 'defaultLayout', 'homeLayout', 'sidebar', 'showNav',
   'themePicker', 'projectsTitle', 'formspree', 'social', 'nav', 'hero', 'sections',
-  'themes', 'labels', 'markdown',
+  'themes', 'labels', 'markdown', 'lint',
 ])
 
 function inProdMode() {

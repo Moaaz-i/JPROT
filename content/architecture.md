@@ -80,6 +80,53 @@ Right after loading, the server validates the config and prints **startup
 hints**: unknown `sections[].component` names (with the available list) and
 config keys that look like typos (with a did-you-mean suggestion).
 
+## Server behavior
+
+Every request flows through the same pipeline in dev, production (`--prod`) and
+`jprot export` — the exported site is literally the recorded output of this
+server, so a preview always matches what gets deployed.
+
+**URL canonicalization** — duplicate URL forms collapse to one:
+
+- `/page.md` → `301 /page` (`.md` links keep working from READMEs/editors
+  without serving duplicate content)
+- `/page/` → `301 /page` (trailing slashes collapse; `/`, `/index.html` and the
+  homepage stay untouched)
+- internal links in rendered pages have their `.md` stripped automatically
+
+**Status codes** — `200` for pages, `404` for misses (a `content/404.md` can
+customize it while keeping the status), `304` when an `ETag` matches, `405` with
+an `Allow` header for unsupported methods.
+
+**Security headers** — every response carries `X-Content-Type-Options`,
+`Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, COOP/CORP, and a
+Content-Security-Policy: nonce-based scripts, `'self'` by default, with
+Formspree endpoints whitelisted into `connect-src` and `form-action`.
+
+**Caching** — pages and feeds are `no-cache` (they reflect content instantly);
+content-hashed assets (`/@jprot/css/<sha>.css`, OG images) are served
+`public, max-age=31536000, immutable` in production and export.
+
+**Virtual routes** — no files behind them, generated on the fly:
+
+| Route | Serves |
+|---|---|
+| `/@jprot/css/<sha>.css` | theme + custom stylesheets, content-hashed |
+| `/@jprot/search.json` | the instant-search index (also read by `export`) |
+| `/@jprot/og/<sha>.svg` | auto-generated Open Graph images |
+| `/manifest.json`, `/favicon.svg` | PWA manifest and favicon |
+| `/feed.xml`, `/rss.xml` | RSS feed of blog posts |
+| `/sitemap.xml`, `/robots.txt` | discovery files |
+| `/llms.txt`, `/llms-full.txt` | AI/LLM-readable site summary |
+
+**Drafts** — previewable in dev only. In production and exports they are hidden
+from the navigation, sitemap, search index, RSS feed, and resolved as `404`.
+
+**Lifecycle** — the dev server watches `content/`, `theme/`, `public/` and
+`jprot.config.js`, rebuilds the site state in place on change, and tells open
+pages to reload. `export` reuses the same HTTP pipeline and materializes the
+whole tree, including hashed assets, the static search index, and redirects.
+
 ## Why this design
 
 - **No build** → the "pipeline" is a request handler, not a precompiled artifact.

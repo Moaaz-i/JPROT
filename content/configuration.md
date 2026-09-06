@@ -202,6 +202,43 @@ export default {
 | `nav` | array | auto | Overrides the automatic navigation |
 | `markdown` | object | all on | Toggle individual Markdown features |
 | `themes` | array | built-ins | Theme variants offered by the picker/cycle button |
+| `lint` | object | — | `{ ignore: string[] }` — globs of Markdown files `jprot lint` skips |
+
+## Silence the linter
+
+`jprot lint` checks every file under `content/` for missing frontmatter,
+broken links, images without alt text, and oversized local images. Two ways to
+opt a file out.
+
+**1. Glob patterns in the config** — skip exact files or whole groups:
+
+```js
+export default {
+  lint: {
+    ignore: [
+      'old-notes.md',     // that exact file
+      'projects/legacy/*.md', // every file in one folder
+      'archive/**',       // a whole folder tree, recursively
+    ],
+  },
+}
+```
+
+Patterns are matched against the Markdown path relative to the project root
+(`content/` is omitted, and the `.md` suffix is optional). `*` never crosses a
+folder boundary; `**` matches across folders.
+
+**2. Per-file frontmatter** — opt a single page out from the file itself:
+
+```yaml
+---
+title: Redirected post
+lint: false
+---
+```
+
+Use these for content that is intentionally stale, machine-generated, or a
+mirror of an external post — everything else stays covered by the checks.
 
 ## Labels: every built-in text is overridable
 

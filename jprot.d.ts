@@ -95,6 +95,8 @@ export interface JprotConfig {
   themes?: ThemeConfig[]
   /** Toggle individual Markdown features. */
   markdown?: MarkdownConfig
+  /** `jprot lint` tuning: `ignore` is an array of Markdown globs to skip. */
+  lint?: { ignore?: string[] }
 }
 
 export interface FrontmatterDiagnostic {
@@ -180,6 +182,8 @@ export interface PageFrontmatter {
   cover?: string
   demo?: string
   repo?: string
+  /** Opt this page out of `jprot lint` checks (or use `lint.ignore` in the config). */
+  lint?: false
   formspree?: string
   email?: string
   author?: string

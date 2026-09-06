@@ -15,6 +15,8 @@ Adding, editing, or removing a file changes the site immediately.
 | `content/index.md` | `/` | Homepage |
 | `content/about.md` | `/about` | A standalone page |
 | `content/projects/x.md` | `/projects/x` | A project (card on homepage) |
+| `content/blog.md` | `/blog` | Blog listing (uses `layout: blog`) |
+| `content/blog/x.md` | `/blog/x` | A blog post (newest first by `date`) |
 
 ## Frontmatter
 
@@ -97,6 +99,40 @@ Supported project fields:
 | `excerpt` | Short description for the card (defaults to the body) |
 | `image` | `og:image` / sitemap image for the project page |
 | `demo` / `repo` | Links on the project page/card |
+
+## Blog posts
+
+Posts live in `content/blog/` (change the folder with `blogDir` in the config).
+The listing page is just `content/blog.md` with `layout: blog` — every other
+Markdown file in the folder is a post, sorted **newest first by `date`**:
+
+```markdown
+---
+title: Hello, JPROT
+date: 2026-01-05
+tags:
+  - jprot
+  - release
+excerpt: What landed in this release.
+image: /blog/hello.png
+---
+
+Post body here...
+```
+
+| Field | Meaning |
+|---|---|
+| `date` | Sort key — newest first (posts without a date sink to the bottom) |
+| `tags` | Filter chips on the listing; also indexed by instant search |
+| `excerpt` | Card text (defaults to the first ~3 lines of the body) |
+| `image` | `og:image` / `twitter:image` for the post |
+| `draft` | Hidden from the listing, feed, sitemap, search and exports; `404` in production (`jprot --prod`), still previewable in dev |
+
+Nested folders work too — `content/blog/2026/first-post.md` keeps its full path
+URL (`/blog/2026/first-post`) and still sorts by `date`. The listing, the RSS
+feed (`/feed.xml`, `/rss.xml`) and the sitemap are all generated from this same
+list, so a post appears everywhere at once. Create one quickly with
+`jprot new post "Title" --draft`.
 
 ## The homepage file
 
