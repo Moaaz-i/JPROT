@@ -1,0 +1,4 @@
+# JPROT build/runtime artifacts
+dist/
+.cache/
+*.log

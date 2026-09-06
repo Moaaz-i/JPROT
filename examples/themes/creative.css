@@ -1,0 +1,68 @@
+/* =========================================================
+   JPROT Theme: Creative
+   Bold, colorful, personality-driven. Perfect for designers
+   and creative developers who want to stand out.
+   ========================================================= */
+:root {
+  --color-bg: #1a103d;
+  --color-surface: #2d1b69;
+  --color-text: #f0e6ff;
+  --color-muted: #a78bfa;
+  --color-accent: #f472b6;
+  --color-accent-contrast: #ffffff;
+  --color-border: #3d2b7a;
+  --color-code-bg: #251656;
+  --font-sans: "Outfit", "Poppins", system-ui, sans-serif;
+  --font-mono: "Fira Code", ui-monospace, monospace;
+  --container-width: 960px;
+  --radius: 16px;
+}
+[data-theme="light"] {
+  --color-bg: #fef7ff;
+  --color-surface: #f3e8ff;
+  --color-text: #1e1040;
+  --color-muted: #6b5b95;
+  --color-accent: #d946ef;
+  --color-accent-contrast: #ffffff;
+  --color-border: #e9d5ff;
+  --color-code-bg: #f3e8ff;
+}
+.hero-title {
+  background: linear-gradient(135deg, var(--color-accent), #7c3aed, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.project-card {
+  border-radius: 16px;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+.project-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+.btn {
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--color-accent), #7c3aed);
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(244, 114, 182, 0.3);
+}
+.site-header {
+  background: rgba(26, 16, 61, 0.85);
+  backdrop-filter: blur(16px);
+}
+[data-theme="light"] .site-header { background: rgba(254, 247, 255, 0.85); }
+.filter-btn {
+  border-radius: 999px;
+  font-weight: 700;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.filter-btn:hover { transform: scale(1.05); }
+.filter-btn.active { transform: scale(1.05); }
+.tag { border-radius: 999px; }

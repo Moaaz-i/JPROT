@@ -1,0 +1,66 @@
+/* =========================================================
+   JPROT Theme: Corporate
+   Professional, trustworthy, enterprise-grade.
+   Perfect for business portfolios and consulting.
+   ========================================================= */
+:root {
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-text: #0f172a;
+  --color-muted: #64748b;
+  --color-accent: #0369a1;
+  --color-accent-contrast: #ffffff;
+  --color-border: #e2e8f0;
+  --color-code-bg: #f1f5f9;
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --container-width: 880px;
+  --radius: 8px;
+}
+[data-theme="dark"] {
+  --color-bg: #0b1120;
+  --color-surface: #131b2e;
+  --color-text: #e2e8f0;
+  --color-muted: #94a3b8;
+  --color-accent: #38bdf8;
+  --color-accent-contrast: #0b1120;
+  --color-border: #1e293b;
+  --color-code-bg: #1e293b;
+}
+.hero-title { font-weight: 800; letter-spacing: -0.02em; }
+.project-card {
+  border-radius: 8px;
+  border-left: 3px solid var(--color-accent);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.project-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
+}
+.btn {
+  border-radius: 6px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  letter-spacing: 0.03em;
+}
+.site-header {
+  background: rgba(248, 250, 252, 0.9);
+  backdrop-filter: blur(12px);
+}
+[data-theme="dark"] .site-header { background: rgba(11, 17, 32, 0.9); }
+.section-title {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 1.1rem;
+  color: var(--color-accent);
+}
+.page-title { font-weight: 800; letter-spacing: -0.01em; }
+.filter-btn {
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  border-radius: 4px;
+}

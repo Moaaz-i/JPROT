@@ -1,0 +1,25 @@
+/* =========================================================
+   Example theme: Neon accent + glow
+   Copy this file to theme/custom.css
+   ========================================================= */
+
+:root {
+  --color-bg: #0d0d0f;
+  --color-surface: #17171c;
+  --color-text: #f4f4f6;
+  --color-muted: #a1a1aa;
+  --color-accent: #e4007c;
+  --color-accent-contrast: #ffffff;
+  --color-border: #2a2a31;
+  --color-code-bg: #17171c;
+}
+
+.btn:hover {
+  box-shadow: 0 0 24px var(--color-accent);
+}
+.brand {
+  background: linear-gradient(90deg, var(--color-accent), #7c3aed);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}

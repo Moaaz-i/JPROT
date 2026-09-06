@@ -1,0 +1,50 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { createMarkdown } from '../lib/markdown.js'
+
+const md = createMarkdown()
+
+test('renders headings and collects toc entries', () => {
+  const headings = []
+  const html = md.render('# Title\n\n## Sub\n\nparagraph', headings)
+  assert.match(html, /<h1 id="title">Title<\/h1>/)
+  assert.match(html, /<h2 id="sub">Sub<\/h2>/)
+  assert.match(html, /<p>paragraph<\/p>/)
+  assert.ok(headings.some((h) => h.text === 'Title' && h.level === 1))
+  assert.ok(headings.some((h) => h.text === 'Sub' && h.level === 2))
+})
+
+test('inline code is HTML-escaped (XSS guard)', () => {
+  const html = md.render('Use `alert("<b>")` inline')
+  assert.match(html, /<code>alert\(&quot;&lt;b&gt;&quot;\)<\/code>/)
+})
+
+test('inline code content is not parsed as bold/emphasis', () => {
+  const html = md.render('Keep `**literal**` as-is')
+  assert.match(html, /<code>\*\*literal\*\*<\/code>/)
+})
+
+test('fenced code block is escaped', () => {
+  const html = md.render('```js\nconst x = "<tag>"\n```')
+  assert.match(html, /<pre><code class="language-js">const x = &quot;&lt;tag&gt;&quot;<\/code><\/pre>/)
+})
+
+test('links and images render', () => {
+  const html = md.render('[link](https://x.dev) ![alt](img.png)')
+  assert.match(html, /<a href="https:\/\/x\.dev">link<\/a>/)
+  assert.match(html, /<img src="img\.png" alt="alt">/)
+})
+
+test('unordered and ordered lists', () => {
+  const ul = md.render('- a\n- b')
+  assert.match(ul, /<li>a<\/li>\s*<li>b<\/li>/)
+  const ol = md.render('1. one\n2. two')
+  assert.match(ol, /<li>one<\/li>\s*<li>two<\/li>/)
+})
+
+test('tables render', () => {
+  const html = md.render('| A | B |\n|---|---|\n| 1 | 2 |')
+  assert.match(html, /<table>/)
+  assert.match(html, /<th>A<\/th>/)
+  assert.match(html, /<td>1<\/td>/)
+})

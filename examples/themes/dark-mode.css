@@ -1,0 +1,15 @@
+/* =========================================================
+   Example theme: Dark mode
+   Copy this file to theme/custom.css
+   ========================================================= */
+
+:root {
+  --color-bg: #0f172a;
+  --color-surface: #1e293b;
+  --color-text: #e2e8f0;
+  --color-muted: #94a3b8;
+  --color-accent: #38bdf8;
+  --color-accent-contrast: #0f172a;
+  --color-border: #334155;
+  --color-code-bg: #1e293b;
+}

@@ -1,0 +1,63 @@
+{
+  "name": "jprot",
+  "version": "0.2.0",
+  "description": "A fully customizable Portfolio site generator that serves Markdown without a build step",
+  "type": "module",
+  "main": "./core/server.js",
+  "types": "./jprot.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Moaaz-i/JPROT.git"
+  },
+  "homepage": "https://github.com/Moaaz-i/JPROT#readme",
+  "bugs": {
+    "url": "https://github.com/Moaaz-i/JPROT/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./jprot.d.ts",
+      "default": "./core/server.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "jprot": "core/cli.js"
+  },
+  "files": [
+    "core",
+    "lib",
+    "theme",
+    "examples",
+    "jprot.d.ts"
+  ],
+  "scripts": {
+    "dev": "node core/cli.js",
+    "start": "node core/cli.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "portfolio",
+    "static-site",
+    "site-generator",
+    "markdown",
+    "no-build",
+    "ssr",
+    "blog",
+    "zero-config",
+    "i18n",
+    "dark-mode",
+    "responsive",
+    "theme",
+    "pwa"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Moaaz"
+  }
+}

@@ -1,0 +1,14 @@
+/* =========================================================
+   Your full customization — custom.css
+   Loaded automatically after the theme styles. Redefine CSS
+   variables or add any of your own rules here.
+   ========================================================= */
+
+:root {
+  /* Example: change the primary color with one line */
+  --color-accent: #0d9488;
+}
+
+.projects-grid {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}

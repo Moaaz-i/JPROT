@@ -1,0 +1,23 @@
+/* =========================================================
+   Example theme: Editorial serif typography
+   Copy this file to theme/custom.css
+   ========================================================= */
+
+:root {
+  --font-sans: "Georgia", "Times New Roman", serif;
+  --font-size: 18px;
+  --container-width: 780px;
+  --color-accent: #7c2d12;
+  --color-bg: #fdfaf6;
+  --color-text: #292524;
+  --color-border: #e7e5e4;
+  --color-surface: #f5f0ea;
+}
+
+.hero-title {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.site-header {
+  border-bottom-width: 2px;
+}
