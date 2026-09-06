@@ -2,13 +2,29 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { readFile, stat } from 'node:fs/promises'
+import { readFile, readdir, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { exportSite } from '../core/export.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 async function exists(p) { try { await stat(p); return true } catch { return false } }
+
+async function htmlFiles(dir) {
+  const files = []
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) files.push(...await htmlFiles(full))
+    else if (entry.name.endsWith('.html')) files.push(full)
+  }
+  return files
+}
+
+function internalHrefs(html) {
+  return [...html.matchAll(/\bhref="([^"]*)"/g)]
+    .map((match) => match[1])
+    .filter((href) => href && !href.includes("' + ") && !href.startsWith('#'))
+}
 
 test('exportSite renders the whole site to dist/', async () => {
   const out = join(tmpdir(), 'jprot-export-' + Date.now())
@@ -57,6 +73,18 @@ test('exportSite prefixes URLs for a project GitHub Pages site', async () => {
     const quickStart = await readFile(join(dest, 'quick-start', 'index.html'), 'utf8')
     assert.match(quickStart, /href="\/JPROT\/getting-started\/"/)
     assert.doesNotMatch(quickStart, /href="\/JPROT\/quick-start\/getting-started/)
+
+    // Every exported HTML page must keep internal links rooted at the Pages
+    // base path; this catches the same bug on any nested docs page.
+    for (const file of await htmlFiles(dest)) {
+      const html = await readFile(file, 'utf8')
+      for (const href of internalHrefs(html)) {
+        if (/^(?:https?:|mailto:|tel:|data:|\/\/)/i.test(href)) continue
+        assert.ok(href.startsWith('/JPROT/'), `${file} has unrooted href ${href}`)
+        assert.doesNotMatch(href, /\/JPROT\/(?:https?:|mailto:|tel:|data:)/i)
+        assert.doesNotMatch(href, /\/JPROT\/(?:quick-start|getting-started)\/(?:quick-start|getting-started)(?:\/|$)/)
+      }
+    }
   } finally {
     const { rm } = await import('node:fs/promises')
     await rm(out, { recursive: true, force: true })
