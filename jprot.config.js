@@ -26,9 +26,15 @@ export default {
 
   // Navbar links: set false to hide the nav links (brand stays).
   showNav: true,
-
   // Theme picker: cycle button (◈) in the header (Default/Minimal/Creative/Corporate).
   themePicker: true,
+  // Keep the public header focused; the full docs remain in the sidebar/search.
+  nav: [
+    { label: "Docs", url: "/quick-start" },
+    { label: "Examples", url: "/examples" },
+    { label: "Publish", url: "/deploy" },
+    { label: "GitHub", url: "https://github.com/Moaaz-i/JPROT" },
+  ],
 
   hero: {
     avatar: "",

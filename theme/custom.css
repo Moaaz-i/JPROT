@@ -5,10 +5,142 @@
    ========================================================= */
 
 :root {
-  /* Example: change the primary color with one line */
-  --color-accent: #0d9488;
+  --color-bg: #fbfcfe;
+  --color-surface: #f3f6fa;
+  --color-text: #172033;
+  --color-muted: #64748b;
+  --color-accent: #2563eb;
+  --color-accent-contrast: #ffffff;
+  --color-border: #dbe3ee;
+  --color-code-bg: #eef3f8;
+  --container-width: 1120px;
+  --radius: 10px;
+  --space: 1.25rem;
 }
 
 .projects-grid {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+/* JPROT project/docs presentation: compact brand, clear nav, quiet controls. */
+.site-header {
+  padding: 0.7rem clamp(1rem, 3vw, 2.25rem);
+  gap: 1.25rem;
+  background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+  box-shadow: 0 1px 0 rgba(23, 32, 51, 0.04);
+}
+
+.brand {
+  flex: 0 0 auto;
+  font-size: 1.1rem;
+  letter-spacing: 0.01em;
+}
+
+.site-nav {
+  flex: 1 1 auto;
+  justify-content: center;
+  gap: 0.15rem;
+  flex-wrap: nowrap;
+}
+
+.nav-link {
+  padding: 0.42rem 0.75rem;
+  border-radius: 7px;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--color-accent);
+  background: var(--color-surface);
+}
+
+.header-actions {
+  gap: 0.4rem;
+}
+
+.search-toggle,
+.theme-toggle,
+.variant-cycle,
+.sidebar-toggle,
+.nav-toggle {
+  width: 2.15rem;
+  height: 2.15rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-muted);
+  border-radius: 8px;
+}
+
+.search-toggle:hover,
+.theme-toggle:hover,
+.variant-cycle:hover,
+.sidebar-toggle:hover,
+.nav-toggle:hover {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-accent);
+}
+
+.hero {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(3.5rem, 9vw, 7rem) 0 4rem;
+}
+
+.hero-title {
+  font-size: clamp(2.4rem, 6vw, 4.3rem);
+  letter-spacing: -0.055em;
+}
+
+.hero-subtitle {
+  max-width: 42rem;
+  line-height: 1.55;
+}
+
+.page-content,
+.page-header {
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.page-content h2 {
+  margin-top: 2.8rem;
+  border-bottom: 0;
+}
+
+.project-card,
+.post-item,
+.service-card,
+.section-cta {
+  box-shadow: 0 8px 24px rgba(23, 32, 51, 0.045);
+}
+
+[data-theme="dark"] {
+  --color-bg: #0f172a;
+  --color-surface: #172238;
+  --color-text: #e5edf8;
+  --color-muted: #9aabc2;
+  --color-accent: #7da7ff;
+  --color-border: #293951;
+  --color-code-bg: #172238;
+}
+
+@media (max-width: 760px) {
+  .site-header {
+    gap: 0.65rem;
+  }
+
+  .site-nav {
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .site-nav::-webkit-scrollbar {
+    display: none;
+  }
 }
