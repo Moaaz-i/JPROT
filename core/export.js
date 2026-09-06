@@ -28,7 +28,7 @@ function addBasePath(body, basePath) {
   return body
     .replace(/(href|src|action|poster)="\/(?!\/)/g, `$1="${basePath}/`)
     .replace(/fetch\('\/@jprot\//g, `fetch('${basePath}/@jprot/`)
-    .replace(/href="' \+ e\.url/g, `href="${basePath}" + e.url`)
+    .replace(/href="' \+ e\.url/g, `href="${basePath}' + e.url`)
 }
 
 export async function exportSite({ root, outDir, basePath } = {}) {

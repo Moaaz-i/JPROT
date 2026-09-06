@@ -43,6 +43,7 @@ test('exportSite prefixes URLs for a project GitHub Pages site', async () => {
     const home = await readFile(join(dest, 'index.html'), 'utf8')
     assert.match(home, /href="\/JPROT\/getting-started"/)
     assert.match(home, /href="\/JPROT\/@jprot\/css\/[0-9a-f]{16}\.css"/)
+    assert.match(home, /href="\/JPROT' \+ e\.url/)
     assert.doesNotMatch(home, /href="\/getting-started"/)
     assert.ok(await exists(join(dest, '@jprot', 'og')), 'og assets directory exported')
   } finally {
