@@ -41,11 +41,19 @@ test('exportSite prefixes URLs for a project GitHub Pages site', async () => {
   const dest = await exportSite({ root, outDir: out, basePath: '/JPROT' })
   try {
     const home = await readFile(join(dest, 'index.html'), 'utf8')
-    assert.match(home, /href="\/JPROT\/getting-started"/)
+    assert.match(home, /href="\/JPROT\/getting-started\/"/)
     assert.match(home, /href="\/JPROT\/@jprot\/css\/[0-9a-f]{16}\.css"/)
-    assert.match(home, /href="\/JPROT' \+ e\.url/)
+    assert.match(home, /href="\/JPROT' \+ \(e\.url === '\/' \? '\/' : e\.url\.replace/)
     assert.doesNotMatch(home, /href="\/getting-started"/)
+    assert.doesNotMatch(home, /\/JPROT\/https?:\/\//)
+    assert.doesNotMatch(home, /href="\/JPROT\/(?:mailto:|tel:|data:)/)
+    assert.match(home, /https:\/\/github\.com\/Moaaz-i\/JPROT/)
+    assert.match(home, /href="\/JPROT\/quick-start\/"/)
     assert.ok(await exists(join(dest, '@jprot', 'og')), 'og assets directory exported')
+
+    for (const rel of ['quick-start', 'getting-started', 'content', 'configuration', 'customization', 'deploy', 'cli-reference', 'api-reference', 'examples']) {
+      assert.ok(await exists(join(dest, rel, 'index.html')), `missing page index for ${rel}`)
+    }
   } finally {
     const { rm } = await import('node:fs/promises')
     await rm(out, { recursive: true, force: true })

@@ -23,12 +23,29 @@ function normalizeBasePath(value) {
   return '/' + path.replace(/^\/+|\/+$/g, '')
 }
 
-function addBasePath(body, basePath) {
+function addBasePath(body, basePath, pageUrls = new Set()) {
   if (!basePath) return body
+  const withPageSlash = (value) => {
+    const match = value.match(/^([^?#]*)([?#].*)?$/)
+    if (!match) return value
+    const path = match[1]
+    if (!pageUrls.has(path) || path === '/') return value
+    return path.replace(/\/?$/, '/') + (match[2] || '')
+  }
+  const rewriteAttribute = (match, name, value) => {
+    // Header links historically normalize external URLs to `/https://...`.
+    // Restore those values before applying the project base path.
+    if (/^\/(?:https?:|mailto:|tel:|data:)/i.test(value)) {
+      return `${name}="${value.slice(1)}"`
+    }
+    if (!value.startsWith('/') || value.startsWith('//')) return match
+    const path = withPageSlash(value)
+    return `${name}="${basePath}${path}"`
+  }
   return body
-    .replace(/(href|src|action|poster)="\/(?!\/)/g, `$1="${basePath}/`)
+    .replace(/\b(href|src|action|poster)="([^"]*)"/g, rewriteAttribute)
     .replace(/fetch\('\/@jprot\//g, `fetch('${basePath}/@jprot/`)
-    .replace(/href="' \+ e\.url/g, `href="${basePath}' + e.url`)
+    .replace(/href="' \+ e\.url/g, `href="${basePath}' + (e.url === '/' ? '/' : e.url.replace(/\/?$/, '/'))`)
 }
 
 export async function exportSite({ root, outDir, basePath } = {}) {
@@ -46,6 +63,7 @@ export async function exportSite({ root, outDir, basePath } = {}) {
     // Content index from the live server (drafts already excluded).
     const entries = await (await fetch(base + '/@jprot/search.json')).json()
     const pageUrls = ['/', ...entries.map((e) => e.url)]
+    const pageUrlSet = new Set(pageUrls)
 
     const homeHtml = await (await fetch(base + '/')).text()
 
@@ -71,7 +89,7 @@ export async function exportSite({ root, outDir, basePath } = {}) {
       const res = await fetch(base + u)
       const sourceHtml = rewriteCss(await res.text())
       for (const m of sourceHtml.matchAll(/\/@jprot\/og\/[0-9a-z]{16}\.svg/g)) pendingOg.add(m[0])
-      const html = addBasePath(sourceHtml, siteBasePath)
+      const html = addBasePath(sourceHtml, siteBasePath, pageUrlSet)
       const rel = u === '/'
         ? 'index.html'
         : u.replace(/^\//, '').replace(/\/$/, '') + '/index.html'
@@ -90,7 +108,7 @@ export async function exportSite({ root, outDir, basePath } = {}) {
 
     // Custom (or default) 404 page → dist/404.html.
     const nf = await fetch(base + '/__jprot_missing_page__')
-    await writeOut(dest, '404.html', addBasePath(rewriteCss(await nf.text()), siteBasePath))
+    await writeOut(dest, '404.html', addBasePath(rewriteCss(await nf.text()), siteBasePath, pageUrlSet))
 
     // Copy og images referenced by exported pages.
     for (const ogPath of pendingOg) {
