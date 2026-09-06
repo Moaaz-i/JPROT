@@ -17,4 +17,4 @@ The whole design is driven by a small set of CSS variables defined in
 
 Override any of them in `theme/custom.css` and never touch a component.
 
-The [customization guide](customization.md) shows the full list.
+The [customization guide](customization) shows the full list.

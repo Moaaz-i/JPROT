@@ -1,7 +1,8 @@
 ---
-title: Customization
-order: 4
-nav: Customization
+title: Customize your site
+description: Change the look, layout, components, sections, and search behavior without a build step.
+order: 5
+nav: Customize
 ---
 
 This is where JPROT stands out: you can restyle the site **entirely** without touching a single component — or go further and replace whole layout components.
@@ -105,7 +106,8 @@ export default function Footer({ site }) {
 }
 ```
 
-Save it, refresh — done. See ready-made samples in the [Examples](examples.md) page and the `examples/` folder.
+Save it, refresh — done. See ready-made samples in the [Examples](examples)
+page and the `examples/` folder.
 
 ## Everything is config-first
 
@@ -117,7 +119,7 @@ config option — most built-in surfaces are:
 | Colors, fonts, spacing | CSS variables in `theme/custom.css` |
 | Header/footer/homepage HTML | Replace `Header` / `Footer` / `Home` components |
 | Docs sidebar | `sidebar: false` (global) or `sidebar: false` in a page's frontmatter |
-| Any visible text / translate the UI | `labels` in `jprot.config.js` (see [Configuration](configuration.md#labels-every-built-in-text-is-overridable)) |
+| Any visible text / translate the UI | `labels` in `jprot.config.js` (see [Configuration](configuration#labels-every-built-in-text-is-overridable)) |
 | Blog/projects folders | `blogDir`, `projectsDir` |
 | Which layout a page uses | `layout:` in frontmatter, or `homeLayout` / `defaultLayout` |
 | 404 page | Create `content/404.md` |
@@ -154,7 +156,7 @@ your `custom.css`:
 ## 5) Portfolio sections
 
 The homepage is composed of **sections** — see
-[Configuration → Sections](configuration.md#sections-the-portfolio-builder).
+[Configuration → Sections](configuration#sections-the-portfolio-builder).
 Each section is a component, so you can restyle or replace any of them the
 same way:
 
@@ -304,7 +306,7 @@ Set `url` in the config to a canonical domain to fill in sitemap/OG URLs. Mark
 a page `draft: true` to keep it out of every public surface (plus `404` in
 `--prod`/exports); `noindex: true` to keep it online but invisible to search.
 Customize further with `searchUrl`, `twitter`, `ogLocale`, `sameAs`,
-`alternateLangs`, `logo`, `ogImage` — see [Configuration](configuration.md).
+`alternateLangs`, `logo`, `ogImage` — see [Configuration](configuration).
 
 ## 12) Printable Resume
 
@@ -331,4 +333,4 @@ education:
 
 Body Markdown appears below the header; frontmatter fields map to blocks.
 
-Next: [Examples](examples.md).
+Next: [Publish your site](deploy).

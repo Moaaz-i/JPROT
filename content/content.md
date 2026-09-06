@@ -1,10 +1,12 @@
 ---
-title: Content
-order: 2
-nav: Content
+title: Write your first page
+description: Learn how Markdown files, frontmatter, projects, posts, and shortcodes become pages.
+order: 3
+nav: Write content
 ---
 
-Everything on your site is written as **Markdown** files under `content/`. Adding, editing or removing a file changes the site immediately.
+Everything on your site is written as **Markdown** files under `content/`.
+Adding, editing, or removing a file changes the site immediately.
 
 ## How files map to pages
 
@@ -124,4 +126,4 @@ Example table:
 | Frontmatter | ✓ |
 | Images | ✓ |
 
-Next: [Configuration](configuration.md).
+Next: [Basic configuration](configuration).

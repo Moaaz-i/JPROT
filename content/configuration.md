@@ -1,10 +1,27 @@
 ---
-title: Configuration
-order: 3
-nav: Configuration
+title: Basic configuration
+description: Configure site identity, navigation, layouts, SEO, labels, and Markdown behavior.
+order: 4
+nav: Configure
 ---
 
-Site-wide settings live in a single file at the project root: **`jprot.config.js`** (or `jprot.config.json`).
+Site-wide settings live in one file at the project root:
+**`jprot.config.js`** (or `jprot.config.json`).
+
+Start with these four values:
+
+```js
+export default {
+  title: 'My site',
+  description: 'A short sentence for search engines and link previews.',
+  url: 'https://example.com',
+  author: 'Your Name',
+}
+```
+
+The `url` is important for production: it is used by canonical links, feeds,
+Open Graph metadata, and the sitemap. Keep the local default while developing,
+then replace it before publishing.
 
 ## A full example
 
@@ -297,7 +314,7 @@ sections:
 
 Their order follows the list. To move the whole area elsewhere (or remove it
 from non-home pages), replace the `Home`/`Page` component — see
-[Customization](customization.md#3-replace-a-component-full-layout-control).
+[Customization](customization#3-replace-a-component-full-layout-control).
 
 ## Using JSON instead of JS
 
@@ -339,4 +356,4 @@ the navigation, sitemap, search index, RSS feeds and static exports, and returns
 `404` in production. The dev server keeps it reachable at its URL so you can
 preview it. `jprot new post "Title" --draft` creates a draft for you.
 
-Next: [Customization](customization.md).
+Next: [Customize your site](customization).

@@ -1,5 +1,6 @@
 ---
 title: JPROT vs VitePress
+description: Compare JPROT's no-build workflow with a build-time documentation framework.
 order: 7
 nav: Comparison
 ---
@@ -41,4 +42,4 @@ JPROT is inspired by the *idea* of VitePress (Markdown-driven sites) but takes a
 
 JPROT isn't a clone — it's a lighter, more open alternative for the cases VitePress's weight isn't warranted.
 
-Next: [FAQ](faq.md).
+Next: [FAQ](faq).

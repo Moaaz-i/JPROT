@@ -1,5 +1,6 @@
 ---
 title: Troubleshooting
+description: Fix common JPROT setup, content, export, and deployment problems.
 order: 9
 nav: Troubleshooting
 ---
@@ -26,7 +27,7 @@ PORT=3000 jprot
 ```
 
 Typo in `jprot.config.js`. Each unknown key prints a **did-you-mean** hint —
-check the spelling against the [Configuration](configuration.md) page.
+check the spelling against the [Configuration](configuration) page.
 
 ## "no component named X found" for a section
 
@@ -89,7 +90,7 @@ By design. JPROT ships a **strict CSP** that only allows inline scripts carrying
 a per-response nonce — raw `<script>` blocks authored in Markdown are blocked.
 To add JavaScript, write it into one of your theme components (it's server-
 rendered into the page with the correct nonce) or place it in the `head` config.
-See [Customization → Components](customization.md#3-replace-a-component-full-layout-control).
+See [Customization → Components](customization#3-replace-a-component-full-layout-control).
 
 ## Why does `jprot export` start a server?
 
@@ -112,5 +113,5 @@ served as static assets instead.
 
 ---
 
-Still stuck? Open the [FAQ](faq.md), or read the [Architecture](architecture.md)
+Still stuck? Open the [FAQ](faq), or read the [Architecture](architecture)
 page to understand how the server resolves a request.

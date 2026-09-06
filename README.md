@@ -12,11 +12,43 @@ The project documentation is published at
 
 ---
 
-## Quick Start
+## Start here
+
+JPROT is designed around a short user journey:
+
+1. **Create a site** with `npx jprot init --portfolio`.
+2. **Write content** in `content/` as Markdown.
+3. **Customize** with `jprot.config.js`, CSS variables, or component overrides.
+4. **Publish** with `jprot export --out dist`.
+
+Read the [step-by-step documentation](https://moaaz-i.github.io/JPROT/) or
+follow the copy-paste guide below.
+
+## Quick start
 
 ```bash
 npx jprot
 # → http://127.0.0.1:4114
+```
+
+To create a new site instead of running the current folder:
+
+```bash
+mkdir my-site && cd my-site
+npx jprot init --portfolio
+npm start
+```
+
+Expected result:
+
+```text
+✔ Site scaffolded into the current folder.
+```
+
+Then start the site:
+
+```text
+Running locally at: http://127.0.0.1:4114
 ```
 
 Or globally:
@@ -52,20 +84,22 @@ jprot 8080
 
 ---
 
-## Full Documentation
+## Documentation
 
 This repository *is* a live documentation site. Read the pages below in your
 browser (`npm start` → open the links) or directly on GitHub:
 
 | Page | What it covers |
 |------|----------------|
-| [Getting Started](content/getting-started.md) | Run locally, scaffold, your first page |
-| [Content](content/content.md) | Markdown, frontmatter, projects, shortcodes |
-| [Configuration](content/configuration.md) | Every `jprot.config.js` / JSON option |
-| [Customization](content/customization.md) | CSS variables, components, themes, blog, SEO |
-| [Examples](content/examples.md) | Copy-paste themes, components and config |
-| [Architecture](content/architecture.md) | How the code is organized |
-| [Troubleshooting](content/troubleshooting.md) | Fixes for common issues |
+| [Quick start](content/quick-start.md) | Create and preview a site in minutes |
+| [First site](content/getting-started.md) | Understand the generated files and workflow |
+| [Write content](content/content.md) | Markdown, frontmatter, projects, and shortcodes |
+| [Configure](content/configuration.md) | Site identity, navigation, SEO, and labels |
+| [Customize](content/customization.md) | CSS, themes, components, and sections |
+| [Publish](content/deploy.md) | Export to GitHub Pages or another static host |
+| [CLI reference](content/cli-reference.md) | All commands and useful options |
+| [API reference](content/api-reference.md) | Node.js and TypeScript usage |
+| [Troubleshooting](content/troubleshooting.md) | Fix common setup and deployment issues |
 | [FAQ](content/faq.md) | Commonly asked questions |
 | [Changelog](CHANGELOG.md) | Release notes |
 

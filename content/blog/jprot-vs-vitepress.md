@@ -16,4 +16,4 @@ step and every piece of UI replaceable — we decided to go our own way.
   swap without touching the content.
 * **Yours by default.** Every component ships as plain JavaScript you can edit.
 
-Read more in the [architecture](architecture.md) guide.
+Read more in the [architecture](architecture) guide.

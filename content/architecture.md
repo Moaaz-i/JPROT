@@ -1,6 +1,7 @@
 ---
 title: Architecture
-order: 6
+description: Learn how JPROT resolves content, renders components, and exports a site.
+order: 12
 nav: Architecture
 ---
 

@@ -1,10 +1,12 @@
 ---
-title: Getting Started
-order: 1
-nav: Getting Started
+title: Create your first site
+description: Understand the JPROT starter files and the everyday development workflow.
+order: 2
+nav: First site
 ---
 
-This page shows you how to run JPROT locally, change the port, and see your first page.
+You have a running site. This page explains what the starter files do and how
+to work on the site day to day.
 
 ## Requirements
 
@@ -57,21 +59,6 @@ node core/cli.js 4114 --no-watch
 | `theme/` | Your overrides (CSS + components) |
 | `theme/default/` | Built-in components and styles |
 
-## Your first change
-
-Add a file `content/hello.md`:
-
-```markdown
----
-title: Hello
-order: 2
----
-
-Welcome to my site!
-```
-
-Refresh — a new "Hello" link appears in the navigation bar pointing to `/hello`.
-
 ## Scaffold a brand-new site (`jprot init`)
 
 You don't have to assemble the folder by hand. From an **empty** directory:
@@ -122,4 +109,4 @@ jprot --prod          # serve with production caching (drafts → 404)
 jprot export --out dist   # export static HTML to dist/
 ```
 
-Learn more on the [Content](content.md) page next.
+Next: [Write your first page](content).

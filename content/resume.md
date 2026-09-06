@@ -1,8 +1,9 @@
 ---
 title: Resume
+description: Example printable resume page built with JPROT.
 nav: Resume
 layout: resume
-order: 10
+order: 13
 name: Jordan A. Developer
 role: Senior Web Developer & Tooling Engineer
 email: jordan@example.com
