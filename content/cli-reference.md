@@ -37,4 +37,4 @@ jprot g component Hobbies --palette cards
 ```
 
 `HOST`, `PORT`, and `NO_WATCH=1` are also supported environment variables.
-See [Publish your site](deploy) for a complete export workflow.
+See [Publish your site](deploy.md) for a complete export workflow.

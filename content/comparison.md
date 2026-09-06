@@ -42,4 +42,4 @@ JPROT is inspired by the *idea* of VitePress (Markdown-driven sites) but takes a
 
 JPROT isn't a clone — it's a lighter, more open alternative for the cases VitePress's weight isn't warranted.
 
-Next: [FAQ](faq).
+Next: [FAQ](faq.md).

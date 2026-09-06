@@ -8,6 +8,19 @@ export function decodeRequestPath(pathname) {
   return decoded
 }
 
+// Canonical clean URL for a /page.md request path, or null when the path is
+// not a .md URL. Index pages canonicalize to their directory (/index.md → /,
+// /blog/index.md → /blog/).
+export function mdCanonical(pathname) {
+  if (typeof pathname !== 'string' || !pathname.endsWith('.md')) return null
+  const base = pathname.slice(0, -3)
+  if (base.endsWith('/index')) {
+    const dir = base.slice(0, -6)
+    return dir ? dir + '/' : '/'
+  }
+  return base || '/'
+}
+
 // Resolve a relative content link against the current page path.
 export function resolveRelativeUrl(url, pagePath = '/') {
   if (!url || /^(?:[a-z][a-z\d+.-]*:|#|\/)/i.test(url)) return url

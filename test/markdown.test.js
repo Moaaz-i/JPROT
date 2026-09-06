@@ -49,6 +49,22 @@ test('unsafe URL schemes are neutralized', () => {
   assert.doesNotMatch(html, /javascript:|data:text\/html/)
 })
 
+test('internal .md links are canonicalized to clean URLs', () => {
+  const html = md.render(
+    '[a](quick-start.md) [b](../customization.md) [c](blog/index.md) [d](./index.md) [e](https://x.dev) [f](#top) ![g](img.png)'
+  )
+  assert.match(html, /<a href="quick-start">a<\/a>/)
+  assert.match(html, /<a href="\.\.\/customization">b<\/a>/)
+  assert.match(html, /<a href="blog\/">c<\/a>/)
+  assert.match(html, /<a href="\.\/">d<\/a>/)
+  assert.match(html, /<a href="https:\/\/x\.dev">e<\/a>/)
+  assert.match(html, /<a href="#top">f<\/a>/)
+  assert.match(html, /<img src="img\.png" alt="g">/)
+  assert.doesNotMatch(html, /\.md/)
+  const withAnchor = md.render('[x](guide.md#install)')
+  assert.match(withAnchor, /<a href="guide#install">x<\/a>/)
+})
+
 test('unordered and ordered lists', () => {
   const ul = md.render('- a\n- b')
   assert.match(ul, /<li>a<\/li>\s*<li>b<\/li>/)

@@ -34,8 +34,23 @@ test('HTTP validation rejects unsafe paths and unsupported methods', async () =>
   assert.equal((await fetch(base + '/%00')).status, 400)
   assert.equal((await fetch(base + '/%5Cetc%5Cpasswd')).status, 400)
   const post = await fetch(base + '/', { method: 'POST' })
-  assert.equal(post.status, 400)
+  assert.equal(post.status, 405)
   assert.equal(post.headers.get('allow'), 'GET, HEAD')
+  const del = await fetch(base + '/', { method: 'DELETE' })
+  assert.equal(del.status, 405)
+  // a leading // must be an absolute-path, not a protocol-relative authority
+  assert.equal((await fetch(base + '//server.js')).status, 404)
+})
+
+test('content pages redirect their .md form to the clean URL', async () => {
+  const res = await fetch(base + '/getting-started.md', { redirect: 'manual' })
+  assert.equal(res.status, 301)
+  assert.equal(new URL(res.headers.get('location')).pathname, '/getting-started')
+  const index = await fetch(base + '/index.md', { redirect: 'manual' })
+  assert.equal(index.status, 301)
+  assert.equal(new URL(index.headers.get('location')).pathname, '/')
+  const bogus = await fetch(base + '/no-such-page.md', { redirect: 'manual' })
+  assert.equal(bogus.status, 404)
 })
 
 test('HTTP security headers: strict CSP prevents nonce-less inline scripts', async () => {
@@ -71,6 +86,30 @@ test('configured theme variants are emitted for the client picker', async () => 
     site: { title: 'Themes', themes: [{ id: 'sunrise' }, { id: 'night' }] },
   })
   assert.match(html, /var VARIANTS = \["sunrise","night"\]/)
+})
+
+test('docs mode: sidebar lists the full reading order and pagination stays internal', async () => {
+  const html = await (await fetch(base + '/getting-started')).text()
+  const sidebar = html.match(/<nav class="sb-links">([\s\S]*?)<\/nav>/)?.[1] || ''
+  assert.ok(sidebar.includes('href="/content"'), 'docs sidebar lists content pages')
+  assert.ok(sidebar.includes('href="/customization"'), 'docs sidebar lists content pages')
+  assert.ok(!/href="[^"]*(?:github\.com|mailto:)/.test(sidebar), 'docs sidebar excludes external links')
+  const pagination = html.match(/<nav class="docs-pagination"[\s\S]*?<\/nav>/)?.[0] || ''
+  assert.ok(pagination, 'docs pagination rendered')
+  assert.ok(!pagination.includes('href="https:'), 'docs pagination never leaves the site')
+})
+
+test('formspree config loosens CSP connect and form sources', async () => {
+  const cspApp = await createJprot({ root, watch: false, config: { title: 'CSP', formspree: 'https://formspree.io/f/xyz' } })
+  const cspBase = `http://127.0.0.1:${await cspApp.listen(0)}`
+  try {
+    const csp = (await fetch(cspBase + '/')).headers.get('content-security-policy') || ''
+    assert.match(csp, /connect-src 'self' https:\/\/formspree\.io/)
+    assert.match(csp, /form-action 'self' https:\/\/formspree\.io/)
+  } finally {
+    await new Promise((r) => cspApp.server.close(r))
+    cspApp.closeWatcher && cspApp.closeWatcher()
+  }
 })
 
 test('renderPage works as a standalone API (no server)', async () => {

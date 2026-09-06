@@ -22,8 +22,17 @@ export async function loadComponents(userThemeDir, bust = false) {
   const loaded = {}
   for (const [name, file] of candidates) {
     const href = pathToFileURL(file).href + (bust ? '?t=' + Date.now() : '')
-    const mod = await import(href)
-    loaded[name] = mod.default || mod
+    try {
+      const mod = await import(href)
+      const value = mod.default || mod
+      if (typeof value !== 'function') {
+        console.warn(`[jprot] component "${name}" in ${file} does not export a component function; skipping`)
+        continue
+      }
+      loaded[name] = value
+    } catch (e) {
+      console.warn(`[jprot] could not load component "${name}" from ${file}: ${e.message}`)
+    }
   }
   return loaded
 }

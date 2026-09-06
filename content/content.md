@@ -126,4 +126,4 @@ Example table:
 | Frontmatter | ✓ |
 | Images | ✓ |
 
-Next: [Basic configuration](configuration).
+Next: [Basic configuration](configuration.md).

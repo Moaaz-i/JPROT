@@ -106,10 +106,12 @@ export function stripMarkdown(src) {
 export async function indexAll(contentDir) {
   const out = []
   for (const f of await listMarkdown(contentDir)) {
-    if (basename(f, '.md') === 'index' || basename(f, '.md') === '404') continue
+    const rel = f.slice(contentDir.length + 1).replace(/\.md$/, '').replace(/\/index$/, '')
+    // Skip only the site homepage and the 404 page, not nested index pages,
+    // so a browsable docs directory also appears in search/sitemap/export.
+    if (rel === 'index' || rel === '404') continue
     const { data, body } = await readParsed(f)
     if (data.hidden || data.draft) continue
-    const rel = f.slice(contentDir.length + 1).replace(/\.md$/, '')
     const slug = basename(f, '.md')
     const title = data.title || slug
     const excerpt = (data.excerpt || data.description || body.split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 2).join(' '))
@@ -119,7 +121,13 @@ export async function indexAll(contentDir) {
       title,
       url: '/' + rel,
       excerpt,
-      tags: data.tags || [],
+      // Scalar frontmatter like `tags: guide` must not crash the client
+      // search (it calls .map on the value), so normalize to an array.
+      tags: Array.isArray(data.tags)
+        ? data.tags.map((t) => String(t))
+        : data.tags
+          ? [String(data.tags)]
+          : [],
       date: data.date || '',
       image: data.image || '',
       body: stripMarkdown(body),

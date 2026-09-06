@@ -46,4 +46,4 @@ export default {
 ```
 
 For component props and extension examples, see
-[Customize your site](customization).
+[Customize your site](customization.md).

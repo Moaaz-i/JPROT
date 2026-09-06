@@ -65,8 +65,8 @@ This page is live.
 ```
 
 Refresh the browser and open `/hello`. Continue with
-[Create your first site](getting-started) to understand the generated files,
-then [write your first page](content).
+[Create your first site](getting-started.md) to understand the generated files,
+then [write your first page](content.md).
 
 ## Common first-run problems
 

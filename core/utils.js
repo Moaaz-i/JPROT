@@ -1,14 +1,19 @@
 import { resolve, extname, join, basename } from 'node:path'
+import { realpathSync } from 'node:fs'
 
 // HTML-escape a value for safe interpolation into markup.
 export function esc(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-// True when `target` resolves to, or lives under, `parent`.
+// True when `target` resolves to, or lives under, `parent`. Symlinks are
+// followed so a symlink planted inside a served directory cannot point at a
+// file outside it (lexical checks alone would be bypassed).
 export function isInside(parent, target) {
-  const rp = resolve(parent)
-  const rt = resolve(target)
+  let rp
+  try { rp = realpathSync(parent) } catch { rp = resolve(parent) }
+  let rt
+  try { rt = realpathSync(target) } catch { rt = resolve(target) }
   return rt === rp || rt.startsWith(rp + '/') || rt.startsWith(rp + '\\')
 }
 
@@ -31,8 +36,10 @@ export const MIME = {
   '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.mp4': 'video/mp4',
 }
 
-// Send a fully-formed HTTP response.
+import { sendWithSecurity } from './http.js'
+
+// Send a fully-formed HTTP response. Delegates to the security-header-aware
+// helper so no route can accidentally bypass CSP / security headers.
 export function sendRes(res, status, contentType, body) {
-  res.writeHead(status, { 'Content-Type': contentType, 'Cache-Control': 'no-cache' })
-  res.end(body)
+  sendWithSecurity(res, status, contentType, body)
 }

@@ -19,19 +19,19 @@ Open <http://127.0.0.1:4114> and make your first change.
 
 ## Choose your next step
 
-- **[Quick start](quick-start)** — create a working site in a few minutes.
-- **[Create your first site](getting-started)** — understand the starter files
+- **[Quick start](quick-start.md)** — create a working site in a few minutes.
+- **[Create your first site](getting-started.md)** — understand the starter files
   and daily workflow.
-- **[Write your first page](content)** — use Markdown, frontmatter, projects,
+- **[Write your first page](content.md)** — use Markdown, frontmatter, projects,
   posts, and shortcodes.
-- **[Basic configuration](configuration)** — set the title, URL, navigation,
+- **[Basic configuration](configuration.md)** — set the title, URL, navigation,
   layouts, SEO, and labels.
-- **[Customize your site](customization)** — change CSS, themes, components,
+- **[Customize your site](customization.md)** — change CSS, themes, components,
   sections, and the search experience.
-- **[Publish your site](deploy)** — export to GitHub Pages or any static host.
+- **[Publish your site](deploy.md)** — export to GitHub Pages or any static host.
 
-Reference pages are available for the [CLI](cli-reference),
-[configuration](configuration), and [Node.js API](api-reference).
+Reference pages are available for the [CLI](cli-reference.md),
+[configuration](configuration.md), and [Node.js API](api-reference.md).
 
 You write plain **Markdown** files. The server reads them and serves HTML instantly. Every part of the presentation — layout, header, footer, homepage, colors, fonts — is **yours to override** with simple CSS variables and drop-in components. No bundler, no framework lock-in, no compile step.
 
@@ -64,8 +64,8 @@ Most generators force a build step and a fixed theme. JPROT flips this:
 
 ## Reference and help
 
-- [Examples](examples) — copy-paste themes, components, and config.
-- [Troubleshooting](troubleshooting) — fix common setup and deployment issues.
-- [FAQ](faq) — common questions.
-- [Architecture](architecture) — internals for contributors and theme authors.
-- [Comparison](comparison) — JPROT versus VitePress.
+- [Examples](examples.md) — copy-paste themes, components, and config.
+- [Troubleshooting](troubleshooting.md) — fix common setup and deployment issues.
+- [FAQ](faq.md) — common questions.
+- [Architecture](architecture.md) — internals for contributors and theme authors.
+- [Comparison](comparison.md) — JPROT versus VitePress.

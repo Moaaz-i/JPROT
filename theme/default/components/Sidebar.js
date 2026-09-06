@@ -3,17 +3,21 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
 }[c]))
 
 export default async function Sidebar(props) {
-  const { site, page, nav } = props
+  const { site, page, nav, docsNav } = props
   if (!site.sidebar) return ''
   const L = site.labels || {}
-  const home = { label: site.title || L.home || 'Home', url: '/', active: page.url === '/' }
-  const links = [home, ...(nav || [])].map((n) => {
+  // Docs mode prefers the full content reading order; otherwise fall back to
+  // the navigation passed in (navbar) so non-docs sites keep previous behavior.
+  const list = site.docs && Array.isArray(docsNav) && docsNav.length ? docsNav : (nav || [])
+  const current = String((page && page.url) || '/').split('#')[0]
+  const home = { label: site.title || L.home || 'Home', url: '/', active: current === '/' }
+  const links = [home, ...list].map((n) => {
     const href = String(n.url || '')
-    const path = href.startsWith('/') ? href : '/' + href
-    const active = page && page.path && n.path === page.path
-      ? true
-      : path !== '/' && page && page.path && page.path.endsWith(path.slice(1))
-    return `<a href="${path}" class="sb-link${active ? ' active' : ''}">${esc(n.label || n.text)}</a>`
+    const path = /^(?:[a-z][a-z\d+.-]*:|#|\/)/i.test(href) ? href || '/' : '/' + href
+    const isExternal = /^(?:[a-z][a-z\d+.-]*:|#)/i.test(href)
+    const target = path.replace(/\/+$/, '') || '/'
+    const active = !isExternal && current.length > 1 && (current === target || current + '/' === path)
+    return `<a href="${esc(path)}" class="sb-link${active ? ' active' : ''}">${esc(n.label || n.text)}</a>`
   }).join('')
 
   const headings = (page.headings || []).filter((h) => h.level >= 2 && h.level <= 3)

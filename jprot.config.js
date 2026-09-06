@@ -215,7 +215,7 @@ export default {
       title: "Let us start a project",
       text: "Have an idea? Tell me about it and we will make it real.",
       label: "Start a conversation",
-      url: "/contact",
+      url: "mailto:hello@example.com",
     },
   ],
 

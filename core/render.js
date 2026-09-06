@@ -40,7 +40,7 @@ export async function renderDocumentBody(source, md, components, props, headings
   while (i < lines.length) {
     const line = lines[i]
     if (/^\s*```+/.test(line)) { inCode = !inCode; buf.push(line); i++; continue }
-    const match = line.match(/^:::\s*([A-Za-z0-9-]+)(.*)$/)
+    const match = line.match(/^\s*:::\s*([A-Za-z0-9-]+)(.*)$/)
     if (match && !inCode) {
       flush()
       const name = match[1]
@@ -53,8 +53,17 @@ export async function renderDocumentBody(source, md, components, props, headings
       const attrs = parseAttrs(match[2])
       i++
       const inner = []
-      while (i < lines.length && !/^\s*:::\s*$/.test(lines[i].trim())) inner.push(lines[i++])
-      if (i < lines.length) i++
+      let closed = false
+      while (i < lines.length) {
+        if (/^\s*:::\s*$/.test(lines[i])) { closed = true; i++; break }
+        inner.push(lines[i++])
+      }
+      // Unterminated shortcode: emit the block as literal text instead of
+      // silently swallowing the rest of the document past the closing fence.
+      if (!closed) {
+        buf.push(line, ...inner)
+        continue
+      }
       const children = await renderDocumentBody(inner.join('\n'), md, components, props, headings)
       try {
         const html = await component({ ...props, ...attrs, children })

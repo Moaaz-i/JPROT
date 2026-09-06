@@ -8,15 +8,15 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { parseFrontmatter } from '../lib/frontmatter.js'
 import { createMarkdown } from '../lib/markdown.js'
-import { esc, isInside, slugify, MIME, sendRes } from './utils.js'
+import { esc, isInside, slugify, MIME } from './utils.js'
 import { state, runScoped, setFallbackState, DEFAULT_LABELS } from './state.js'
 import { loadSiteConfig, loadThemeMeta, DEFAULT_THEME_DIR } from './config.js'
 import { listMarkdown, listProjects, listPosts, indexAll, buildNavigation, resolveContent, stripMarkdown, readParsed } from './content.js'
 import { loadComponents } from './components.js'
 import { suggestConfigKey } from './scaffold.js'
 import { startReloadWatcher } from './watch.js'
-import { CSP, SECURITY_HEADERS, badRequest, etagOf, newNonce, sendWithSecurity } from './http.js'
-import { absUrl, decodeRequestPath } from './urls.js'
+import { CSP, SECURITY_HEADERS, badRequest, etagOf, methodNotAllowed, newNonce, sendWithSecurity } from './http.js'
+import { absUrl, decodeRequestPath, mdCanonical } from './urls.js'
 import { renderDocumentBody, renderSections } from './render.js'
 
 export { parseFrontmatter } from '../lib/frontmatter.js'
@@ -61,6 +61,10 @@ export async function createJprot(options = {}) {
     if (Array.isArray(site.nav) && site.nav.length) {
       nav = site.nav.map((n) => (typeof n === 'string' ? { label: n, url: n } : n))
     }
+    // Docs mode gets its own full reading order (every content page, sorted by
+    // frontmatter `order`) for the sidebar and prev/next — separate from the
+    // compact navbar, which is user-controlled via site.nav.
+    const docsNav = site.docs ? await buildNavigation(contentDir) : []
     const components = await loadComponents(userThemeDir, bust)
     let themeDir = DEFAULT_THEME_DIR
     try { await stat(join(userThemeDir, 'main.js')); themeDir = userThemeDir } catch {}
@@ -80,7 +84,7 @@ export async function createJprot(options = {}) {
       const hint = suggestConfigKey(key)
       if (hint) console.warn(`[jprot] config key "${key}" not recognized — did you mean "${hint}"?`)
     }
-    instanceState = { projectRoot, contentDir, publicDir, userThemeDir, themeDir, theme, site, labels, markdown, nav, components, blogDir, projectsDir, prod: options.prod === true }
+    instanceState = { projectRoot, contentDir, publicDir, userThemeDir, themeDir, theme, site, labels, markdown, nav, docsNav, components, blogDir, projectsDir, prod: options.prod === true }
     setFallbackState(instanceState)
   }
 
@@ -105,8 +109,12 @@ export async function createJprot(options = {}) {
     try {
       if (!['GET', 'HEAD'].includes(req.method)) {
         res.setHeader('Allow', 'GET, HEAD')
-        return badRequest(res, 'Method not allowed')
+        return methodNotAllowed(res)
       }
+      // origin-form request-targets are absolute-paths, so a leading // must
+      // never be parsed as an authority (new URL would take '//server.js' to
+      // host 'server.js' and serve '/' instead of 404)
+      if (req.url.startsWith('//')) req.url = req.url.slice(1)
       const url = new URL(req.url, `http://${host}:${port}`)
       let pathname
       try { pathname = decodeRequestPath(url.pathname) } catch {
@@ -167,6 +175,16 @@ export async function createJprot(options = {}) {
         return await serveFile(req, res, pubFile)
       }
 
+      // `.md` URLs exist so docs links keep working on GitHub; here they 301 to
+      // the clean URL so the site never serves duplicate content.
+      const canonical = mdCanonical(pathname)
+      if (canonical && await resolveContent(contentDir, pathname)) {
+        const { site = {} } = state()
+        const location = absUrl(site, canonical) || `http://${host}:${boundPort}${canonical}`
+        res.writeHead(301, { Location: location, ...SECURITY_HEADERS, 'Cache-Control': 'no-cache' })
+        return res.end()
+      }
+
       const contentFile = await resolveContent(contentDir, pathname)
       if (contentFile) {
         return await servePage(res, url, { file: contentFile })
@@ -192,10 +210,11 @@ export async function createJprot(options = {}) {
   const scopedHandler = (req, res) => runScoped(instanceState, () => handleRequest(req, res))
 
   let server = createServer(scopedHandler)
+  let boundPort = port
 
   return {
     get server() { return server },
-    port,
+    get port() { return boundPort },
     host,
     contentDir,
     publicDir,
@@ -218,7 +237,8 @@ export async function createJprot(options = {}) {
           server.listen(currentPort, host, () => {
             server.removeListener('error', reject)
             const addr = server.address()
-            resolvePromise(addr && typeof addr === 'object' ? addr.port : currentPort)
+            boundPort = addr && typeof addr === 'object' ? addr.port : currentPort
+            resolvePromise(boundPort)
           })
         }
         tryListen()
@@ -445,7 +465,7 @@ async function serveOgImage(req, res, pathname) {
   if (!/^[0-9a-f]{16}\.svg$/.test(name) || !projectRoot) return notFound(res, null)
   const file = join(projectRoot, '.cache', 'og', name)
   if (!isInside(join(projectRoot, '.cache', 'og'), file)) return notFound(res, null)
-  return serveFile(req, res, file)
+  return serveFile(req, res, file, true)
 }
 
 /* ============ JSON-LD structured data ============ */
@@ -620,11 +640,17 @@ async function servePage(res, url, { home, file, status } = {}) {
       ? (site.homeLayout || theme.defaultHome || 'Home')
       : (site.defaultLayout || theme.defaultPage || 'Page')
   const nonce = newNonce()
-  const html = await renderPage({ page, content, projects, site, nav, layout, posts, home: isHomeIndex, nonce })
-  sendWithSecurity(res, status || 200, 'text/html; charset=utf-8', html, nonce)
+  const html = await renderPage({ page, content, projects, site, nav, layout, posts, home: isHomeIndex, docsNav: state().docsNav, nonce })
+  // The built-in contact form posts anywhere (e.g. Formspree); loosen the CSP
+  // connect source for that HTTPS endpoint so the form actually submits.
+  const formEndpoint = site.formspree || site.form
+  const extraConnectSrc = formEndpoint && /^https:\/\//.test(String(formEndpoint))
+    ? [String(formEndpoint).split('/').slice(0, 3).join('/')]
+    : []
+  sendWithSecurity(res, status || 200, 'text/html; charset=utf-8', html, nonce, { extraConnectSrc })
 }
 
-export async function renderPage({ page, content, projects, site, nav, layout, posts = [], home, nonce = newNonce() }) {
+export async function renderPage({ page, content, projects, site, nav, layout, posts = [], home, nonce = newNonce(), docsNav = [] }) {
   const { components = {} } = state()
   const Layout = components.Layout || ((p) => `<div>${p.content}</div>`)
   const Header = components.Header || (() => '')
@@ -644,9 +670,9 @@ export async function renderPage({ page, content, projects, site, nav, layout, p
 
   const layoutComp = (layout && (components[layout] || components[layout[0].toUpperCase() + layout.slice(1)])) ||
     components.Page || ((p) => `<article>${p.content}</article>`)
-  const inner = await layoutComp({ page, content, projects, site, nav, posts, sectionsHtml })
+  const inner = await layoutComp({ page, content, projects, site, nav, docsNav, posts, sectionsHtml })
 
-  const props = { site, page, nav, content: inner, projects, posts, sectionsHtml }
+  const props = { site, page, nav, docsNav, content: inner, projects, posts, sectionsHtml }
   const headerHtml = await Header(props)
   const footerHtml = await Footer(props)
 
@@ -898,6 +924,19 @@ function searchScript(labels, nonce) {
     input.addEventListener('input', function () { render(input.value) })
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') close()
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        var rows = list.querySelectorAll('a')
+        if (!rows.length) return
+        var idx = findFocus()
+        if (e.key === 'ArrowDown') idx = (idx + 1) % rows.length
+        else idx = (idx - 1 + rows.length) % rows.length
+        e.preventDefault()
+        var next = rows[idx]
+        rows.forEach(function (a) { a.removeAttribute('data-active') })
+        next.setAttribute('data-active', '')
+        next.scrollIntoView({ block: 'nearest' })
+        return
+      }
       if (e.key === 'Enter') {
         var a = list.querySelector('a[data-active]') || list.querySelector('a')
         if (a) { e.preventDefault(); openLink(a) }
@@ -1014,8 +1053,8 @@ const spaScript = (nonce) => `
     var path = window.location.pathname
     document.querySelectorAll('.site-nav a[href], .sb-link[href]').forEach(function (a) {
       var href = a.getAttribute('href') || ''
-      var hrefPath = href.split('#')[0].replace(/\/$/, '')
-      var cur = path.replace(/\/$/, '')
+      var hrefPath = href.split('#')[0].replace(/\\/$/, '')
+      var cur = path.replace(/\\/$/, '')
       var active = hrefPath === cur || (hrefPath !== '/' && cur.startsWith(hrefPath))
       a.classList.toggle('active', active)
     })
@@ -1042,6 +1081,9 @@ const spaScript = (nonce) => `
       const res = await fetch(url, { headers: { 'X-JPROT-SPA': '1' } })
       if (!res.ok) { window.location.href = url; return }
       const html = await res.text()
+      // res.url is the final URL after any redirect (e.g. .md → clean URL),
+      // so the address bar, history and scroll map agree with what was served
+      var finalUrl = new URL(res.url || url, window.location.href).href
       var doc = new DOMParser().parseFromString(html, 'text/html')
       var nextMain = doc.querySelector('main')
       var curMain = document.querySelector('main')
@@ -1049,9 +1091,9 @@ const spaScript = (nonce) => `
         curMain.outerHTML = nextMain.outerHTML
       }
       document.title = doc.title || document.title
-      if (push) { history.pushState({ path: url }, '', url) }
+      if (push) { history.pushState({ path: finalUrl }, '', finalUrl) }
       setActiveLink()
-      applyScroll(url, restore)
+      applyScroll(finalUrl, restore)
     } catch {
       window.location.href = url
     }
@@ -1156,26 +1198,32 @@ async function collectCss() {
   // no theme resolved (standalone render call with no built instance) → no links
   if (!themeDir && !userThemeDir) return ''
   const files = [
-    { path: themeDir ? join(themeDir, 'styles.css') : null, tag: 'theme' },
-    { path: userThemeDir ? join(userThemeDir, 'custom.css') : null, tag: 'custom' },
+    { path: themeDir ? join(themeDir, 'styles.css') : null },
+    { path: userThemeDir ? join(userThemeDir, 'custom.css') : null },
   ]
   const seen = new Set()
   const lines = []
   for (const f of files) {
     if (!f.path || seen.has(f.path)) continue
-    if (await isFile(f.path)) {
-      seen.add(f.path)
-      const href = `/@jprot/css?f=${encodeURIComponent(f.path)}`
-      lines.push(`<link rel="preload" as="style" href="${href}">`)
-      lines.push(`<link rel="stylesheet" href="${href}">`)
-    }
+    if (!(await isFile(f.path))) continue
+    seen.add(f.path)
+    // content hash in the query so the URL busts when the file changes; the
+    // response may then be served immutable in production
+    let v = ''
+    try {
+      const body = await readFile(f.path)
+      v = '&v=' + createHash('sha256').update(body).digest('hex').slice(0, 10)
+    } catch { /* keep the un-hashed URL */ }
+    const href = `/@jprot/css?f=${encodeURIComponent(f.path)}${v}`
+    lines.push(`<link rel="preload" as="style" href="${href}">`)
+    lines.push(`<link rel="stylesheet" href="${href}">`)
   }
   return lines.join('\n  ')
 }
 
 /* ============ static/file serving ============ */
 
-async function serveFile(req, res, file) {
+async function serveFile(req, res, file, fingerprinted = false) {
   let st
   try { st = await stat(file) } catch {
     return notFound(res, null)
@@ -1185,10 +1233,10 @@ async function serveFile(req, res, file) {
   const body = await readFile(file)
   const tag = etagOf(body)
   if (req && req.headers['if-none-match'] === tag) {
-    res.writeHead(304, { ETag: tag, 'Cache-Control': cacheControlFor(true), ...SECURITY_HEADERS })
+    res.writeHead(304, { ETag: tag, 'Cache-Control': cacheControlFor(fingerprinted), ...SECURITY_HEADERS })
     return res.end()
   }
-  sendWithSecurity(res, 200, mime, body, '', { etag: tag, cache: cacheControlFor(true) })
+  sendWithSecurity(res, 200, mime, body, '', { etag: tag, cache: cacheControlFor(fingerprinted) })
 }
 
 async function serveThemeCss(req, res, pathname) {
@@ -1217,7 +1265,7 @@ async function serveCssFromTrustedDir(req, res, url, file, kind) {
   if (!within || extname(file).toLowerCase() !== '.css' || !(await isFile(file))) {
     return notFound(res, url)
   }
-  return serveFile(req, res, file)
+  return serveFile(req, res, file, url.searchParams.has('v'))
 }
 
 function notFound(res, url) {

@@ -15,6 +15,19 @@ async function isFile(p) {
   try { return (await stat(p)).isFile() } catch { return false }
 }
 
+// Canonical page URL for a resolved path: trailing slashes off, .md off and
+// /index folded into its directory (so /index.md → /, /blog/index → /blog).
+function canonPath(p) {
+  let s = String(p || '').replace(/[?#].*$/, '').replace(/\/+$/, '')
+  s = s.replace(/\.md$/, '')
+  if (s.endsWith('/index')) s = s.slice(0, -6) || '/'
+  return s || '/'
+}
+
+function decodeHref(s) {
+  try { return decodeURIComponent(String(s || '')) } catch { return String(s || '') }
+}
+
 export async function runLint({ root } = {}) {
   const projectRoot = root || process.cwd()
   const contentDir = join(projectRoot, 'content')
@@ -47,28 +60,33 @@ export async function runLint({ root } = {}) {
     }
 
     // markdown links — broken internal ones
+    const isIndexPage = basename(rel) === 'index.md'
+    const pageUrl = isIndexPage
+      ? (dirname(rel) === '.' ? '/' : '/' + dirname(rel) + '/')
+      : '/' + rel.replace(/\.md$/, '')
     for (const m of body.matchAll(/\[[^\]]*\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g)) {
       const target = m[1].split('#')[0].split('?')[0].trim()
       if (!target || /^(https?:|mailto:|tel:|data:|news:)/.test(target) || target.startsWith('#')) continue
-      if (target === '/') continue // home is always valid
+      if (target === '/' || target.startsWith('//')) continue // home / protocol-relative (external) links are valid
       if (target.startsWith('/')) {
-        let norm = target.replace(/\/+$/g, '')
-        if (urlSet.has(norm)) continue
+        // root-relative path; a .md suffix folds into the clean URL (the
+        // server 301s .md → clean, so both forms are valid)
+        const clean = canonPath(decodeHref(target))
+        if (urlSet.has(clean)) continue
         if (await isFile(join(publicDir, target.replace(/^\//, '')))) continue
         push(f, 'link', `broken internal link → ${target}`)
       } else if (/^\.{1,2}\//.test(target)) {
-        // file-relative path (./x or ../x)
-        const abs = join(dirname(f), decodeURIComponent(target))
+        // file-relative path (./x or ../x): resolved against the file on disk
+        const abs = join(dirname(f), decodeHref(target))
         if (!isInside(contentDir, abs) || !(await isFile(abs))) {
           push(f, 'link', `broken relative link → ${target}`)
         }
       } else {
-        // bare name: resolves as a page/asset relative to the site root
-        const name = target.replace(/^\.\//, '')
-        if (urlSet.has('/' + name)) continue
-        const maybe = join(contentDir, name.replace(/\/$/, '/index') + '.md')
-        if (await isFile(maybe)) continue
-        if (await isFile(join(contentDir, name))) continue // asset next to root
+        // bare name: the browser resolves it against this page's URL
+        const resolved = new URL(decodeHref(target), `http://jprot.local${pageUrl}`).pathname
+        const clean = canonPath(resolved)
+        if (urlSet.has(clean)) continue
+        if (await isFile(join(contentDir, clean.replace(/^\//, '')))) continue // content-adjacent asset
         push(f, 'link', `broken internal link → ${target}`)
       }
     }

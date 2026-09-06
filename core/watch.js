@@ -1,5 +1,5 @@
 import { readdir, stat } from 'node:fs/promises'
-import { watch } from 'node:fs'
+import { watch, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 async function collectWatchFingerprint(targets, out, depth = 0) {
@@ -27,6 +27,7 @@ async function computeFingerprint(configFiles, watchRoots) {
 
 export function startReloadWatcher({ projectRoot, contentDir, userThemeDir, publicDir, configFiles, onReload }) {
   const watchRoots = [...new Set([projectRoot, contentDir, userThemeDir, publicDir].filter((d) => d))]
+  const dirExists = (d) => { try { return statSync(d).isDirectory() } catch { return false } }
   const allFiles = () => computeFingerprint(configFiles, watchRoots)
 
   let last = ''
@@ -35,6 +36,7 @@ export function startReloadWatcher({ projectRoot, contentDir, userThemeDir, publ
   let interval = null
 
   const maybeReload = async () => {
+    timer = null // the pending flag reflects only *scheduled* reloads
     const next = await allFiles()
     if (next === last || !last) { last = next; return }
     last = next
@@ -62,9 +64,13 @@ export function startReloadWatcher({ projectRoot, contentDir, userThemeDir, publ
   // strategy 1: recursive fs.watch (macOS / Windows)
   try {
     for (const dir of watchRoots) {
-      const w = watch(dir, { recursive: true }, schedule)
-      watchers.push(w)
+      try {
+        watchers.push(watch(dir, { recursive: true }, schedule))
+      } catch {
+        // one missing/inaccessible root must not sabotage the others
+      }
     }
+    if (!watchers.length) throw new Error('no watchable roots')
     // seed the baseline fingerprint (ignore the very first diff)
     maybeReload()
   } catch {

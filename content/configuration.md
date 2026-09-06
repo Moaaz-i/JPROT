@@ -314,7 +314,7 @@ sections:
 
 Their order follows the list. To move the whole area elsewhere (or remove it
 from non-home pages), replace the `Home`/`Page` component — see
-[Customization](customization#3-replace-a-component-full-layout-control).
+[Customization](customization.md#3-replace-a-component-full-layout-control).
 
 ## Using JSON instead of JS
 
@@ -356,4 +356,4 @@ the navigation, sitemap, search index, RSS feeds and static exports, and returns
 `404` in production. The dev server keeps it reachable at its URL so you can
 preview it. `jprot new post "Title" --draft` creates a draft for you.
 
-Next: [Customize your site](customization).
+Next: [Customize your site](customization.md).

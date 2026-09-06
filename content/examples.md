@@ -68,7 +68,7 @@ cp examples/config/sections.js ./sections-example.js   # ← contains the sectio
 ## Portfolio sections
 
 Sections are the fastest way to make a plain site a **portfolio** — see
-[Configuration → Sections](configuration#sections-the-portfolio-builder). You
+[Configuration → Sections](configuration.md#sections-the-portfolio-builder). You
 can combine any built-in component (`Stats`, `Skills`, `Experience`, `Education`,
 `Services`, `Awards`, `Clients`, `Testimonials`, `Gallery`, `Contact`, `CTA`) or
 write your own in `theme/components/`.
@@ -85,13 +85,13 @@ sections: [
 ## Blog
 
 Add a `content/blog/` folder, post Markdown files, and a `blog.md` listing page
-with `layout: blog`. See [Customization → Blog](customization#7-blog).
+with `layout: blog`. See [Customization → Blog](customization.md#7-blog).
 
 ## Shortcodes — components inside Markdown
 
 A component can appear anywhere in a page body with a `:::Name` block; the inner
 Markdown becomes its `children`. See
-[Customization → Shortcodes](customization#6-shortcodes-components-inside-any-markdown).
+[Customization → Shortcodes](customization.md#6-shortcodes-components-inside-any-markdown).
 
 ```markdown
 ## Deploy with your stack
@@ -121,7 +121,7 @@ numbers, booleans, or JSON (`items='[{"day":"Sun","hours":8}]'`).
 Right out of the box regular pages get a **docs sidebar** with on-page scroll
 spy, and every page has a **search** button (try `Cmd/Ctrl + K`). A
 `layout: resume` page gives you a printable CV, and `/sitemap.xml` +
-`/feed.xml` are generated automatically. See [Customization](customization).
+`/feed.xml` are generated automatically. See [Customization](customization.md).
 
 ## Putting it all together — a dark, brand-colored site
 
@@ -132,4 +132,4 @@ cp examples/components/Header.js theme/components/Header.js
 
 Refresh the browser. Your site is now dark with a custom navbar — without touching any build tooling.
 
-Next: [Publish your site](deploy).
+Next: [Publish your site](deploy.md).

@@ -11,12 +11,25 @@ async function hasFile(path) {
   try { return (await stat(path)).isFile() } catch { return false }
 }
 
+// Unwraps a module namespace: `export default {...}` wins; otherwise a
+// `export const config = {...}` is used and a hint is printed. Anything else
+// is returned untouched so a callable config survives.
+function unwrapConfig(mod) {
+  if (!mod || typeof mod !== 'object') return mod
+  if (mod.default !== undefined) return mod.default
+  if ('config' in mod && mod.config !== undefined) {
+    console.warn('[jprot] jprot.config.js uses `export const config` — prefer `export default {...}`.')
+    return mod.config
+  }
+  return mod
+}
+
 // Loads the site configuration from (in order of precedence):
 // an explicitly provided object/handler, jprot.config.js, or jprot.config.json.
 export async function loadSiteConfig(projectRoot, configOption, bust = false) {
   if (typeof configOption === 'function') {
     const c = await configOption()
-    return c?.default || c || {}
+    return unwrapConfig(c) || {}
   }
   if (configOption) return configOption
 
@@ -25,7 +38,7 @@ export async function loadSiteConfig(projectRoot, configOption, bust = false) {
   if (await hasFile(jsPath)) {
     try {
       const mod = await import(fresh(pathToFileURL(jsPath).href))
-      return mod.default || mod
+      return unwrapConfig(mod) || {}
     } catch (e) {
       console.warn('[jprot] Could not load jprot.config.js:', e.message)
     }

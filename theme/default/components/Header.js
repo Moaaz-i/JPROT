@@ -4,11 +4,14 @@ const BURGER_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"
 
 export default function Header(props) {
   const { page, nav, site } = props
+  const current = String((page && page.url) || '/').split('?')[0]
   const items = (nav || []).map((item) => {
     const rel = String(item.url || '')
-    const href = rel.startsWith('/') || rel === '' ? rel || '/' : '/' + rel
-    const active = page && page.path === item.path ? ' class="active"' : ''
-    return `<a href="${href}"${active} class="nav-link">${item.label}</a>`
+    const href = /^(?:[a-z][a-z\d+.-]*:|#|\/)/i.test(rel) ? rel || '/' : '/' + rel
+    const isExternal = /^(?:[a-z][a-z\d+.-]*:|#)/i.test(rel)
+    const target = href.replace(/\/+$/, '') || '/'
+    const active = !isExternal && current.length > 1 && (current === target || current + '/' === href)
+    return `<a href="${href}"${active ? ' class="active"' : ''} class="nav-link">${item.label}</a>`
   }).join('\n      ')
 
   const sidebarToggle = site.sidebar !== false

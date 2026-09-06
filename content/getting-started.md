@@ -109,4 +109,4 @@ jprot --prod          # serve with production caching (drafts → 404)
 jprot export --out dist   # export static HTML to dist/
 ```
 
-Next: [Write your first page](content).
+Next: [Write your first page](content.md).

@@ -93,4 +93,4 @@ npm start -- --prod --no-watch
 Set `HOST=0.0.0.0` when the platform needs a public interface and set `PORT`
 from the platform environment.
 
-Next: [CLI reference](cli-reference).
+Next: [CLI reference](cli-reference.md).

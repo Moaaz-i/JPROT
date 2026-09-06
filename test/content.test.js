@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { resolveContent, listMarkdown, listProjects, buildNavigation } from '../core/content.js'
+import { resolveContent, listMarkdown, listProjects, buildNavigation, indexAll } from '../core/content.js'
 import { setFallbackState, runScoped } from '../core/state.js'
 
 let dir
@@ -47,6 +47,19 @@ test('buildNavigation includes top-level pages, omits hidden', async () => {
   const labels = nav.map((n) => n.label)
   assert.ok(labels.includes('About'))
   assert.ok(!labels.includes('Secret'))
+})
+
+test('indexAll keeps nested index pages and normalizes scalar tags', async () => {
+  mkdirSync(join(dir, 'docs'), { recursive: true })
+  writeFileSync(join(dir, 'docs', 'index.md'), '---\ntitle: Docs Home\ntags: guide\n---\nNested index body')
+  writeFileSync(join(dir, 'guide.md'), '---\ntitle: Guide\ntags: [one, two]\n---\nGuide body')
+  const idx = await runScoped({}, () => indexAll(dir))
+  const docs = idx.find((e) => e.url === '/docs')
+  assert.ok(docs, 'nested index page is searchable/sitemapped')
+  assert.deepEqual(docs.tags, ['guide'], 'scalar tags normalizes to an array')
+  const guide = idx.find((e) => e.url === '/guide')
+  assert.deepEqual(guide.tags, ['one', 'two'])
+  assert.equal(idx.some((e) => e.url === '/'), false, 'homepage index.md stays excluded')
 })
 
 after(() => {
