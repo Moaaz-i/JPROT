@@ -73,6 +73,9 @@ test('exportSite prefixes URLs for a project GitHub Pages site', async () => {
     const quickStart = await readFile(join(dest, 'quick-start', 'index.html'), 'utf8')
     assert.match(quickStart, /href="\/JPROT\/getting-started\/"/)
     assert.doesNotMatch(quickStart, /href="\/JPROT\/quick-start\/getting-started/)
+    const firstSite = await readFile(join(dest, 'getting-started', 'index.html'), 'utf8')
+    assert.match(firstSite, /href="\/JPROT\/content\/"/)
+    assert.doesNotMatch(firstSite, /href="\/JPROT\/getting-started\/content/)
 
     // Every exported HTML page must keep internal links rooted at the Pages
     // base path; this catches the same bug on any nested docs page.

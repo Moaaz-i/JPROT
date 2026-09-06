@@ -24,7 +24,7 @@ function normalizeBasePath(value) {
   return '/' + path.replace(/^\/+|\/+$/g, '')
 }
 
-function addBasePath(body, basePath, pageUrls = new Set()) {
+function addBasePath(body, basePath, pageUrls = new Set(), currentUrl = '/') {
   if (!basePath) return body
   const withPageSlash = (value) => {
     const match = value.match(/^([^?#]*)([?#].*)?$/)
@@ -42,7 +42,13 @@ function addBasePath(body, basePath, pageUrls = new Set()) {
     }
     if (name === 'href' && value && !value.startsWith('/') && !value.startsWith('#') &&
         !/^(?:https?:|mailto:|tel:|data:|javascript:|vbscript:)/i.test(value)) {
-      const rootRelative = '/' + value.replace(/^(\.\/|\.\.\/)+/, '')
+      const baseUrl = currentUrl.endsWith('/') ? currentUrl : currentUrl + '/'
+      const resolved = new URL(value, `http://jprot.local${baseUrl}`).pathname
+      // Documentation links commonly use `content` as a site page name.
+      // Prefer the actual exported root page when the browser-relative path
+      // does not exist, preventing `/getting-started/content` 404s.
+      const rootCandidate = '/' + value.replace(/^(\.\/|\.\.\/)+/, '').replace(/^\/+/, '')
+      const rootRelative = pageUrls.has(resolved) ? resolved : rootCandidate
       const path = withPageSlash(rootRelative)
       return `${name}="${basePath}${path}"`
     }
@@ -99,7 +105,7 @@ export async function exportSite({ root, outDir, basePath } = {}) {
       const res = await fetch(base + u)
       const sourceHtml = rewriteCss(await res.text())
       for (const m of sourceHtml.matchAll(/\/@jprot\/og\/[0-9a-z]{16}\.svg/g)) pendingOg.add(m[0])
-      const html = addBasePath(sourceHtml, siteBasePath, pageUrlSet)
+      const html = addBasePath(sourceHtml, siteBasePath, pageUrlSet, u)
       const rel = u === '/'
         ? 'index.html'
         : u.replace(/^\//, '').replace(/\/$/, '') + '/index.html'
@@ -118,7 +124,7 @@ export async function exportSite({ root, outDir, basePath } = {}) {
 
     // Custom (or default) 404 page → dist/404.html.
     const nf = await fetch(base + '/__jprot_missing_page__')
-    await writeOut(dest, '404.html', addBasePath(rewriteCss(await nf.text()), siteBasePath, pageUrlSet))
+    await writeOut(dest, '404.html', addBasePath(rewriteCss(await nf.text()), siteBasePath, pageUrlSet, '/'))
 
     // Copy og images referenced by exported pages.
     for (const ogPath of pendingOg) {
