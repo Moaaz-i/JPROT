@@ -170,6 +170,12 @@ Scaffold a self-contained component in seconds:
 jprot g component Hobbies --palette cards   # works as a section AND a :::Hobbies shortcode
 ```
 
+Theme variants can be configured with `themes` in `jprot.config.js`; each
+variant object provides an `id`, optional label, and optional swatch. Components
+receive the current `site`, `page`, navigation, projects, posts, and rendered
+shortcode `children` through typed props. Malformed frontmatter is reported in
+the server log with a line number instead of silently disappearing.
+
 ## Programmatic API
 
 ```ts

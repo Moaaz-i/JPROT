@@ -35,6 +35,13 @@ test('links and images render', () => {
   assert.match(html, /<img src="img\.png" alt="alt">/)
 })
 
+test('unsafe URL schemes are neutralized', () => {
+  const html = md.render('[bad](javascript:alert(1)) ![bad](data:text/html,alert(1))')
+  assert.match(html, /href="#"/)
+  assert.match(html, /src="#"/)
+  assert.doesNotMatch(html, /javascript:|data:text\/html/)
+})
+
 test('unordered and ordered lists', () => {
   const ul = md.render('- a\n- b')
   assert.match(ul, /<li>a<\/li>\s*<li>b<\/li>/)

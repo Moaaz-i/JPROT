@@ -4,6 +4,20 @@ import { parseFrontmatter } from '../lib/frontmatter.js'
 import { isInside } from './utils.js'
 import { state } from './state.js'
 
+const parsedCache = new Map()
+
+// Reuse parsed content while its mtime/size is unchanged. This keeps search,
+// navigation, feeds and page rendering cheap without making edits stale.
+export async function readParsed(file) {
+  const info = await stat(file)
+  const cached = parsedCache.get(file)
+  if (cached && cached.mtimeMs === info.mtimeMs && cached.size === info.size) return cached.value
+  const raw = await readFile(file, 'utf8')
+  const value = parseFrontmatter(raw)
+  parsedCache.set(file, { mtimeMs: info.mtimeMs, size: info.size, value })
+  return value
+}
+
 // Recursively collect every .md file under `dir`, skipping dotfiles.
 export async function listMarkdown(dir) {
   const out = []
@@ -32,8 +46,7 @@ export async function listProjects(contentDir, projectsDir) {
   const out = []
   for (const f of await listMarkdown(dir)) {
     if (basename(f, '.md') === 'index') continue
-    const raw = await readFile(f, 'utf8')
-    const { data, body } = parseFrontmatter(raw)
+    const { data, body } = await readParsed(f)
     if (data.draft) continue
     const rel = f.slice(contentDir.length + 1).replace(/\.md$/, '')
     out.push({
@@ -55,8 +68,7 @@ export async function listPosts(contentDir, blogDir) {
   const out = []
   for (const f of await listMarkdown(dir)) {
     if (basename(f, '.md') === 'index') continue
-    const raw = await readFile(f, 'utf8')
-    const { data, body } = parseFrontmatter(raw)
+    const { data, body } = await readParsed(f)
     if (data.draft) continue
     const rel = f.slice(contentDir.length + 1).replace(/\.md$/, '')
     out.push({
@@ -95,8 +107,7 @@ export async function indexAll(contentDir) {
   const out = []
   for (const f of await listMarkdown(contentDir)) {
     if (basename(f, '.md') === 'index' || basename(f, '.md') === '404') continue
-    const raw = await readFile(f, 'utf8')
-    const { data, body } = parseFrontmatter(raw)
+    const { data, body } = await readParsed(f)
     if (data.hidden || data.draft) continue
     const rel = f.slice(contentDir.length + 1).replace(/\.md$/, '')
     const slug = basename(f, '.md')
@@ -123,8 +134,7 @@ export async function indexAll(contentDir) {
 export async function buildNavigation(contentDir) {
   const nav = []
   for (const f of await listMarkdown(contentDir)) {
-    const raw = await readFile(f, 'utf8')
-    const { data } = parseFrontmatter(raw)
+    const { data } = await readParsed(f)
     if (data.hidden || data.draft) continue
     const rel = f.slice(contentDir.length + 1)
     const slug = basename(f, '.md')

@@ -30,6 +30,14 @@ test('HTTP server: main routes + CSS path traversal is blocked', async () => {
   assert.match(css.headers.get('content-type'), /css/)
 })
 
+test('HTTP validation rejects unsafe paths and unsupported methods', async () => {
+  assert.equal((await fetch(base + '/%00')).status, 400)
+  assert.equal((await fetch(base + '/%5Cetc%5Cpasswd')).status, 400)
+  const post = await fetch(base + '/', { method: 'POST' })
+  assert.equal(post.status, 400)
+  assert.equal(post.headers.get('allow'), 'GET, HEAD')
+})
+
 test('HTTP security headers: strict CSP prevents nonce-less inline scripts', async () => {
   const htmlRes = await fetch(base + '/')
   const csp = htmlRes.headers.get('content-security-policy') || ''
@@ -43,6 +51,7 @@ test('HTTP security headers: strict CSP prevents nonce-less inline scripts', asy
   const jsonHeaders = (await fetch(base + '/@jprot/search.json')).headers
   assert.equal(jsonHeaders.get('x-content-type-options'), 'nosniff')
   assert.equal(jsonHeaders.get('x-frame-options'), 'DENY')
+  assert.equal(jsonHeaders.get('cross-origin-opener-policy'), 'same-origin')
   assert.ok(jsonHeaders.get('referrer-policy'))
 
   // every inline <script> on the home page must carry a CSP nonce
@@ -53,6 +62,15 @@ test('HTTP security headers: strict CSP prevents nonce-less inline scripts', asy
     if (attrs.includes('application/ld+json')) continue // JSON-LD is data, not executable
     assert.match(attrs, /nonce="/, 'every executable inline script must have a CSP nonce')
   }
+})
+
+test('configured theme variants are emitted for the client picker', async () => {
+  const html = await renderPage({
+    page: { data: { title: 'Themes' } },
+    content: '',
+    site: { title: 'Themes', themes: [{ id: 'sunrise' }, { id: 'night' }] },
+  })
+  assert.match(html, /var VARIANTS = \["sunrise","night"\]/)
 })
 
 test('renderPage works as a standalone API (no server)', async () => {

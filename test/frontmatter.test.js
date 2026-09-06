@@ -33,3 +33,20 @@ test('nested list of mappings (sections config)', () => {
   assert.equal(data.sections[0].items[0].level, 90)
   assert.equal(data.sections[1].component, 'About')
 })
+
+test('reports malformed and duplicate frontmatter keys without throwing', () => {
+  const malformed = parseFrontmatter('---\ntitle: Good\nnot yaml\n---\nBody')
+  assert.equal(malformed.data.title, 'Good')
+  assert.equal(malformed.diagnostics.length, 1)
+  assert.match(malformed.diagnostics[0].message, /key: value/)
+
+  const duplicate = parseFrontmatter('---\ntitle: One\ntitle: Two\n---\n')
+  assert.equal(duplicate.data.title, 'Two')
+  assert.match(duplicate.diagnostics[0].message, /Duplicate/)
+})
+
+test('reports an unclosed frontmatter block', () => {
+  const result = parseFrontmatter('---\ntitle: Missing\n# Body')
+  assert.equal(result.body, '---\ntitle: Missing\n# Body')
+  assert.match(result.diagnostics[0].message, /closing/)
+})

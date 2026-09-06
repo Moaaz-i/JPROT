@@ -6,7 +6,12 @@ aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-- (nothing yet)
+- Security and reliability: validated request paths and methods, stronger
+  cross-origin headers, safe Markdown URL schemes, and frontmatter diagnostics.
+- Architecture: extracted HTTP/security, URL, and component-rendering helpers
+  from the server; cached parsed content by file metadata.
+- CI: Node 18/20/22 test matrix and exact-version npm publish gating with
+  provenance.
 
 ## [0.2.0] - 2026-09-05
 

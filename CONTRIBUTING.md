@@ -26,6 +26,20 @@ request, run the test suite and packaging check above. Pull requests run the
 test workflow; publishing is restricted to pushes to `main` after the workflow
 confirms that the package version is new.
 
+## npm publishing
+
+Publishing uses the repository secret `NPM_TOKEN` and an explicit non-interactive
+registry configuration. A normal npm token does **not** bypass account 2FA:
+create an npm **automation token** (the “bypass 2FA” publish token), or use a
+granular token configured for publishing with the required 2FA policy. Do not
+use or commit a personal password/token.
+
+As an alternative, configure npm **Trusted Publishing** for this repository and
+workflow using GitHub Actions OIDC; in that setup the token-based requirement
+must be removed in favor of npm's trusted-publisher configuration. The workflow
+uses npm provenance and only publishes when `package.json` changed and that
+exact version is not already on the registry.
+
 ## Reporting issues
 
 For bugs and feature requests, please use the

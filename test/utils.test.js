@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { esc, isInside, slugify, MIME } from '../core/utils.js'
+import { resolveRelativeUrl } from '../core/urls.js'
 
 test('esc escapes HTML metacharacters', () => {
   assert.equal(esc('a&b<c>"d"'), 'a&amp;b&lt;c&gt;&quot;d&quot;')
@@ -27,4 +28,10 @@ test('slugify is lowercase and dash-separated', () => {
 test('MIME covers common types', () => {
   assert.equal(MIME['.css'], 'text/css; charset=utf-8')
   assert.equal(MIME['.svg'], 'image/svg+xml')
+})
+
+test('relative content URLs resolve from the current page', () => {
+  assert.equal(resolveRelativeUrl('../about', '/docs/guide'), '/about')
+  assert.equal(resolveRelativeUrl('/blog', '/docs/guide'), '/blog')
+  assert.equal(resolveRelativeUrl('https://example.test/x', '/docs/guide'), 'https://example.test/x')
 })

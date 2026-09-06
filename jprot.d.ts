@@ -93,6 +93,11 @@ export interface JprotConfig {
   markdown?: MarkdownConfig
 }
 
+export interface FrontmatterDiagnostic {
+  line: number
+  message: string
+}
+
 export interface NavItem {
   label: string
   url: string
@@ -134,6 +139,12 @@ export interface MarkdownConfig {
   highlight?: boolean
   autolinks?: boolean
   tags?: boolean
+}
+
+export function parseFrontmatter(source: string): {
+  data: PageFrontmatter
+  body: string
+  diagnostics: FrontmatterDiagnostic[]
 }
 
 /* ============================================================
@@ -305,6 +316,8 @@ export interface JprotApp {
   closeWatcher: () => void
   listen: (port?: number) => Promise<number>
 }
+
+export function resolveRelativeUrl(url: string, pagePath?: string): string
 
 export function createJprot(options?: JprotOptions): Promise<JprotApp>
 

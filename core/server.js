@@ -2,7 +2,7 @@ import { createServer } from 'node:http'
 import { readFile, stat, mkdir, writeFile } from 'node:fs/promises'
 import { realpathSync } from 'node:fs'
 import { execFile } from 'node:child_process'
-import { randomBytes, createHash } from 'node:crypto'
+import { createHash } from 'node:crypto'
 import { join, extname, resolve, basename } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -11,10 +11,16 @@ import { createMarkdown } from '../lib/markdown.js'
 import { esc, isInside, slugify, MIME, sendRes } from './utils.js'
 import { state, runScoped, setFallbackState, DEFAULT_LABELS } from './state.js'
 import { loadSiteConfig, loadThemeMeta, DEFAULT_THEME_DIR } from './config.js'
-import { listMarkdown, listProjects, listPosts, indexAll, buildNavigation, resolveContent, stripMarkdown } from './content.js'
+import { listMarkdown, listProjects, listPosts, indexAll, buildNavigation, resolveContent, stripMarkdown, readParsed } from './content.js'
 import { loadComponents } from './components.js'
 import { suggestConfigKey } from './scaffold.js'
 import { startReloadWatcher } from './watch.js'
+import { CSP, SECURITY_HEADERS, badRequest, etagOf, newNonce, sendWithSecurity } from './http.js'
+import { absUrl, decodeRequestPath } from './urls.js'
+import { renderDocumentBody, renderSections } from './render.js'
+
+export { parseFrontmatter } from '../lib/frontmatter.js'
+export { resolveRelativeUrl } from './urls.js'
 
 // Site-config keys the hint checker can ingest (complements scaffold's list).
 const CONFIG_KEY_HINTS = new Set([
@@ -25,48 +31,6 @@ const CONFIG_KEY_HINTS = new Set([
   'themePicker', 'projectsTitle', 'formspree', 'social', 'nav', 'hero', 'sections',
   'themes', 'labels', 'markdown',
 ])
-
-// Fresh, single-use nonce for CSP script-src on each HTML response.
-function newNonce() {
-  return randomBytes(16).toString('base64')
-}
-
-// Strict Content-Security-Policy. Inline scripts run only when they carry a
-// nonce bound to this exact response; inline styles are allowed because the
-// default theme injects <style> and style="..." attributes. No 'unsafe-inline'
-// for scripts, so authored raw-HTML <script> blocks in Markdown are blocked.
-// Images may come from the site itself, data: URIs, or any HTTPS source
-// (e.g. rich-media hosts) — never plain HTTP.
-const CSP = (nonce) =>
-  `default-src 'self'; ` +
-  `script-src 'self' 'nonce-${nonce}'; ` +
-  `style-src 'self' 'unsafe-inline'; ` +
-  `img-src 'self' data: https:; font-src 'self' data:; ` +
-  `connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`
-
-// Common security headers attached to every response (CSP is per-response via nonce).
-const SECURITY_HEADERS = {
-  'X-Content-Type-Options': 'nosniff',
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'X-Frame-Options': 'DENY',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-}
-
-// Send a response with the standard security headers merged in (CSP via nonce).
-// opts.etag sets a strong ETag for cache revalidation; opts.cache overrides the
-// default no-cache (assets become immutable in production mode).
-function sendWithSecurity(res, status, contentType, body, nonce = '', opts = {}) {
-  const headers = { ...SECURITY_HEADERS, 'Cache-Control': opts.cache || 'no-cache' }
-  if (opts.etag) headers['ETag'] = opts.etag
-  if (nonce) headers['Content-Security-Policy'] = CSP(nonce)
-  res.writeHead(status, { 'Content-Type': contentType, ...headers })
-  res.end(body)
-}
-
-// Weak-free, content-derived ETag for any byte string (assets only).
-function etagOf(body) {
-  return '"' + createHash('sha256').update(body).digest('hex').slice(0, 16) + '"'
-}
 
 function inProdMode() {
   const s = state()
@@ -139,8 +103,15 @@ export async function createJprot(options = {}) {
 
   const handleRequest = async (req, res) => {
     try {
+      if (!['GET', 'HEAD'].includes(req.method)) {
+        res.setHeader('Allow', 'GET, HEAD')
+        return badRequest(res, 'Method not allowed')
+      }
       const url = new URL(req.url, `http://${host}:${port}`)
-      let pathname = decodeURIComponent(url.pathname)
+      let pathname
+      try { pathname = decodeRequestPath(url.pathname) } catch {
+        return badRequest(res, 'Invalid request path')
+      }
 
       if (pathname === '/__css') {
         return await serveCss(req, res, url)
@@ -430,95 +401,6 @@ async function serveFavicon(res) {
   sendWithSecurity(res, 200, 'image/svg+xml', svg)
 }
 
-async function renderSections({ site, page, nav, projects, posts, sections }) {
-  const { components = {} } = state()
-  let out = ''
-  for (const sec of sections || []) {
-    const name = sec.component || sec.type || ''
-    const comp = components[name]
-    if (!comp || typeof comp !== 'function') continue
-    const props = { site, page, nav, projects, posts, ...sec }
-    const html = await comp(props)
-    if (html) out += html + '\n'
-  }
-  return out
-}
-
-/* ============ Shortcodes (:::component in Markdown) ============ */
-
-// Parse `key="value"` / `key='value'` / `key=value` attribute lists on a ::: line.
-// Numbers → numbers, true/false → booleans, JSON arrays/objects → parsed,
-// everything else stays a string.
-function parseAttrs(attrs) {
-  const out = {}
-  for (const m of attrs.matchAll(/([A-Za-z0-9_-]+)=(?:"([^"]*)"|'([^']*)'|(\S+))/g)) {
-    let v = m[2] !== undefined ? m[2] : m[3] !== undefined ? m[3] : m[4]
-    if (v === 'true') v = true
-    else if (v === 'false') v = false
-    else if (/^-?\d+$/.test(v)) v = Number(v)
-    else if (/^[[{]/.test(v)) {
-      try { v = JSON.parse(v) } catch { /* keep the raw string */ }
-    }
-    out[m[1]] = v
-  }
-  return out
-}
-
-// Renders Markdown source that may contain `:::component key=value` blocks.
-// Every registered theme component is callable as a shortcode; its inner lines
-// (until the closing `:::`) are Markdown-rendered and passed as `children`.
-// Fenced code blocks are skipped so ```:::noise``` stays raw. Recursive, so
-// shortcodes nest as deep as needed.
-async function renderDocumentBody(source, md, components, props, headings = []) {
-  const lines = String(source || '').split(/\r?\n/)
-  const out = []
-  let buf = []
-  let i = 0
-  let inCode = false
-
-  const flush = () => {
-    if (buf.length) { out.push(md.render(buf.join('\n'), headings)); buf = [] }
-  }
-
-  while (i < lines.length) {
-    const line = lines[i]
-    if (/^\s*```+/.test(line)) { inCode = !inCode; buf.push(line); i++; continue }
-    const m = line.match(/^:::\s*([A-Za-z0-9-]+)(.*)$/)
-    if (m && !inCode) {
-      flush()
-      const name = m[1]
-      const comp = components[name]
-      if (typeof comp !== 'function') {
-        out.push(`<div class="jprot-shortcode-missing">Unknown JPROT shortcode ::${esc(name)}</div>`)
-        i++
-        continue
-      }
-      const attrs = parseAttrs(m[2])
-      i++
-      const innerLines = []
-      while (i < lines.length && !/^\s*:::\s*$/.test(lines[i].trim())) {
-        innerLines.push(lines[i])
-        i++
-      }
-      if (i < lines.length) i++ // consume the closing :::
-      const children = await renderDocumentBody(innerLines.join('\n'), md, components, props, headings)
-      let html = ''
-      try {
-        html = await comp({ ...props, ...attrs, children })
-      } catch (err) {
-        console.warn(`[jprot] shortcode ::${name} failed: ${err.message}`)
-        html = `<div class="jprot-shortcode-error">Component ::${esc(name)} failed: ${esc(err.message)}</div>`
-      }
-      if (html) out.push(html + '\n')
-      continue
-    }
-    buf.push(line)
-    i++
-  }
-  flush()
-  return out.join('\n')
-}
-
 /* ============ OG:image auto-generation ============ */
 
 // SVG body used for the auto-generated social image (1200×630, brand colors).
@@ -570,14 +452,6 @@ async function serveOgImage(req, res, pathname) {
 
 // Resolve a path to an absolute URL using the site base; already-absolute
 // URLs (https:, data:, mailto:) pass through untouched.
-function absUrl(site, p) {
-  if (!p) return ''
-  if (/^(https?:|mailto:|tel:|data:|#)/.test(p)) return p
-  const base = (site.url || '').replace(/\/+$/, '')
-  if (!base) return p
-  return base + (p.startsWith('/') ? p : '/' + p)
-}
-
 // Strip HTML to plain text for JSON-LD articleBody (full page copy for SEO).
 function htmlToText(html) {
   return String(html || '')
@@ -705,19 +579,27 @@ async function servePage(res, url, { home, file, status } = {}) {
   if (home) {
     const idx = join(contentDir, 'index.md')
     try {
-      const raw = await readFile(idx, 'utf8')
-      const { data, body } = parseFrontmatter(raw)
+      const parsed = await readParsed(idx)
+      reportFrontmatterDiagnostics(idx, parsed.diagnostics)
+      const { data, body } = parsed
       page = { data, body, path: 'index.md', slug: 'index', url: '/' }
     } catch {
       page = { data: {}, body: '', path: 'index.md', slug: 'index', url: '/' }
     }
     projects = await listProjects(contentDir, projectsDir)
   } else {
-    const raw = await readFile(file, 'utf8')
-    const { data, body } = parseFrontmatter(raw)
+    const parsed = await readParsed(file)
+    reportFrontmatterDiagnostics(file, parsed.diagnostics)
+    const { data, body } = parsed
     const slug = basename(file, '.md')
     page = { data, body, path: file, slug, src: file, url: url.pathname }
     projects = await listProjects(contentDir, projectsDir)
+  }
+
+  function reportFrontmatterDiagnostics(file, diagnostics = []) {
+    for (const diagnostic of diagnostics) {
+      console.warn(`[jprot] ${file}:${diagnostic.line} ${diagnostic.message}`)
+    }
   }
 
   // drafts are visible in dev (author preview) but hidden in production/export
@@ -758,7 +640,7 @@ export async function renderPage({ page, content, projects, site, nav, layout, p
   const sectionList = isHome
     ? [...(site.sections || []), ...(page.data.sections || [])]
     : [...(page.data.sections || [])]
-  const sectionsHtml = await renderSections({ site, page, nav, projects, posts, sections: sectionList })
+  const sectionsHtml = await renderSections({ site, page, nav, projects, posts, sections: sectionList, components })
 
   const layoutComp = (layout && (components[layout] || components[layout[0].toUpperCase() + layout.slice(1)])) ||
     components.Page || ((p) => `<article>${p.content}</article>`)
@@ -849,7 +731,7 @@ export async function renderPage({ page, content, projects, site, nav, layout, p
     :where(main > section) { content-visibility: auto; contain-intrinsic-size: auto 800px; }
   </style>
   ${cssLinks}
-  ${themeScript(nonce)}
+  ${themeScript(nonce, site.themes)}
   ${site.head || ''}
 </head>
 <body>
@@ -862,7 +744,11 @@ ${jsonLd ? `<script type="application/ld+json" nonce="${nonce}">${JSON.stringify
 </html>`
 }
 
-const themeScript = (nonce) => `
+const themeScript = (nonce, configuredThemes) => {
+  const ids = Array.isArray(configuredThemes) && configuredThemes.length
+    ? configuredThemes.map((theme) => typeof theme === 'string' ? theme : theme.id).filter(Boolean)
+    : ['default', 'minimal', 'creative', 'corporate']
+  return `
 <script nonce="${nonce}">
 /* JPROT theme toggle — light / dark, persisted locally */
 (function () {
@@ -880,7 +766,7 @@ const themeScript = (nonce) => `
   }
 
   /* JPROT variant cycle — cycles through theme variants (default → minimal → creative → corporate) */
-  var VARIANTS = ['default', 'minimal', 'creative', 'corporate']
+  var VARIANTS = ${JSON.stringify(ids)}
   var VKEY = 'jprot-variant'
   try {
     var sv = localStorage.getItem(VKEY)
@@ -966,6 +852,7 @@ const themeScript = (nonce) => `
 })()
 </script>
  `
+ }
 
 function searchScript(labels, nonce) {
   const placeholder = labels.searchPlaceholder || 'Search pages, posts, tags...'
