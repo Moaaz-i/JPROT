@@ -24,6 +24,25 @@ function unwrapConfig(mod) {
   return mod
 }
 
+// Imports jprot.config.js as ESM. Direct file import honours relative imports
+// and file watching, but fails when the file lives in a folder that has no
+// `"type": "module"` in package.json (e.g. a temp dir used by tests), because
+// Node then treats `.js` as CommonJS and chokes on `export`. In that case we
+// retry by reading the source and importing it as a data URL.
+async function importConfigFile(jsPath, bust) {
+  const fresh = (href) => (bust ? href + '?t=' + Date.now() : href)
+  try {
+    const mod = await import(fresh(pathToFileURL(jsPath).href))
+    return { ok: true, mod }
+  } catch (err) {
+    const esmAsCjs = /Unexpected token 'export'|ERR_REQUIRE_ESM/.test(String(err.message))
+    if (!esmAsCjs) throw err
+    const code = await readFile(jsPath, 'utf8')
+    const mod = await import('data:text/javascript,' + encodeURIComponent(code))
+    return { ok: true, mod }
+  }
+}
+
 // Loads the site configuration from (in order of precedence):
 // an explicitly provided object/handler, jprot.config.js, or jprot.config.json.
 export async function loadSiteConfig(projectRoot, configOption, bust = false) {
@@ -37,7 +56,7 @@ export async function loadSiteConfig(projectRoot, configOption, bust = false) {
   const jsPath = join(projectRoot, 'jprot.config.js')
   if (await hasFile(jsPath)) {
     try {
-      const mod = await import(fresh(pathToFileURL(jsPath).href))
+      const { mod } = await importConfigFile(jsPath, bust)
       return unwrapConfig(mod) || {}
     } catch (e) {
       console.warn('[jprot] Could not load jprot.config.js:', e.message)
