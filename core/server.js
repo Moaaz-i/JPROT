@@ -1259,6 +1259,9 @@ function searchScript(labels, nonce) {
 /* JPROT instant search — indexes /@jprot/search.json, opens via jprotSearch() */
 (function () {
   if (!window.fetch) return
+  var PLACEHOLDER = ${JSON.stringify(placeholder)}
+  var SEARCH_EMPTY = ${JSON.stringify(empty)}
+  function attr(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') }
   var overlay = null
   var input = null
   var list = null
@@ -1271,7 +1274,7 @@ function searchScript(labels, nonce) {
     overlay.innerHTML = [
       '<div class="search-box">',
       '<div class="search-header">',
-      '<input class="search-input" type="search" placeholder="' + ${JSON.stringify(placeholder).replace(/"/g, '&quot;')} + '" autocomplete="off">',
+      '<input class="search-input" type="search" placeholder="' + attr(PLACEHOLDER) + '" autocomplete="off">',
       '<button class="search-close" type="button" aria-label="Close">&times;</button>',
       '</div>',
       '<div class="search-results"></div>',
@@ -1356,7 +1359,7 @@ function searchScript(labels, nonce) {
         if (found.length >= 12) break
       }
     }
-    if (!found.length) { list.innerHTML = '<div class="search-empty">' + ${JSON.stringify(empty)} + '</div>'; return }
+    if (!found.length) { list.innerHTML = '<div class="search-empty">' + attr(SEARCH_EMPTY) + '</div>'; return }
     list.innerHTML = found.map(function (e) {
       var title = hl(e.title, q)
       var snippet = ''
@@ -1415,7 +1418,7 @@ const spaScript = (nonce) => `
     document.querySelectorAll('.site-nav a[href], .sb-link[href]').forEach(function (a) {
       var href = a.getAttribute('href') || ''
       var hrefPath = href.split('#')[0].replace(/\\/$/, '')
-      var cur = path.replace(/\/$/, '')
+      var cur = path.replace(/\\/$/, '')
       var active = hrefPath === cur || (hrefPath !== '/' && cur.startsWith(hrefPath))
       a.classList.toggle('active', active)
     })

@@ -59,7 +59,7 @@ function addBasePath(body, basePath, pageUrls = new Set(), currentUrl = '/') {
   return body
     .replace(/\b(href|src|action|poster)="([^"]*)"/g, rewriteAttribute)
     .replace(/fetch\('\/@jprot\//g, `fetch('${basePath}/@jprot/`)
-    .replace(/href="' \+ e\.url/g, `href="${basePath}' + (e.url === '/' ? '/' : e.url.replace(/\/?$/, '/'))`)
+    .replace(/href="' \+ e\.url/g, `href="${basePath}' + (e.url === '/' ? '/' : e.url.replace(/\\\/?$/, '/'))`)
 }
 
 export async function exportSite({ root, outDir, basePath } = {}) {
@@ -127,7 +127,23 @@ export async function exportSite({ root, outDir, basePath } = {}) {
     ]
     for (const s of specials) {
       const res = await fetch(base + s)
-      if (res.ok) await writeOut(dest, s.replace(/^\//, ''), await res.text())
+      if (!res.ok) continue
+      let body = await res.text()
+      if (s === '/@jprot/search.json' && siteBasePath) {
+        // Search results are built client-side from e.url, so prefix each one
+        // with the deployment base path just like static hrefs get rewritten.
+        const pageSlash = (path) => (path === '/' ? '/' : path.replace(/\/?$/, '/'))
+        try {
+          const index = JSON.parse(body)
+          if (Array.isArray(index)) {
+            for (const e of index) e.url = siteBasePath + pageSlash(e.url)
+            body = JSON.stringify(index)
+          }
+        } catch (err) {
+          console.warn('export: could not prefix search.json URLs — ' + err.message)
+        }
+      }
+      await writeOut(dest, s.replace(/^\//, ''), body)
     }
 
     // Custom (or default) 404 page → dist/404.html.
