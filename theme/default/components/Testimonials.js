@@ -1,8 +1,6 @@
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c]))
+import { esc } from '../../../core/utils.js'
 
-export default async function Testimonials({ title = 'Testimonials', subtitle = '', items = [] }) {
+export default function Testimonials({ title = 'Testimonials', subtitle = '', items = [] }) {
   const cards = (items || []).map((it) => `
     <figure class="quote">
       <blockquote>${esc(it.text || it.quote || '')}</blockquote>

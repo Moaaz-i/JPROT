@@ -1,8 +1,6 @@
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c]))
+import { esc } from '../../../core/utils.js'
 
-export default async function Awards({ title = 'Awards', subtitle = '', items = [] }) {
+export default function Awards({ title = 'Awards', subtitle = '', items = [] }) {
   const rows = (items || []).map((it) => `
     <div class="award-item">
       <span class="award-year">${esc(it.year || '')}</span>

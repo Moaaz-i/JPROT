@@ -1,8 +1,6 @@
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c]))
+import { esc } from '../../../core/utils.js'
 
-export default async function Projects({ title = null, subtitle = '', projects = [], site }) {
+export default function Projects({ title = null, subtitle = '', projects = [], site }) {
   const L = site.labels || {}
   const heading = title || site.projectsTitle || L.projects || 'Projects'
   if (!projects.length) return ''

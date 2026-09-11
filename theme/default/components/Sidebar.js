@@ -1,8 +1,6 @@
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c]))
+import { esc } from '../../../core/utils.js'
 
-export default async function Sidebar(props) {
+export default function Sidebar(props) {
   const { site, page, nav, docsNav } = props
   if (!site.sidebar) return ''
   const L = site.labels || {}

@@ -33,7 +33,7 @@ export default {
   // --- Layout ---
   homeLayout: 'Home',
   defaultLayout: 'Page',
-  sidebar: false,          // show sidebar on docs pages
+  sidebar: true,          // show sidebar on docs pages
   projectsDir: 'projects',
   blogDir: 'blog',
 

@@ -310,7 +310,7 @@ export function suggestConfigKey(key: string): string | undefined
  * Write editor snippet bundles (.vscode/jprot.code-snippets +
  * snippets/jprot.snippets). Called by `jprot init`.
  */
-export function writeSnippets(root?: string): Promise<void>
+export function writeSnippets(root: string): Promise<void>
 
 export interface JprotApp {
   server: import('node:http').Server
@@ -320,7 +320,7 @@ export interface JprotApp {
   publicDir: string
   projectRoot: string
   /** Rebuild the in-memory site state (hot reload). */
-  reload: () => void
+  reload: () => Promise<void>
   closeWatcher: () => void
   listen: (port?: number) => Promise<number>
 }

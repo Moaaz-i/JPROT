@@ -1,8 +1,6 @@
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c]))
+import { esc } from '../../../core/utils.js'
 
-export default async function CTA({ title = '', text = '', label = 'Get in touch', url = '/contact' }) {
+export default function CTA({ title = '', text = '', label = 'Get in touch', url = '/contact' }) {
   return `
     <section class="section section-cta">
       ${title ? `<h2 class="section-title">${esc(title)}</h2>` : ''}

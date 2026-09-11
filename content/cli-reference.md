@@ -5,8 +5,6 @@ order: 7
 nav: CLI reference
 ---
 
-# CLI reference
-
 Run `jprot --help` at any time for the short version.
 
 | Command | What it does |

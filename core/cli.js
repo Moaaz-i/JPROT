@@ -17,6 +17,7 @@ function printHelp() {
     jprot lint           Check content for broken links / missing metadata
     jprot export         Export the whole site as static files to dist/
     jprot --prod         Serve with production caching (no watcher)
+    jprot --export       Alias for export
 
   Options:
     --port <n>           Port to listen on (default 4114)
@@ -126,14 +127,15 @@ export async function bootstrap() {
     return;
   }
 
-  const portFlag = args[args.indexOf("--port") + 1];
+  const portFlagIdx = args.indexOf("--port");
+  const portFlag = portFlagIdx >= 0 ? args[portFlagIdx + 1] : undefined;
   const portArg =
     Number(args.find((a) => /^\d+$/.test(a)) ?? portFlag ?? process.env.PORT ?? 4114);
   const host = process.env.HOST ?? "127.0.0.1";
   const prod = args.includes("--prod");
   const noWatch = args.includes("--no-watch") || process.env.NO_WATCH === "1" || prod;
 
-  const port = Number(portArg);
+  const port = Number.isFinite(portArg) && portArg > 0 ? portArg : 4114;
   const app = await createJprot({ port, host, watch: !noWatch, prod });
   const actualPort = await app.listen(port);
   const url = `http://${host}:${actualPort}`;

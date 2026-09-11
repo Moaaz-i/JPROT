@@ -5,8 +5,6 @@ order: 6
 nav: Publish
 ---
 
-# Publish your site
-
 JPROT can run as a Node server or export a production-ready static site. Use
 the export for GitHub Pages, Netlify, Cloudflare Pages, or any host that serves
 HTML and assets.

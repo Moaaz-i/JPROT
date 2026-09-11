@@ -5,8 +5,6 @@ order: 8
 nav: API reference
 ---
 
-# API reference
-
 JPROT exposes the same core operations used by the CLI. The package is
 dependency-free and supports Node.js 18 or newer.
 

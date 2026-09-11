@@ -13,10 +13,6 @@ const CONFIG_KEYS = [
   'themes', 'labels', 'markdown',
 ]
 
-function escSnippet(s) {
-  return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/</g, '\\<')
-}
-
 // levenshtein ≤ 2 → warn "did you mean …"
 function editDistance(a, b) {
   if (!a.length) return b.length
@@ -93,7 +89,7 @@ description: Welcome.
 ---
 
 ${type === 'docs'
-  ? '# Welcome to the docs\n\nStart with [[getting-started]] continued…\n\n- [Getting Started](/getting-started)\n- [Reference](/reference)\n- [FAQ](/faq)'
+  ? '# Welcome to the docs\n\nStart with getting-started continued…\n\n- [Getting Started](/getting-started)\n- [Reference](/reference)\n- [FAQ](/faq)'
   : type === 'resume'
     ? '# Hello, I build for the web.\n\nFocused, dependable, remote-friendly. See my [full resume](/resume).'
     : '# Hello, I build for the web.\n\nPortfolio of selected work, writing and experiments — all built with JPROT.'}
@@ -297,7 +293,7 @@ const componentPalette = {
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]))
 
-export default async function ${name}({ title = '', subtitle = '', children = '', items = [] }) {
+export default function ${name}({ title = '', subtitle = '', children = '', items = [] }) {
   return \`
     <section class="${slugify(name)}-section">
       \${title ? \`<h2 class="section-title">\${esc(title)}</h2>\` : ''}
@@ -314,7 +310,7 @@ export default async function ${name}({ title = '', subtitle = '', children = ''
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]))
 
-export default async function ${name}({ title = '', items = [], projects = [] }) {
+export default function ${name}({ title = '', items = [], projects = [] }) {
   const list = (items.length ? items : projects).filter(Boolean)
   const cards = list.map((it) => {
     const t = typeof it === 'object' ? it.title : it
@@ -342,7 +338,7 @@ export default async function ${name}({ title = '', items = [], projects = [] })
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]))
 
-export default async function ${name}({ title = '', text = '', label = 'Learn more', url = '/' }) {
+export default function ${name}({ title = '', text = '', label = 'Learn more', url = '/' }) {
   return \`
     <div class="${slugify(name)}-banner">
       \${title ? \`<h3 class="${slugify(name)}-title">\${esc(title)}</h3>\` : ''}
@@ -359,7 +355,7 @@ export default async function ${name}({ title = '', text = '', label = 'Learn mo
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[c]))
 
-export default async function ${name}({ items = [] }) {
+export default function ${name}({ items = [] }) {
   const cells = items.map((it) => {
     const value = typeof it === 'object' ? it.value : it
     const label = typeof it === 'object' ? it.label : ''
@@ -380,7 +376,7 @@ export async function scaffoldComponent({ root, palette, name }) {
   const projectRoot = root || process.cwd()
   const tpl = componentPalette[palette] || componentPalette.section
   const file = join(projectRoot, 'theme', 'components', name + '.js')
-  try { await stat(file) } catch { /* ok to write */ }
+  if (await existsFile(file)) throw new Error(`jprot g component: ${file} already exists`)
   await mkdir(dirname(file), { recursive: true })
   await writeFile(file, tpl.body(name), 'utf8')
   return file
@@ -416,7 +412,7 @@ export async function writeSnippets(projectRoot) {
     'jprot: component': {
       prefix: 'jc',
       body: [
-        'export default async function ${1:ComponentName}({ title = ${2:""}, ${3:/* props */} }) {',
+        'export default function ${1:ComponentName}({ title = ${2:""}, ${3:/* props */} }) {',
         '  return `',
         '    <section class="${4:section}">',
         '      ${5:<!-- markup -->}',

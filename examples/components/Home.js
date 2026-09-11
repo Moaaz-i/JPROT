@@ -3,7 +3,7 @@
    Copy this file to  theme/components/Home.js
    ========================================================= */
 
-export default async function Home({ site, page, content, projects }) {
+export default function Home({ site, page, content, projects }) {
   const hero = page.data.hero || site.hero || {}
   const cards = (projects || []).map((p) => {
     const tags = (p.data.tags || []).map((t) => `<span class="tag">${t}</span>`).join('')

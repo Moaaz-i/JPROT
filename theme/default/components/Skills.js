@@ -1,8 +1,6 @@
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c]))
+import { esc } from '../../../core/utils.js'
 
-export default async function Skills({ title = 'Skills', subtitle = '', items = [] }) {
+export default function Skills({ title = 'Skills', subtitle = '', items = [] }) {
   const rows = (items || []).map((it) => {
     const name = typeof it === 'string' ? it : it.name
     const level = typeof it === 'string' ? 80 : Number(it.level) || 80

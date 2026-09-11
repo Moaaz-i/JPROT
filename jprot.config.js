@@ -206,9 +206,7 @@ export default {
       subtitle: "Let us build something together.",
       // Set this to an address you want visitors to use for contact.
       email: "hello@example.com",
-      social: [
-      { label: "GitHub", url: "https://github.com/Moaaz-i/JPROT" },
-      ],
+      social: [{ label: "GitHub", url: "https://github.com/Moaaz-i/JPROT" }],
     },
     {
       component: "CTA",

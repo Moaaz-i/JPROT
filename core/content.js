@@ -9,13 +9,24 @@ const parsedCache = new Map()
 // Reuse parsed content while its mtime/size is unchanged. This keeps search,
 // navigation, feeds and page rendering cheap without making edits stale.
 export async function readParsed(file) {
-  const info = await stat(file)
+  let info
+  try { info = await stat(file) } catch {
+    parsedCache.delete(file)
+    throw new Error(`File not found: ${file}`)
+  }
   const cached = parsedCache.get(file)
   if (cached && cached.mtimeMs === info.mtimeMs && cached.size === info.size) return cached.value
   const raw = await readFile(file, 'utf8')
   const value = parseFrontmatter(raw)
   parsedCache.set(file, { mtimeMs: info.mtimeMs, size: info.size, value })
   return value
+}
+
+// Evict cache entries for files that no longer exist on disk.
+export function evictStaleCache() {
+  for (const [file] of parsedCache) {
+    try { stat(file) } catch { parsedCache.delete(file) }
+  }
 }
 
 // Recursively collect every .md file under `dir`, skipping dotfiles.

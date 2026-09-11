@@ -1,8 +1,6 @@
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c]))
+import { esc } from '../../../core/utils.js'
 
-export default async function Services({ title = 'Services', subtitle = '', items = [] }) {
+export default function Services({ title = 'Services', subtitle = '', items = [] }) {
   let i = 0
   const cards = (items || []).map((it) => {
     const icon = it.icon

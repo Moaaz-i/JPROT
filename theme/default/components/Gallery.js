@@ -1,8 +1,6 @@
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c]))
+import { esc } from '../../../core/utils.js'
 
-export default async function Gallery({ title = 'Gallery', subtitle = '', items = [] }) {
+export default function Gallery({ title = 'Gallery', subtitle = '', items = [] }) {
   const tiles = (items || []).map((it) => {
     const src = typeof it === 'string' ? it : it.src
     const alt = typeof it === 'string' ? '' : it.alt || it.caption || ''

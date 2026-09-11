@@ -6,7 +6,8 @@ export async function renderSections({ site, page, nav, projects, posts, section
     const name = sec.component || sec.type || ''
     const comp = components[name]
     if (typeof comp !== 'function') continue
-    const html = await comp({ site, page, nav, projects, posts, ...sec })
+    const { component: _component, type: _type, ...rest } = sec;
+    const html = await comp({ site, page, nav, projects, posts, ...rest })
     if (html) out += html + '\n'
   }
   return out

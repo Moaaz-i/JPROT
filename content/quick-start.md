@@ -5,8 +5,6 @@ order: 1
 nav: Start here
 ---
 
-# Quick start
-
 JPROT turns a folder of Markdown files into a portfolio, documentation site,
 or personal website. There is no build command and no dependency installation.
 

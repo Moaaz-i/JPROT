@@ -1,8 +1,6 @@
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c]))
+import { esc } from '../../../core/utils.js'
 
-export default async function Clients({ title = 'Clients', subtitle = '', items = [] }) {
+export default function Clients({ title = 'Clients', subtitle = '', items = [] }) {
   const tiles = (items || []).map((it) => {
     const name = it.name || it
     const mark = it.logo

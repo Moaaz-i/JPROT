@@ -1,9 +1,9 @@
-import { resolve, extname, join, basename } from 'node:path'
+import { resolve } from 'node:path'
 import { realpathSync } from 'node:fs'
 
 // HTML-escape a value for safe interpolation into markup.
 export function esc(s) {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
 // True when `target` resolves to, or lives under, `parent`. Symlinks are
@@ -34,12 +34,4 @@ export const MIME = {
   '.ico': 'image/x-icon', '.webp': 'image/webp', '.txt': 'text/plain',
   '.md': 'text/plain', '.pdf': 'application/pdf', '.woff': 'font/woff',
   '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.mp4': 'video/mp4',
-}
-
-import { sendWithSecurity } from './http.js'
-
-// Send a fully-formed HTTP response. Delegates to the security-header-aware
-// helper so no route can accidentally bypass CSP / security headers.
-export function sendRes(res, status, contentType, body) {
-  sendWithSecurity(res, status, contentType, body)
 }

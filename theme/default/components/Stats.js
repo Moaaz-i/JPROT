@@ -1,8 +1,6 @@
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c]))
+import { esc } from '../../../core/utils.js'
 
-export default async function Stats({ items = [] }) {
+export default function Stats({ items = [] }) {
   const cells = (items || []).map((it) => {
     const value = typeof it === 'object' ? it.value : it
     const label = typeof it === 'object' ? it.label : ''

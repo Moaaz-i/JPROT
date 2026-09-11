@@ -469,7 +469,7 @@ a:hover { text-decoration: underline; }
 
 /* Header row with actions */
 .header-actions { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
-.search-toggle, .sidebar-toggle, .nav-toggle {
+.search-toggle, .nav-toggle {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   color: var(--color-text);
@@ -479,28 +479,58 @@ a:hover { text-decoration: underline; }
   cursor: pointer;
 }
 .search-toggle svg { display: block; }
-.sidebar-toggle { display: none; }
 .nav-toggle { display: none; }
+.sb-mobile { display: none; }
 .header-actions .theme-toggle { display: inline-grid; place-items: center; }
 
-/* Mobile menu — the top nav collapses into a dropdown toggled by the ☰ button.
-   Everything stays server-rendered; no extra markup needed per breakpoint. */
+/* Mobile menu — fullscreen panel below the header, toggled by the ☰ button.
+   Anchored to the header itself (top: 100%), so it always starts exactly at
+   the header's bottom edge no matter the header height. Everything stays
+   server-rendered; no extra markup needed per breakpoint. */
 @media (max-width: 640px) {
-  .site-header { flex-wrap: wrap; }
   .nav-toggle { display: inline-grid; place-items: center; }
   .site-nav {
-    flex-basis: 100%;
-    order: 6;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 100vh;
     display: none;
     flex-direction: column;
     align-items: stretch;
-    gap: 0.2rem;
-    padding: 0.6rem 0.1rem 0.2rem;
+    gap: 0.35rem;
+    padding: 0.8rem 1.25rem 2rem;
+    background: var(--color-bg);
+    overflow-y: auto;
     border-top: 1px solid var(--color-border);
   }
   .site-header.nav-open .site-nav { display: flex; }
-  .nav-link { padding: 0.6rem 0.4rem; border-radius: var(--radius); }
+  .nav-link {
+    padding: 0.9rem 0.6rem;
+    border-radius: var(--radius);
+    font-size: 1.05rem;
+  }
   .nav-link:hover { background: var(--color-surface); }
+  /* Sidebar content (page tree + on-this-page headings) folded into the
+     fullscreen menu; it stays in the header markup but is hidden on desktop. */
+  .sb-mobile {
+    display: block;
+    margin-top: 0.9rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .sb-mobile .sb-links { gap: 0.15rem; }
+  .sb-mobile .sb-link,
+  .sb-mobile .sb-anchor {
+    padding: 0.7rem 0.6rem;
+    font-size: 0.95rem;
+    border-radius: var(--radius);
+  }
+  .sb-mobile .sb-onpage {
+    margin-top: 1.1rem;
+    padding-top: 0.9rem;
+  }
+  .sb-mobile .sb-anchor-3 { padding-inline-start: 1.2rem; font-size: 0.88rem; }
 }
 
 /* =========================================================
@@ -539,20 +569,8 @@ a:hover { text-decoration: underline; }
 @media (max-width: 768px) {
   .sidebar-layout { grid-template-columns: 1fr; }
   .sidebar-col {
-    position: fixed;
-    inset: 0 auto 0 0;
-    width: 260px;
-    background: var(--color-bg);
-    border-inline-end: 1px solid var(--color-border);
-    padding: 4.5rem 1rem 1.5rem;
-    z-index: 20;
-    transform: translateX(-100%);
-    transition: transform 0.25s ease;
-    max-height: none;
+    display: none;
   }
-  [dir="rtl"] .sidebar-col { left: auto; right: 0; transform: translateX(100%); }
-  .sidebar-layout.sidebar-open .sidebar-col { transform: translateX(0); }
-  .sidebar-toggle { display: inline-grid; place-items: center; }
 }
 
 /* =========================================================
@@ -653,7 +671,7 @@ a:hover { text-decoration: underline; }
 .rv-desc { margin: 0.25rem 0 0; }
 
 @media print {
-  .site-header, .site-footer, .rv-print, .sidebar-toggle, .theme-toggle, .search-toggle { display: none !important; }
+  .site-header, .site-footer, .rv-print, .theme-toggle, .search-toggle { display: none !important; }
   .app { min-height: 0; }
   body { background: #fff !important; color: #000 !important; }
   .resume { max-width: 100%; }

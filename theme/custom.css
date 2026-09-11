@@ -65,7 +65,6 @@
 .search-toggle,
 .theme-toggle,
 .variant-cycle,
-.sidebar-toggle,
 .nav-toggle {
   width: 2.15rem;
   height: 2.15rem;
@@ -78,7 +77,6 @@
 .search-toggle:hover,
 .theme-toggle:hover,
 .variant-cycle:hover,
-.sidebar-toggle:hover,
 .nav-toggle:hover {
   border-color: var(--color-border);
   background: var(--color-surface);

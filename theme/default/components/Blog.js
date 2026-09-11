@@ -1,8 +1,6 @@
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c]))
+import { esc } from '../../../core/utils.js'
 
-export default async function Blog(props) {
+export default function Blog(props) {
   const { page, content, posts = [], site } = props
   const L = site.labels || {}
   const items = (posts || []).map((p) => {

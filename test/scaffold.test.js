@@ -62,7 +62,7 @@ test('jprot g component scaffolds a working component', async () => {
   try {
     const file = await scaffoldComponent({ root: dir, palette: 'cta', name: 'JoinBanner' })
     const src = await readFile(file, 'utf8')
-    assert.match(src, /export default async/)
+    assert.match(src, /export default function/)
     assert.match(src, /title/)
     assert.ok(componentPaletteList().length >= 4)
   } finally {
