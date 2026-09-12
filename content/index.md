@@ -6,6 +6,12 @@ layout: home
 
 # Build your site in minutes
 
+> [!NOTE]
+> **Working template.** This homepage doubles as the live template shipped with
+> `jprot init`. Every section below — sample projects, stats, experience,
+> testimonials — is real, replaceable content from `jprot.config.js` and
+> `content/`. Fork it and make it yours.
+
 JPROT is a **Markdown-first portfolio and documentation generator**. Start
 locally in one command, edit a file, refresh the browser, and publish static
 HTML when you are ready. There is no build step and no framework lock-in.

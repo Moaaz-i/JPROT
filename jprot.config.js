@@ -20,7 +20,7 @@ export default {
   docs: true,
   author: "Moaaz",
   // Set this to an address you want visitors to use for contact.
-  email: "hello@example.com",
+  email: "moaaz.yahia.shrif@gmail.com",
   themeColor: "#4f46e5",
 
   // Sidebar: shows on regular (Page) docs pages. Set false to disable.
@@ -48,7 +48,7 @@ export default {
     ],
   },
 
-  projectsTitle: "Latest Projects",
+  projectsTitle: "Latest Projects (sample content)",
 
   sections: [
     {
@@ -205,7 +205,7 @@ export default {
       title: "Contact",
       subtitle: "Let us build something together.",
       // Set this to an address you want visitors to use for contact.
-      email: "hello@example.com",
+      email: "moaaz.yahia.shrif@gmail.com",
       social: [{ label: "GitHub", url: "https://github.com/Moaaz-i/JPROT" }],
     },
     {
@@ -213,7 +213,7 @@ export default {
       title: "Let us start a project",
       text: "Have an idea? Tell me about it and we will make it real.",
       label: "Start a conversation",
-      url: "mailto:hello@example.com",
+      url: "mailto:moaaz.yahia.shrif@gmail.com",
     },
   ],
 
