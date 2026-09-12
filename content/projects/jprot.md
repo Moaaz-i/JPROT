@@ -2,7 +2,7 @@
 title: JPROT — the site generator
 date: 2026-08
 tags: [node, markdown, tooling]
-cover: https://picsum.photos/seed/proj1/640/360
+cover: /covers/jprot.svg
 repo: https://github.com/Moaaz-i/JPROT
 order: 1
 excerpt: A zero-build portfolio & docs site generator. Markdown in, full site out — no bundlers, no framework lock-in.

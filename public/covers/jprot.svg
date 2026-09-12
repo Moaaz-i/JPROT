@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-label="JPROT">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="50%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="82%" cy="14%" r="40%" stop-color="#ffffff" stop-opacity="0.22">
+      <animate attributeName="stop-opacity" values="0.22;0.38;0.22" dur="6s" repeatCount="indefinite"/>
+    </radialGradient>
+    <style>
+      text { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+      .sub { fill: rgba(255,255,255,.82); letter-spacing: .28em; font-size: 15px; font-weight: 600; }
+      .name { fill: #ffffff; font-weight: 800; letter-spacing: .04em; }
+    </style>
+  </defs>
+  <rect width="800" height="450" fill="url(#g)"/>
+  <rect width="800" height="450" fill="url(#glow)"/>
+  <g opacity="0.10" fill="none" stroke="#ffffff" stroke-width="2">
+    <circle cx="640" cy="80" r="150"/>
+    <circle cx="120" cy="400" r="180"/>
+    <path d="M0 380 Q 200 320 400 380 T 800 380 V450 H0 Z"/>
+  </g>
+  <g opacity="0.9">
+    <text x="62" y="118" class="sub">MOAAZ YAHIA ZAKARIA</text>
+    <text x="58" y="236" class="name" font-size="46">JPROT</text>
+  </g>
+</svg>
