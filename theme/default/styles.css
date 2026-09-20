@@ -957,3 +957,129 @@ a:hover { text-decoration: underline; }
   [data-animate] { opacity: 1; transform: none; }
   [data-stagger] > * { opacity: 1; transform: none; }
 }
+
+/* =========================================================
+   Homepage polish (balanced modern)
+   ========================================================= */
+
+/* ---------- Hero ---------- */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 4.5rem 0 3.5rem;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: -25% -10% auto;
+  height: 130%;
+  background:
+    radial-gradient(60% 55% at 50% 0%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 70%);
+  pointer-events: none;
+}
+.hero > * { position: relative; }
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.32rem 0.9rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  color: var(--color-muted);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.hero-badge .dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.hero-avatar img {
+  width: 132px;
+  height: 132px;
+  border: 3px solid transparent;
+  background:
+    linear-gradient(var(--color-bg), var(--color-bg)) padding-box,
+    linear-gradient(135deg, var(--color-accent),
+      color-mix(in srgb, var(--color-accent) 45%, #06b6d4)) border-box;
+}
+.hero-title { font-size: 3rem; margin: 0.25rem auto; }
+.hero-subtitle { font-size: 1.35rem; max-width: 46rem; }
+.hero-links { margin-top: 1.75rem; }
+.btn-lg { padding: 0.7rem 1.4rem; font-size: 1.02rem; border-radius: 999px; }
+
+/* ---------- Buttons & focus ---------- */
+.btn {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: filter 0.15s ease, transform 0.15s ease, background 0.15s ease,
+    color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:focus-visible,
+.nav-link:focus-visible,
+.nav-toggle:focus-visible,
+.search-toggle:focus-visible,
+.theme-toggle:focus-visible,
+.variant-cycle:focus-visible,
+.filter-btn:focus-visible,
+.tp-swatch:focus-visible,
+.copy-code:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Project cards ---------- */
+.project-card {
+  transition: transform 0.22s cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 0.22s ease, border-color 0.22s ease;
+}
+.project-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+  border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+}
+.project-cover {
+  display: block;
+  position: relative;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+.project-cover img { transition: transform 0.35s ease; }
+.project-card:hover .project-cover img { transform: scale(1.03); }
+.project-cover-fallback {
+  display: grid;
+  place-items: center;
+  min-height: 150px;
+  aspect-ratio: 16 / 9;
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #fff;
+  background: var(--color-accent);
+  background: radial-gradient(90% 130% at 20% 0%, color-mix(in srgb, var(--color-accent) 65%, transparent), transparent 60%),
+    linear-gradient(135deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 55%, #1a1a1a));
+}
+.project-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.project-head .project-date { white-space: nowrap; }
+.project-date { font-size: 0.8rem; }
+.project-card:hover .project-title a { color: var(--color-accent); }
+
+/* ---------- Reduced motion: keep the availability dot still ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .hero-badge .dot { animation: none; }
+}

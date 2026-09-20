@@ -68,6 +68,8 @@ jprot 8080
 | `jprot new <kind> "Title"` | Add `post` / `page` / `project` / `resume` (`--draft`, `--template <name>`) |
 | `jprot g component <Name>` | Scaffold a theme component (`--palette section\|cards\|cta\|stats`) |
 | `jprot g list` | List component palettes |
+| `jprot search [query]` | List catalog elements, optionally filtered by any word |
+| `jprot add <Name>` | Install an element from the catalog into `theme/components/` |
 | `jprot lint` | Check content: broken links, missing metadata, oversized images |
 | `jprot export [--out dist]` | Export the whole site to static HTML in `dist/` |
 | `jprot --prod` | Serve with production caching; drafts return 404 |

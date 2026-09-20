@@ -12,9 +12,11 @@ function printHelp() {
     jprot                Start the dev server (default port 4114)
     jprot 8080           Start on a specific port
     jprot init           Scaffold a new site (--docs | --resume | --portfolio)
-    jprot new <kind>     Add content: new post | page | project [title] [--draft]
+    jprot new <kind>     Add content: post | page | project | resume [title] [--draft]
     jprot g component    Scaffold a theme component (--palette section|cards|cta|stats)
     jprot lint           Check content for broken links / missing metadata
+    jprot search [q]     Search the component catalog (or list everything)
+    jprot add <Name>     Install a component from the catalog into theme/components/
     jprot export         Export the whole site as static files to dist/
     jprot --prod         Serve with production caching (no watcher)
     jprot --export       Alias for export
@@ -25,6 +27,7 @@ function printHelp() {
     --base-path <path>   Prefix exported URLs for a project site (e.g. /JPROT)
     --draft              'jprot new': mark the page as a draft
     --template <name>    'jprot new': use templates/<name>.md
+    --from <url>         'jprot add/search': catalog base URL override
     --prod               Production mode: immutable cache headers, drafts hidden
     --no-watch           Disable the file watcher
     -h, --help           Show this help
@@ -52,6 +55,52 @@ export async function bootstrap() {
   }
   if (args.includes("-v") || args.includes("--version")) {
     await printVersion();
+    return;
+  }
+
+  if (args[0] === "search" || args[0] === "add") {
+    const { searchCatalog, addCatalogElement, resolveCatalogUrl, catalogHelp } = await import("./catalog.js");
+    const fromIdx = args.indexOf("--from");
+    const projectRoot = resolve(process.cwd());
+    const catalogUrl = await resolveCatalogUrl({ projectRoot, from: fromIdx >= 0 ? args[fromIdx + 1] : undefined });
+    if (!catalogUrl) {
+      console.error("  \u2716 no catalog URL configured.");
+      for (const l of catalogHelp()) console.error(l);
+      process.exitCode = 1;
+      return;
+    }
+    if (args[0] === "search") {
+      const query = args[1];
+      try {
+        const { items, meta } = await searchCatalog({ catalogUrl: catalogUrl, query });
+        console.log(`  ${items.length} element(s)` + (query ? ` for "${query}"` : "") + ` — catalog v${meta.version || "?"} (${catalogUrl})`);
+        console.log("");
+        for (const e of items) {
+          const tags = (e.tags || []).slice(0, 3).join(", ");
+          console.log(`    ${e.name.padEnd(18)} ${String(e.category || '').padEnd(14)} ${tags}`);
+        }
+        console.log("");
+        console.log("  Install one with:  jprot add <Name>");
+      } catch (err) {
+        console.error(`  \u2716 ${err.message}`);
+        process.exitCode = 1;
+      }
+      return;
+    }
+    const name = args[1];
+    if (!name || !/^[A-Za-z][A-Za-z0-9]*$/.test(name)) {
+      console.error("  Usage: jprot add <ComponentName>   e.g. jprot add SplitHero");
+      process.exitCode = 1;
+      return;
+    }
+    try {
+      const installed = await addCatalogElement({ projectRoot, catalogUrl: catalogUrl, name });
+      console.log(`  \u2714 Installed ${installed.name} → ${installed.file}`);
+      console.log(`     Use it as a section: { component: '${installed.name}' } or inline: :::${installed.name}`);
+    } catch (err) {
+      console.error(`  \u2716 ${err.message}`);
+      process.exitCode = 1;
+    }
     return;
   }
 
@@ -102,8 +151,8 @@ export async function bootstrap() {
   }
 
   if (args[0] === "g" || args[0] === "generate") {
+    const { componentPaletteList } = await import("./scaffold.js");
     if (args[1] === "list") {
-      const { componentPaletteList } = await import("./scaffold.js");
       console.log("  Component templates:");
       for (const t of componentPaletteList()) console.log(`    ${t.id.padEnd(9)} ${t.desc}`);
       return;
@@ -118,12 +167,34 @@ export async function bootstrap() {
         process.exitCode = 1;
         return;
       }
-      const file = await scaffoldComponent({ palette, name });
-      console.log(`  \u2714 Created component ${file}`);
-      console.log("     Use it as a section: { component: '" + name + "', title: '…' } or inline: :::" + name + " title=\"…\"");
+      const paletteIds = componentPaletteList().map((t) => t.id);
+      if (!paletteIds.includes(palette)) {
+        console.error(`  \u2716 unknown palette "${palette}" (${paletteIds.join(" | ")})`);
+        process.exitCode = 1;
+        return;
+      }
+      try {
+        const file = await scaffoldComponent({ palette, name });
+        console.log(`  \u2714 Created component ${file}`);
+        console.log("     Use it as a section: { component: '" + name + "', title: '…' } or inline: :::" + name + " title=\"…\"");
+      } catch (err) {
+        console.error(`  \u2716 ${err.message}`);
+        process.exitCode = 1;
+      }
       return;
     }
-    console.log("  Usage: jprot g component <Name> [--palette section|cards|cta|stats] | jprot g list");
+    console.error("  Usage: jprot g component <Name> [--palette section|cards|cta|stats] | jprot g list");
+    process.exitCode = 1;
+    return;
+  }
+
+  // Anything that is not a known subcommand, a flag, or a positional port
+  // number is a typo — do not silently start the dev server.
+  const unknown = args[0];
+  if (unknown && !unknown.startsWith("-") && !/^\d+$/.test(unknown)) {
+    console.error(`  \u2716 unknown command "${unknown}"`);
+    printHelp();
+    process.exitCode = 1;
     return;
   }
 

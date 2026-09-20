@@ -52,27 +52,39 @@ export async function renderDocumentBody(source, md, components, props, headings
         continue
       }
       const attrs = parseAttrs(match[2])
-      i++
+      // Scan ahead for the closing fence. An opening `:::` followed by a
+      // closing `:::` fence is a block shortcode (children = the lines between
+      // the fences). When there is no closing fence the opening line is either
+      // a single-line, self-closing shortcode (the next line is blank or the
+      // document ends) or an unterminated block — emit the raw text for the
+      // latter instead of silently swallowing the rest of the document.
       const inner = []
       let closed = false
-      while (i < lines.length) {
-        if (/^\s*:::\s*$/.test(lines[i])) { closed = true; i++; break }
-        inner.push(lines[i++])
+      let j = i + 1
+      while (j < lines.length) {
+        if (/^\s*:::\s*$/.test(lines[j])) { closed = true; break }
+        inner.push(lines[j])
+        j++
       }
-      // Unterminated shortcode: emit the block as literal text instead of
-      // silently swallowing the rest of the document past the closing fence.
-      if (!closed) {
+      if (!closed && inner.length && inner[0] !== '') {
         buf.push(line, ...inner)
+        i = lines.length
         continue
       }
-      const children = await renderDocumentBody(inner.join('\n'), md, components, props, headings)
-      try {
-        const html = await component({ ...props, ...attrs, children })
-        if (html) out.push(html + '\n')
-      } catch (err) {
-        console.warn(`[jprot] shortcode ::${name} failed: ${err.message}`)
-        out.push(`<div class="jprot-shortcode-error">Component ::${esc(name)} failed: ${esc(err.message)}</div>`)
+      const render = async () => {
+        const children = closed
+          ? await renderDocumentBody(inner.join('\n'), md, components, props, headings)
+          : ''
+        try {
+          const html = await component({ ...props, ...attrs, children })
+          if (html) out.push(html + '\n')
+        } catch (err) {
+          console.warn(`[jprot] shortcode ::${name} failed: ${err.message}`)
+          out.push(`<div class="jprot-shortcode-error">Component ::${esc(name)} failed: ${esc(err.message)}</div>`)
+        }
       }
+      i = closed ? j + 1 : i + 1
+      await render()
       continue
     }
     buf.push(line)

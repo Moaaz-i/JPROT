@@ -6,15 +6,43 @@ aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-- Docs mode: optional sidebar, breadcrumbs, on-page navigation, previous/next
-  links, callouts, copy-code controls, and configurable export `basePath`.
-- Static exports now include `.nojekyll` for GitHub Pages deployments.
-- Security and reliability: validated request paths and methods, stronger
-  cross-origin headers, safe Markdown URL schemes, and frontmatter diagnostics.
-- Architecture: extracted HTTP/security, URL, and component-rendering helpers
-  from the server; cached parsed content by file metadata.
+## [0.3.0] - 2026-09-20
+
+### Added
+
+- **Element catalog**: `jprot search [query]` lists ready-made components and
+  `jprot add <Name>` installs one into `theme/components/` from a plain static
+  catalog site. The catalog URL resolves, in order, from `--from <url>`, the
+  `catalogUrl` config key, or the default shipped with the distribution.
+- **Self-closing shortcodes**: a `:::Component attrs` line now renders on its
+  own without a closing `:::` fence (no children). The block form — closing
+  fence with Markdown children — still works, and an unterminated block still
+  degrades to literal text instead of swallowing the rest of the page.
+- **Docs**: new "Catalog elements" page (`content/catalog.md`) covering the full
+  `add`/`search` workflow, plus a refreshed getting-started, quick-start,
+  configuration, content, deploy, and FAQ documentation.
+- Docs mode sidebar with on-page navigation and previous/next links (folded in
+  from Unreleased).
+
+### Changed
+
+- CLI: unknown subcommands now print an error instead of silently starting the
+  dev server; `jprot new` accepts `resume`; scaffolded components validate their
+  `--palette`.
+- Scaffold: optional `catalogUrl` config key, hero `badge`/`avatar` placeholders,
+  project `cover` comment, and a clearer homepage intro.
+- Static exports include `.nojekyll` for GitHub Pages (from Unreleased).
+
+### Fixed
+
+- Single-line, self-closing shortcodes rendered as literal text instead of the
+  component, which left catalog previews shapeless.
+- Security and reliability hardening rolled in from Unreleased: validated
+  request paths/methods, stronger cross-origin headers, safe Markdown URL
+  schemes, frontmatter diagnostics, and cached parsed content keyed by file
+  metadata.
 - CI: Node 18/20/22 test matrix and exact-version npm publish gating with
-  provenance.
+  provenance (from Unreleased).
 
 ## [0.2.0] - 2026-09-05
 

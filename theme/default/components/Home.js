@@ -12,10 +12,18 @@ export default function HomePage(props) {
   const title = hero.title || page.data.title || site.title || 'Hello'
   const subtitle = hero.subtitle || page.data.subtitle || site.tagline || ''
   const avatar = hero.avatar || site.avatar || ''
+  const badge = hero.badge || ''
   const L = site.labels || {}
 
   const avatarHtml = avatar
-    ? `<div class="hero-avatar"><img src="${esc(avatar)}" alt=""></div>`
+    ? `<div class="hero-avatar"><img src="${esc(avatar)}" alt="" /></div>`
+    : ''
+  const badgeHtml = badge
+    ? `<span class="hero-badge"><span class="dot" aria-hidden="true"></span>${esc(badge)}</span>`
+    : ''
+  const heroLinks = Array.isArray(hero.links) && hero.links.length
+    ? `<div class="hero-links">${hero.links.map((l, i) =>
+        `<a href="${esc(safeHref(l.url))}" class="btn btn-lg${i ? ' btn-outline' : ''}">${esc(l.label)}</a>`).join('')}</div>`
     : ''
 
   const projectCards = (projects || []).map((p) => {
@@ -24,14 +32,19 @@ export default function HomePage(props) {
       : ''
     const tagAttrs = Array.isArray(p.data.tags) ? p.data.tags.map((t) => `tag-${esc(t)}`).join(' ') : ''
     const desc = p.data.excerpt || p.data.description || p.body.split('\n').slice(0, 3).join(' ')
+    const cover = p.data.cover
+      ? `<img src="${esc(p.data.cover)}" alt="${esc(p.data.title || '')}" loading="lazy" />`
+      : `<span class="project-cover-fallback" aria-hidden="true">${esc(String((p.data.title || '?')[0]).toUpperCase())}</span>`
     return `
       <article class="project-card" data-tags="${tagAttrs}">
-        ${p.data.cover ? `<div class="project-cover"><img src="${esc(p.data.cover)}" alt="${esc(p.data.title || '')}" loading="lazy"></div>` : ''}
+        <a class="project-cover" href="/${esc(p.url)}" tabindex="-1" aria-hidden="true">${cover}</a>
         <div class="project-body">
-          <h3 class="project-title"><a href="/${esc(p.url)}">${esc(p.data.title || p.path)}</a></h3>
-          ${p.data.date ? `<time class="project-date">${esc(p.data.date)}</time>` : ''}
+          <div class="project-head">
+            <h3 class="project-title"><a href="/${esc(p.url)}">${esc(p.data.title || p.path)}</a></h3>
+            ${p.data.date ? `<time class="project-date">${esc(p.data.date)}</time>` : ''}
+          </div>
           <p class="project-desc">${esc(desc)}</p>
-          <div class="project-tags">${tags}</div>
+          ${tags ? `<div class="project-tags">${tags}</div>` : ''}
           <div class="project-links">
             ${p.data.demo ? `<a class="btn btn-sm" href="${esc(safeHref(p.data.demo))}" target="_blank" rel="noopener">${esc(L.liveDemo || 'Live demo')}</a>` : ''}
             ${p.data.repo ? `<a class="btn btn-sm btn-outline" href="${esc(safeHref(p.data.repo))}" target="_blank" rel="noopener">${esc(L.source || 'Source')}</a>` : ''}
@@ -48,12 +61,11 @@ export default function HomePage(props) {
 
   return `
     <section class="hero">
+      ${badgeHtml}
       ${avatarHtml}
       <h1 class="hero-title">${esc(title)}</h1>
       ${subtitle ? `<p class="hero-subtitle">${esc(subtitle)}</p>` : ''}
-      ${Array.isArray(hero.links) && hero.links.length
-        ? `<div class="hero-links">${hero.links.map((l) => `<a href="${esc(safeHref(l.url))}" class="btn">${esc(l.label)}</a>`).join('')}</div>`
-        : ''}
+      ${heroLinks}
     </section>
     <div class="page-content">${content}</div>
     ${projectCards ? `

@@ -20,6 +20,18 @@ test('renderDocumentBody tolerates indentation on open and close fences', async 
   assert.match(html, /After\./)
 })
 
+test('renderDocumentBody renders a self-closing shortcode without a closing fence', async () => {
+  const html = await renderDocumentBody('Intro.\n\n:::Card title="Solo"\n\nTail.', md, components, {})
+  assert.match(html, /Intro\./)
+  assert.match(html, /<div class="blk">Solo: <\/div>/)
+  assert.match(html, /Tail\./)
+})
+
+test('renderDocumentBody self-closes a shortcode on the last line of the document', async () => {
+  const html = await renderDocumentBody(':::Card title="End"\n', md, components, {})
+  assert.match(html, /<div class="blk">End: <\/div>/)
+})
+
 test('renderDocumentBody does not swallow the document after an unterminated shortcode', async () => {
   const html = await renderDocumentBody('Keep me.\n\n:::Card title="Lost"\ninner line\n\nAnd everything after must stay.\n', md, components, {})
   assert.match(html, /Keep me\./)

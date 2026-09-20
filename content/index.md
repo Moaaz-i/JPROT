@@ -12,66 +12,75 @@ layout: home
 > testimonials — is real, replaceable content from `jprot.config.js` and
 > `content/`. Fork it and make it yours.
 
-JPROT is a **Markdown-first portfolio and documentation generator**. Start
-locally in one command, edit a file, refresh the browser, and publish static
-HTML when you are ready. There is no build step and no framework lock-in.
+**You don't need to know HTML, CSS, or JavaScript.** You write simple text
+files in a format called **Markdown**, and jprot turns them into a real
+website — for free, with no build step, no servers, and nothing to install
+beyond Node.js.
 
-```bash
-npx jprot init --portfolio
-npm start
-```
+## Get started in 3 steps
 
-Open <http://127.0.0.1:4114> and make your first change.
+1. **Create a site** — from any empty folder, run
+   `npx jprot init --portfolio`.
+2. **Preview it** — run `npm start` and open <http://127.0.0.1:4114>.
+3. **Add a page** — drop a `.md` file into `content/` and open its address.
+
+That's the entire core workflow. The pages below go deeper, only when you want
+them to.
 
 ## Choose your next step
 
-- **[Quick start](quick-start.md)** — create a working site in a few minutes.
-- **[Create your first site](getting-started.md)** — understand the starter files
-  and daily workflow.
-- **[Write your first page](content.md)** — use Markdown, frontmatter, projects,
-  posts, and shortcodes.
-- **[Basic configuration](configuration.md)** — set the title, URL, navigation,
-  layouts, SEO, and labels.
-- **[Customize your site](customization.md)** — change CSS, themes, components,
-  sections, and the search experience.
-- **[Publish your site](deploy.md)** — export to GitHub Pages or any static host.
+- **[Quick start](quick-start.md)** — a 5-minute, beginner-friendly walkthrough
+  from "what is Markdown?" to a live first page.
+- **[Create your first site](getting-started.md)** — what the starter files do,
+  and how to add posts and projects fast.
+- **[Write your first page](content.md)** — the full toolkit: Markdown,
+  frontmatter, images, links, and component blocks.
+- **[Basic configuration](configuration.md)** — change the title, tagline,
+  colors, URL, and navigation.
+- **[Publish your site](deploy.md)** — put it online for free with GitHub Pages
+  or any static host.
+- **[Customize your site](customization.md)** — themes, CSS, components,
+  sections, and search.
 
-Reference pages are available for the [CLI](cli-reference.md),
-[configuration](configuration.md), and [Node.js API](api-reference.md).
-
-You write plain **Markdown** files. The server reads them and serves HTML instantly. Every part of the presentation — layout, header, footer, homepage, colors, fonts — is **yours to override** with simple CSS variables and drop-in components. No bundler, no framework lock-in, no compile step.
+Reference pages exist for the [CLI](cli-reference.md),
+[configuration](configuration.md), and [Node.js API](api-reference.md). If
+anything goes wrong, see [Troubleshooting](troubleshooting.md) and the
+[FAQ](faq.md).
 
 ---
 
 ## ✨ Why JPROT?
 
-Most generators force a build step and a fixed theme. JPROT flips this:
+Most generators force you to run a build and accept a fixed theme. JPROT flips
+that:
 
-| Pain point                        | JPROT answer                                     |
-| --------------------------------- | ------------------------------------------------ |
-| Must run a build to see changes   | **No build** — save, refresh, done               |
-| Theme is hard to change           | Redefine **CSS variables** in `theme/custom.css` |
-| Layout is locked by the framework | Replace **components** with your own files       |
-| Write content in a special DSL    | Plain **Markdown** in `content/`                 |
-| Heavy dependencies & node_modules | Vanilla **Node.js**, zero external packages      |
+| Usual pain point                          | JPROT's answer                          |
+| ----------------------------------------- | --------------------------------------- |
+| You must run "build" to see changes       | **No build** — save the file, refresh   |
+| Changing the design is a project          | Redefine **CSS variables** and watch it change |
+| The layout is owned by the framework      | Replace **components** with your own files |
+| Writing content uses a special language   | Plain **Markdown** in a `content/` folder |
+| Heavy dependencies and `node_modules`     | Vanilla **Node.js**, zero packages      |
 
 ---
 
 ## 🧩 Core features
 
-- **Zero build.** A single `node core/cli.js` command serves everything.
-- **Markdown content** with YAML frontmatter (titles, tags, ordering, hidden).
-- **Radically customizable** via CSS variables and override components (`Header`, `Footer`, `Layout`, `Home`, `Page`).
-- **Instant projects**: drop files into `content/projects/` and cards appear on the homepage.
-- **Static assets** served from `public/`.
-- **Portable**: runs on Node.js 18+ with nothing else.
+- **Zero build.** One command serves everything.
+- **Markdown content** with a tiny settings block (title, tags, order, hidden).
+- **Truly customizable** via CSS variables and drop-in components (`Header`,
+  `Footer`, `Layout`, `Home`, `Page`).
+- **Instant projects** — drop files in `content/projects/` and cards appear on
+  the homepage.
+- **Static assets** served straight from `public/`.
+- **Portable** — Node.js 18+ is the only requirement.
 
 ---
 
 ## Reference and help
 
 - [Examples](examples.md) — copy-paste themes, components, and config.
-- [Troubleshooting](troubleshooting.md) — fix common setup and deployment issues.
-- [FAQ](faq.md) — common questions.
+- [Troubleshooting](troubleshooting.md) — fix common problems step by step.
+- [FAQ](faq.md) — common questions, answered simply.
 - [Architecture](architecture.md) — internals for contributors and theme authors.
 - [Comparison](comparison.md) — JPROT versus VitePress.

@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "name": "Fixtures Catalog",
+    "version": "1.0.0",
+    "description": "Local test catalog."
+  },
+  "elements": [
+    {
+      "name": "SplitHero",
+      "slug": "splithero",
+      "description": "a split hero component",
+      "category": "heros",
+      "tags": ["hero", "split"],
+      "usage": "title=\"Hi\"",
+      "file": "catalog/elements/SplitHero.js"
+    },
+    {
+      "name": "QuoteBlock",
+      "slug": "quoteblock",
+      "description": "a quote block",
+      "category": "testimonials",
+      "tags": ["quote"],
+      "usage": "text=\"Hello\"",
+      "file": "catalog/elements/QuoteBlock.js"
+    }
+  ]
+}

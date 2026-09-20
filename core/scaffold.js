@@ -10,7 +10,7 @@ const CONFIG_KEYS = [
   'twitter', 'ogLocale', 'sameAs', 'alternateLangs', 'icon', 'head', 'footerText',
   'blogDir', 'projectsDir', 'defaultLayout', 'homeLayout', 'sidebar', 'showNav',
   'themePicker', 'projectsTitle', 'formspree', 'social', 'nav', 'hero', 'sections',
-  'themes', 'labels', 'markdown',
+  'themes', 'labels', 'markdown', 'catalogUrl',
 ]
 
 // levenshtein ≤ 2 → warn "did you mean …"
@@ -59,6 +59,8 @@ export default {
   email: 'you@example.com',
   sidebar: ${type === 'docs'},
   themeColor: '#4f46e5',
+  // Uncomment to install components from the JPROT Catalog with jprot add:
+  // catalogUrl: 'https://YOUR-ACCOUNT.github.io/JPROT-catalog',
   // Add only social profiles you own; these are intentionally left configurable.
   social: [
 ${type === 'docs'
@@ -68,6 +70,9 @@ ${type === 'docs'
   hero: {
     title: 'Hello, I build for the web.',
     subtitle: '${type === 'docs' ? 'Documentation for the things I make and use.' : type === 'resume' ? 'Experienced builder open to new opportunities.' : 'Developer, designer, problem-solver.'}',
+${type === 'portfolio'
+    ? "    badge: 'Available for new projects',\n    // avatar: '/images/me.jpg',"
+    : "    // badge: 'Available for new projects',\n    // avatar: '/images/me.jpg',"},
     links: [
 ${type === 'resume'
     ? "      { label: 'Resume', url: '/resume' }"
@@ -92,7 +97,7 @@ ${type === 'docs'
   ? '# Welcome to the docs\n\nStart with getting-started continued…\n\n- [Getting Started](/getting-started)\n- [Reference](/reference)\n- [FAQ](/faq)'
   : type === 'resume'
     ? '# Hello, I build for the web.\n\nFocused, dependable, remote-friendly. See my [full resume](/resume).'
-    : '# Hello, I build for the web.\n\nPortfolio of selected work, writing and experiments — all built with JPROT.'}
+    : 'Selected work, writing and experiments — all built with JPROT.\n\nEverything below is driven by `content/` and `jprot.config.js`: feature your projects in the “Projects” section above, post to the [Blog](/blog), and compose a richer homepage with `sections`.'}
 `
 
 const aboutTemplate = `---
@@ -130,6 +135,8 @@ const projectTemplate = ({ title, slug, date, draft }) => `---
 title: ${title}
 description: What it does, in one line.
 date: ${date}
+# The card cover image on the homepage (optional, can be a local or remote URL).
+# cover: /images/example.png
 # Replace the URLs below with your own links, or remove either field.
 demo: https://example.com
 repo: https://github.com/your-account/${slug}
@@ -144,26 +151,32 @@ ${draft ? 'draft: true\n' : ''}---
 `
 
 const resumeTemplate = `---
-title: Your Name
+title: Resume
 layout: resume
 description: Professional summary.
+name: Your Name
+role: Designer & developer
 email: you@example.com
+location: Your City, Country
+social:
+  - label: GitHub
+    url: https://github.com/your-account
+experience:
+  - title: Your Role
+    company: Company
+    period: 20## — present
+    description: What you delivered and the impact you had.
+education:
+  - title: Degree
+    school: School
+    period: 20## — 20##
+    description: Focus area.
+skills:
+  - title: Skill
+    description: Level or tools.
 ---
 
-## Experience
-
-### Your Role — Company
-20## — present
-- Achievement one
-
-## Education
-
-### Degree — School
-- Focus area
-
-## Skills
-
-- •
+Write a short summary about yourself — it appears below the header.
 `
 
 /* ============================================================
@@ -183,7 +196,7 @@ export async function scaffoldSite({ root, type = 'portfolio' } = {}) {
     ['content/index.md', indexTemplate({ type })],
     ['content/about.md', aboutTemplate],
     ['content/resume.md', resumeTemplate],
-    ['content/blog.md', '---\ntitle: Blog\n---\n\nWriting about development, design and the tools I use daily.\n'],
+    ['content/blog.md', '---\ntitle: Blog\ndescription: Writing about development, design and the tools I use daily.\n---\n\nWriting about development, design and the tools I use daily.\n'],
     ['content/blog/hello-world.md', postTemplate({ title: 'Hello World', slug: 'hello-world', date: today(), draft: true })],
     ['content/projects/example.md', projectTemplate({ title: 'Example Project', slug: 'example', date: today() })],
     ['theme/custom.css', '/* Custom overrides — loaded after the default theme */\n'],
@@ -216,11 +229,11 @@ export async function scaffoldNew({ root, kind, title, draft = false, template }
   const kinds = { post: 'post', blog: 'post', page: 'page', project: 'project', resume: 'resume' }
   const kindKey = kinds[kind?.toLowerCase()]
   if (!kindKey) {
-    throw new Error(`jprot new: unknown kind "${kind}" (use post | page | project)`)
+    throw new Error(`jprot new: unknown kind "${kind}" (use post | page | project | resume)`)
   }
   if (kindKey === 'resume') {
     const file = join(contentDir, 'resume.md')
-    if (await existsFile(file)) throw new Error(`jprot new: ${file} already exists`)
+    await mkdir(dirname(file), { recursive: true })
     await writeFile(file, resumeTemplate, 'utf8')
     return file
   }
@@ -423,8 +436,7 @@ export async function writeSnippets(projectRoot) {
       description: 'JPROT component skeleton',
     },
   }
-  // escape snippet $ as \$ for the JSON body string
-  const jsonBody = JSON.stringify({ ...snippets }, null, 2).replace(/\$\{/g, '\\${')
+  const jsonBody = JSON.stringify({ ...snippets }, null, 2)
   await writeFile(vsc, jsonBody + '\n', 'utf8')
 
   const ulti = join(projectRoot, 'snippets', 'jprot.snippets')

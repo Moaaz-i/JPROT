@@ -5,23 +5,35 @@ order: 4
 nav: Configure
 ---
 
-Site-wide settings live in one file at the project root:
-**`jprot.config.js`** (or `jprot.config.json`).
+**You will learn:** how to change your site's name, tagline, links, colors,
+and more — all from one small file.
 
-Start with these four values:
+Every site-wide setting lives in a single file at your project root:
+**`jprot.config.js`** (or `jprot.config.json` if you prefer JSON).
+
+## The three settings every new site needs
+
+Open `jprot.config.js` and find these lines. Change them to yours:
 
 ```js
 export default {
-  title: 'My site',
+  title: 'My site',            // your name or site name (top-left corner & browser tab)
+  tagline: 'Designer & developer', // one line under the headline on the homepage
   description: 'A short sentence for search engines and link previews.',
-  url: 'https://example.com',
+  url: 'https://example.com',  // your real address — set this before publishing
   author: 'Your Name',
+  email: 'you@example.com',
 }
 ```
 
-The `url` is important for production: it is used by canonical links, feeds,
-Open Graph metadata, and the sitemap. Keep the local default while developing,
-then replace it before publishing.
+That's the 80% case: **who you are** (`title`), **what you do** (`tagline`),
+**one line describing the site** (`description`), and **your address** (`url`).
+
+> [!IMPORTANT]
+> `url` matters more than it looks: when it's set, JPROT uses it for the
+> sitemap, RSS feed, and link previews (Open Graph). While you develop
+> locally, it's fine to leave it empty. Set your real address before
+> publishing so search engines and social links behave correctly.
 
 ## A full example
 
@@ -183,6 +195,7 @@ export default {
 | `icon` | string | — | Icon path for the PWA manifest |
 | `hero.title` | string | — | Homepage hero title |
 | `hero.subtitle` | string | — | Homepage hero subtitle |
+| `hero.badge` | string | — | Optional pill above the title (e.g. `'Available for new projects'`) |
 | `hero.avatar` | string | — | Avatar image path (served from `public/`) |
 | `hero.links` | array | — | List of `{ label, url }` hero buttons |
 | `projectsTitle` | string | `'Projects'` | Homepage projects section heading |
