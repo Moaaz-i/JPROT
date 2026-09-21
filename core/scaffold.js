@@ -1,7 +1,7 @@
 // Scaffolding: `jprot init`, `jprot new`, `jprot g component` and the editor
 // snippet bundles. Everything here is zero-dependency and writes plain files.
-import { readFile, writeFile, mkdir, stat } from 'node:fs/promises'
-import { join, dirname, basename } from 'node:path'
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
 import { slugify } from './utils.js'
 
 const CONFIG_KEYS = [
@@ -45,7 +45,9 @@ export function suggestConfigKey(key) {
    Template strings
    ============================================================ */
 
-const configTemplate = ({ type }) => `// jprot config — see https://github.com/Moaaz-i/JPROT for the schema
+const configTemplate = ({
+  type,
+}) => `// jprot config — see https://github.com/Moaaz-i/JPROT for the schema
 /** @type {import('jprot').JprotConfig} */
 export default {
   title: 'Your Name',
@@ -53,30 +55,36 @@ export default {
   description: 'a short line used in SEO and Open Graph',
   // Replace this with your public site URL before deploying.
   url: 'https://yoursite.com',
-  basePath: '${type === 'docs' ? '/your-repository' : ''}',
-  docs: ${type === 'docs'},
+  basePath: '${type === "docs" ? "/your-repository" : ""}',
+  docs: ${type === "docs"},
   lang: 'en',
   email: 'you@example.com',
-  sidebar: ${type === 'docs'},
+  sidebar: ${type === "docs"},
   themeColor: '#4f46e5',
   // Uncomment to install components from the JPROT Catalog with jprot add:
-  // catalogUrl: 'https://YOUR-ACCOUNT.github.io/JPROT-catalog',
+  // catalogUrl: 'https://moaaz-i.github.io/jprot-catalog',
   // Add only social profiles you own; these are intentionally left configurable.
   social: [
-${type === 'docs'
+${
+  type === "docs"
     ? "  // { label: 'GitHub', url: 'https://github.com/your-account/your-repository' }"
-    : "  // { name: 'GitHub', label: 'GitHub', url: 'https://github.com/your-account/your-repository' }"},
+    : "  // { name: 'GitHub', label: 'GitHub', url: 'https://github.com/your-account/your-repository' }"
+},
   ],
   hero: {
     title: 'Hello, I build for the web.',
-    subtitle: '${type === 'docs' ? 'Documentation for the things I make and use.' : type === 'resume' ? 'Experienced builder open to new opportunities.' : 'Developer, designer, problem-solver.'}',
-${type === 'portfolio'
+    subtitle: '${type === "docs" ? "Documentation for the things I make and use." : type === "resume" ? "Experienced builder open to new opportunities." : "Developer, designer, problem-solver."}',
+${
+  type === "portfolio"
     ? "    badge: 'Available for new projects',\n    // avatar: '/images/me.jpg',"
-    : "    // badge: 'Available for new projects',\n    // avatar: '/images/me.jpg',"},
+    : "    // badge: 'Available for new projects',\n    // avatar: '/images/me.jpg',"
+},
     links: [
-${type === 'resume'
+${
+  type === "resume"
     ? "      { label: 'Resume', url: '/resume' }"
-    : "      { label: 'Projects', url: '/projects' },\n      { label: 'Blog', url: '/blog' }"},
+    : "      { label: 'Projects', url: '/projects' },\n      { label: 'Blog', url: '/blog' }"
+},
     ],
   },
   // sections // TODO: uncomment to compose your homepage
@@ -86,7 +94,7 @@ ${type === 'resume'
   //   { component: 'Contact', title: 'Get in touch' },
   // ],
 }
-`
+`;
 
 const indexTemplate = ({ type }) => `---
 title: Home

@@ -71,7 +71,7 @@ The catalog URL comes from one of these places, in order:
 1. The `--from <url>` flag:
 
    ```bash
-   jprot add SplitHero --from https://YOUR-ACCOUNT.github.io/JPROT-catalog
+   jprot add SplitHero --from https://moaaz-i.github.io/jprot-catalog
    ```
 
 2. `catalogUrl` in your site config — set it once and plain `jprot add`
@@ -79,7 +79,7 @@ The catalog URL comes from one of these places, in order:
 
    ```js
    export default {
-     catalogUrl: 'https://YOUR-ACCOUNT.github.io/JPROT-catalog',
+     catalogUrl: 'https://moaaz-i.github.io/jprot-catalog',
    }
    ```
 

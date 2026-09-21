@@ -9,17 +9,17 @@
 //   1. --from <url> flag
 //   2. `catalogUrl` key in the site's jprot.config.js
 //   3. the built-in default (null → clear error telling the user to set one)
-import { mkdir, writeFile, readFile, stat } from 'node:fs/promises'
-import { join, dirname } from 'node:path'
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 
 export const DEFAULT_CATALOG_URL = null
 
 export function catalogHelp() {
   return [
-    '  Where is the catalog? Set `catalogUrl` in your jprot.config.js,',
-    '  e.g.   catalogUrl: \'https://YOUR-ACCOUNT.github.io/JPROT-catalog\',',
-    '  or pass --from <url> to this command.',
-  ]
+    "  Where is the catalog? Set `catalogUrl` in your jprot.config.js,",
+    "  e.g.   catalogUrl: 'https://moaaz-i.github.io/jprot-catalog',",
+    "  or pass --from <url> to this command.",
+  ];
 }
 
 async function fetchText(url) {

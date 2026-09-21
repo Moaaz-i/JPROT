@@ -35,7 +35,7 @@ jprot export --out dist --base-path /my-repository
 jprot new post "Release notes" --template meetup
 jprot g component Hobbies --palette cards
 jprot add SplitHero
-jprot add SplitHero --from https://YOUR-ACCOUNT.github.io/JPROT-catalog
+jprot add SplitHero --from https://moaaz-i.github.io/jprot-catalog
 jprot search
 jprot search hero
 ```
