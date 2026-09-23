@@ -83,8 +83,10 @@ The catalog URL comes from one of these places, in order:
    }
    ```
 
-3. The built-in default URL shipped with your JPROT distribution — so on a
-   fresh install, `jprot add <Name>` usually needs no source at all.
+3. If neither is set, jprot prints a clear error telling you what to configure.
+
+A freshly scaffolded site already ships with `catalogUrl` pointing at the JPROT
+Catalog, so `jprot add <Name>` needs no source at all on a new project.
 
 If no URL is available, jprot prints what to set instead of guessing.
 

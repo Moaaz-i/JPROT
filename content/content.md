@@ -23,8 +23,9 @@ Every Markdown file in `content/` becomes a page at a URL matching its path:
 
 Sub-folders work: `content/blog/2026/first-post.md` → `/blog/2026/first-post`.
 
-The file name becomes the slug. Use lowercase letters and dashes: spaces in
-names become dashes.
+The file name becomes the URL path — a space stays a space (encoded as
+`%20`), so use lowercase letters and dashes for clean, readable URLs. JPROT
+converts dynamic content (like `jprot new post "My Title"`) to dashed slugs.
 
 ## Frontmatter
 

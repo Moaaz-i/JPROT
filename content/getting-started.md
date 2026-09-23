@@ -32,7 +32,9 @@ Press Ctrl+C to stop
 ```
 
 `127.0.0.1` is "this computer"; `4114` is the default port. Use a different port
-with `jprot 5000` or `PORT=5000 npm start`.
+with `jprot 5000` or `PORT=5000 npm start`. (`npm start` runs the `jprot` tool;
+after `npm install -g jprot`, either command works — `npx jprot` is the
+install-free equivalent.)
 
 ## The daily workflow
 
@@ -54,7 +56,7 @@ with the `--no-watch` flag or `NO_WATCH=1`.
 | `content/` | `index.md` (homepage), a sample blog post, a sample project |
 | `jprot.config.js` | Pre-filled, commented site config |
 | `theme/custom.css` | Style overrides (start here to change colors) |
-| `theme/components/` | Component overrides (empty until you add any) |
+| `theme/components/` | Your component overrides — created once you add a component |
 | `.vscode/`, `snippets/` | Editor autocomplete for JPROT content |
 
 `jprot init` never overwrites existing files, so re-running it is always safe.

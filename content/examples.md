@@ -21,7 +21,10 @@ The available themes:
 
 | File | Look |
 |---|---|
+| `corporate.css` | Light, clean business palette with a strong accent |
+| `creative.css` | Bold editorial accents with dark hero |
 | `dark-mode.css` | Dark background, light text, blue accent |
+| `minimal.css` | Reduced chrome, monochrome, lots of whitespace |
 | `neon.css` | Dark theme with vivid pink accent and glow |
 | `serif.css` | Editorial serif typography on a warm paper tone |
 

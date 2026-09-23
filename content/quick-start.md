@@ -6,7 +6,7 @@ nav: Start here
 ---
 
 JPROT turns a folder of Markdown files into a website with no build step.
-Nodes 18+ is the only requirement.
+Node.js 18+ is the only requirement.
 
 ## Prerequisites
 
@@ -39,6 +39,10 @@ site), `--resume` (CV-style site).
 ```bash
 npm start
 ```
+
+(The scaffolded project includes a `start` script that runs the `jprot`
+command-line tool. If you only ran JPROT via `npx` without a global install,
+use `npx jprot` instead — same server.)
 
 Open <http://127.0.0.1:4114>. If the port is busy, JPROT picks the next free port;
 start on a specific port with `jprot 5000`. Stop the server with `Ctrl+C`.

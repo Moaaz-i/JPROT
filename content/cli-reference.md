@@ -63,7 +63,10 @@ The catalog URL is resolved in this order:
 1. the `--from <url>` flag
 2. `catalogUrl: '…'` in your `jprot.config.js` (set once, then plain
    `jprot add <Name>` works from then on)
-3. the built-in default URL for your JPROT distribution
+3. if neither is set, jprot prints a clear error telling you what to configure
+
+A scaffolded site ships with `catalogUrl` already pointing at the JPROT Catalog,
+so `jprot add <Name>` works on a fresh project without any setup.
 
 See [Install catalog elements](catalog.md) for the full workflow.
 

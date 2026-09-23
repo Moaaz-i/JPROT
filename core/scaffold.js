@@ -61,14 +61,15 @@ export default {
   email: 'you@example.com',
   sidebar: ${type === "docs"},
   themeColor: '#4f46e5',
-  // Uncomment to install components from the JPROT Catalog with jprot add:
-  // catalogUrl: 'https://moaaz-i.github.io/jprot-catalog',
+  // Catalog used by jprot search / jprot add. Point it at your own mirror
+  // or leave it as the JPROT Catalog.
+  catalogUrl: 'https://moaaz-i.github.io/jprot-catalog',
   // Add only social profiles you own; these are intentionally left configurable.
   social: [
 ${
   type === "docs"
     ? "  // { label: 'GitHub', url: 'https://github.com/your-account/your-repository' }"
-    : "  // { name: 'GitHub', label: 'GitHub', url: 'https://github.com/your-account/your-repository' }"
+    : "  // { label: 'GitHub', url: 'https://github.com/your-account/your-repository' }"
 },
   ],
   hero: {
@@ -199,12 +200,12 @@ export async function scaffoldSite({ root, type = 'portfolio' } = {}) {
   const themeDir = join(projectRoot, 'theme')
 
   const files = [
-    ['package.json', '{\n  "private": true,\n  "type": "module"\n}\n'],
+    ['package.json', '{\n  "private": true,\n  "type": "module",\n  "scripts": {\n    "start": "jprot"\n  }\n}\n'],
     ['jprot.config.js', configTemplate({ type })],
     ['content/index.md', indexTemplate({ type })],
     ['content/about.md', aboutTemplate],
     ['content/resume.md', resumeTemplate],
-    ['content/blog.md', '---\ntitle: Blog\ndescription: Writing about development, design and the tools I use daily.\n---\n\nWriting about development, design and the tools I use daily.\n'],
+    ['content/blog.md', '---\ntitle: Blog\ndescription: Writing about development, design and the tools I use daily.\nlayout: blog\n---\n\nWriting about development, design and the tools I use daily.\n'],
     ['content/blog/hello-world.md', postTemplate({ title: 'Hello World', slug: 'hello-world', date: today(), draft: true })],
     ['content/projects/example.md', projectTemplate({ title: 'Example Project', slug: 'example', date: today() })],
     ['theme/custom.css', '/* Custom overrides — loaded after the default theme */\n'],

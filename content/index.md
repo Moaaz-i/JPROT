@@ -10,9 +10,9 @@ A zero-dependency, zero-build site generator. Write Markdown in `content/`,
 serve it with Node.js, and publish static files anywhere.
 
 ```bash
-npx jprot init --portfolio   # scaffold a site
-npm start                    # preview at http://127.0.0.1:4114
-jprot export                 # static output to dist/
+jprot init --portfolio        # scaffold a site (or npx jprot init)
+npm start                     # preview at http://127.0.0.1:4114
+jprot export                  # static output to dist/
 ```
 
 ## Getting started

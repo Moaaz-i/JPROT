@@ -26,9 +26,12 @@ npx jprot
 
 ```bash
 mkdir my-site && cd my-site
-npx jprot init --portfolio   # or --docs / --resume
-npm start                    # → http://127.0.0.1:4114
+jprot init --portfolio   # or --docs / --resume
+npm start                # → http://127.0.0.1:4114
 ```
+
+The scaffolded `package.json` adds a `start` script that runs `jprot`. If you
+used `npx jprot` above instead of a global install, run `npx jprot` to preview.
 
 Add a page by dropping a `.md` file into `content/`; save a file and refresh
 the browser — there is no build step.

@@ -47,6 +47,7 @@ export async function renderDocumentBody(source, md, components, props, headings
       const name = match[1]
       const component = components[name]
       if (typeof component !== 'function') {
+        console.warn(`[jprot] unknown shortcode ::${name} — rendered as a placeholder`)
         out.push(`<div class="jprot-shortcode-missing">Unknown JPROT shortcode ::${esc(name)}</div>`)
         i++
         continue
