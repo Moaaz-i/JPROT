@@ -1,5 +1,5 @@
 import { readFile, readdir, stat } from 'node:fs/promises'
-import { join, extname, basename, normalize } from 'node:path'
+import { join, extname, basename, normalize, sep } from 'node:path'
 import { parseFrontmatter } from '../lib/frontmatter.js'
 import { isInside } from './utils.js'
 import { state } from './state.js'
@@ -72,6 +72,15 @@ export async function listProjects(contentDir, projectsDir) {
   return out
 }
 
+// Normalize a `YYYY-M-D` / `YYYY-MM-DD` frontmatter date into a zero-padded
+// sortable key so non-padded dates (2026-1-5) don't misorder vs padded ones.
+function dateKey(value) {
+  if (typeof value !== 'string') return String(value ?? '')
+  const m = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
+  if (m) return `${m[1]}${m[2].padStart(2, '0')}${m[3].padStart(2, '0')}`
+  return value
+}
+
 // Blog posts from content/blog (or a custom blogDir), newest first.
 export async function listPosts(contentDir, blogDir) {
   const { site } = state()
@@ -91,7 +100,11 @@ export async function listPosts(contentDir, blogDir) {
       excerpt: data.excerpt || body.split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 3).join(' '),
     })
   }
-  out.sort((a, b) => (b.data.date || '').localeCompare(a.data.date || ''))
+  out.sort((a, b) => {
+    const ka = dateKey(a.data.date)
+    const kb = dateKey(b.data.date)
+    return (kb || '') < (ka || '') ? -1 : (kb || '') > (ka || '') ? 1 : 0
+  })
   return out
 }
 
@@ -171,6 +184,40 @@ export async function buildNavigation(contentDir) {
   }
   nav.sort((a, b) => a.order - b.order)
   return nav
+}
+
+// Docs-mode reading order for the sidebar and prev/next links: every content
+// page, including nested ones (unlike the compact navbar), sorted by
+// frontmatter `order`. Blog/project listings are excluded by passing their
+// directories so posts don't clutter the docs sidebar.
+export async function buildDocsNav(contentDir, excludeDirs = []) {
+  const nav = []
+  for (const f of await listMarkdown(contentDir)) {
+    if (excludeDirs.some((d) => f.startsWith(d + sep))) continue
+    const { data } = await readParsed(f)
+    if (data.hidden || data.draft) continue
+    const rel = f.slice(contentDir.length + 1)
+    const slug = basename(f, '.md')
+    if (rel === 'index.md' || slug === '404') continue
+    let url
+    let label
+    if (slug === 'index') {
+      url = dirnameContent(rel) + '/'
+      label = data.nav || data.title || basename(dirnameContent(rel))
+    } else {
+      url = rel.replace(/\.md$/, '')
+      label = data.nav || data.title || slug
+    }
+    nav.push({ label, url, order: data.order ?? Infinity })
+  }
+  nav.sort((a, b) => a.order - b.order || a.label.localeCompare(b.label))
+  return nav
+}
+
+// `/guide/index.md` → `/guide`
+function dirnameContent(rel) {
+  const dir = rel.replace(/\/index\.md$/, '')
+  return dir.includes('/') ? dir : ''
 }
 
 // Safely resolve a URL pathname to an existing content file, guarding against

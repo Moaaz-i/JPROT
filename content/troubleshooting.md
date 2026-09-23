@@ -1,12 +1,12 @@
 ---
 title: Troubleshooting
 description: Fix common JPROT setup, content, export, and deployment problems.
-order: 9
+order: 11
 nav: Troubleshooting
 ---
 
-Fixes for the most common issues — plus an explanation of a few behaviours that
-look like bugs but are by design.
+Fixes for the most common issues, plus a few behaviors that look like bugs but
+are by design.
 
 ## The port is already in use
 

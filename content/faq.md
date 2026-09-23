@@ -1,7 +1,7 @@
 ---
 title: FAQ
 description: Simple answers to common JPROT questions — from absolute beginners onward.
-order: 11
+order: 12
 nav: FAQ
 ---
 
@@ -9,9 +9,9 @@ Short, plain answers to the questions people ask most.
 
 ## I've never built a website. Can I still use this?
 
-Yes — that's exactly who JPROT is for. You write normal text files (Markdown),
-run two commands, and you have a website. You don't need to know HTML, CSS, or
-JavaScript to get started. Start with the [Quick start](quick-start.md).
+Yes. You write Markdown, run two commands, and you have a website. No HTML,
+CSS, or JavaScript required to get started. Start with the
+[Quick start](quick-start.md).
 
 ## Do I need to install anything?
 
@@ -20,10 +20,9 @@ Just one thing: **Node.js 18+**. JPROT itself has zero dependencies — no
 
 ## What is a "static site"?
 
-A website made of finished HTML files, instead of one that needs a running
+A website made of finished HTML files instead of one that needs a running
 program to create each page on demand. Static sites load fast, are cheap to
-host, and are what jprot exports in `dist/`. You can run a preview on your
-computer while working, but the published site is just files.
+host, and are what jprot exports in `dist/`.
 
 ## Is there a build step?
 

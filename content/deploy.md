@@ -1,86 +1,55 @@
 ---
-title: Publish your site
-description: Put your JPROT site online for free — GitHub Pages, Netlify, Cloudflare Pages, or any static host.
+title: Publishing
+description: Export your JPROT site to static files and deploy to GitHub Pages, Netlify, Cloudflare Pages, or any host.
 order: 6
 nav: Publish
 ---
 
-**You will learn:** how to turn your site into a folder of finished files
-(called an **export**) and how to put that folder online for free.
+Publishing has two steps: **export** the site to static files, then **upload**
+that folder to any host.
 
-> [!TIP]
-> New here? Everything you need to write content is in
-> [Write your first page](content.md). This page is only about the final step:
-> showing your site to the world.
-
-## What "publishing" means
-
-While you develop, your site only exists on your own computer (the local
-preview). Publishing has two steps:
-
-1. **Export** — jprot produces a folder of ready-made HTML files (no server
-   needed to read them).
-2. **Upload** — you drop that folder on a hosting service, and anyone with the
-   address can visit it.
-
-## 1. Check your site before publishing
-
-From your site folder, run:
+## 1. Verify before publishing
 
 ```bash
 jprot lint
 ```
 
-`jprot lint` scans your content for broken links and missing descriptions. Fix
-whatever it reports:
-- `frontmatter missing title` → add a `title:` line.
-- `broken internal link → …` → the page you linked to doesn't exist; check the
-  spelling or remove the link.
-
-Then preview the way visitors will see it (production mode hides drafts):
+Reports missing frontmatter, broken internal links, missing descriptions,
+images without alt text, and oversized local images. Fix what it lists, then
+preview production behavior:
 
 ```bash
 jprot --prod --no-watch
 ```
 
-Open the preview, click through your pages, and check images and menus. Stop it
-with `Ctrl+C`.
+Production mode hides drafts and sends immutable cache headers. Stop with
+`Ctrl+C` when done.
 
-## 2. Export your site to files
+## 2. Export
 
 ```bash
 jprot export --out dist
 ```
 
-Expected output:
-
 ```text
 Exported site to: .../dist
 ```
 
-A new `dist/` folder appears next to your files. It contains everything the
-site needs: `index.html`, one folder per page, `404.html`, the RSS feed, the
-sitemap, link-preview images, and your `public/` files. **Drafts are not
-included** — that's the "work in progress" protection working.
+`dist/` contains everything the site needs: `index.html`, one folder per page,
+`404.html`, RSS feed, sitemap, search index, PWA manifest, link-preview images,
+and your `public/` files **minus drafts**. Never edit files inside `dist/` —
+change `content/` and re-export.
 
-> [!NOTE]
-> `dist` = "distribution". It's a common name for the final, publishable
-> files. You never edit files inside `dist/` — you always edit in `content/`
-> and re-run the export.
+### Project-site deployments (`--base-path`)
 
-## 3. Upload it
-
-### GitHub Pages (free, most popular)
-
-If your address will be `https://ACCOUNT.github.io/REPOSITORY/` (a
-**project site**, hosted inside a repository), tell jprot the extra folder
-during export:
+For `https://ACCOUNT.github.io/REPOSITORY/` (a project site), prefix exported
+URLs:
 
 ```bash
 jprot export --out dist --base-path /REPOSITORY
 ```
 
-Or save it once in `jprot.config.js` so you never forget:
+Or set it once in `jprot.config.js`:
 
 ```js
 export default {
@@ -88,53 +57,62 @@ export default {
 }
 ```
 
-Then enable **GitHub Pages** in your repository settings and point it at the
-`dist/` folder. jprot already wrote a `.nojekyll` file for you, which keeps
-GitHub Pages from interfering with generated files.
+`basePath` is folded into every generated link:
 
-If your address is `https://ACCOUNT.github.io/` (a **user site**), skip
-`--base-path` entirely.
+- `manifest.json` `start_url`, `scope`, and icon paths are prefixed.
+- Sitemap, RSS, `robots.txt`, `llms.txt`, canonical, and OG URLs use
+  `site.url + basePath` automatically — so the exported output is
+  deployment-correct without editing `url` by hand.
+- `.nojekyll` is written for GitHub Pages.
 
-**Before you push, double-check the files exist:**
+A **user site** (`https://ACCOUNT.github.io/`) needs no `--base-path`.
+
+Sanity-check before pushing:
 
 ```bash
 test -f dist/index.html
 test -f dist/404.html
-test -f dist/search.json
 find dist -name index.html | sort
 ```
 
+## 3. Deploy
+
+### GitHub Pages
+
+Enable GitHub Pages in the repository settings and point it at the `dist/`
+branch or folder.
+
 ### Netlify / Cloudflare Pages / Vercel
 
-Upload the `dist/` folder as-is, or connect the service to your repository and
-tell it: **build command** = `jprot export`, **output directory** = `dist/`.
-If the service has a "not found page" setting, point it at `404.html`.
+Upload `dist/` as-is, or connect the repository with:
 
-### Any other static host
+- **Build command**: `jprot export`
+- **Output directory**: `dist/`
+- **Not-found page**: `404.html`
 
-Upload `dist/` as-is and make sure the host serves `404.html` for unknown
-addresses. If the host doesn't support "clean URLs" (folders like
-`/about/index.html`), enable them — or just use the folder URLs as exported.
+### Any static host
 
-## Running as a server instead (Node hosting)
+Remove the `dist/` directory and ensure the host serves `404.html` for unknown
+addresses. If the host doesn't support clean URLs (`/about/index.html`), enable
+them, or use the folder URLs as exported.
 
-jprot can also run as a continuous server. Copy the project to your server and:
+## Running as a server (Node hosting)
 
 ```bash
 npm install
 npm start -- --prod --no-watch
 ```
 
-Some platforms need a public host and a port number they give you:
+Public hosts usually need a host and port:
 
 ```bash
 HOST=0.0.0.0 PORT=8080 npm start -- --prod --no-watch
 ```
 
-## Before you go live
+## Before going live
 
-Set your real `url` in `jprot.config.js`. The `--base-path` fixes file
-addresses; `url` controls search-engine and link-preview metadata. Both matter
-— one fixes the files, the other fixes how the internet describes your site.
+Set the real `url` in `jprot.config.js`. `basePath` fixes file addresses;
+`url` controls search-engine and link-preview metadata. Both are needed for a
+project site.
 
-Next: [CLI reference](cli-reference.md).
+Next: [Catalog elements](catalog.md).

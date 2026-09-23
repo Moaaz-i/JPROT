@@ -5,35 +5,25 @@ order: 4
 nav: Configure
 ---
 
-**You will learn:** how to change your site's name, tagline, links, colors,
-and more — all from one small file.
-
-Every site-wide setting lives in a single file at your project root:
+All site-wide settings live in a single file at the project root:
 **`jprot.config.js`** (or `jprot.config.json` if you prefer JSON).
 
-## The three settings every new site needs
-
-Open `jprot.config.js` and find these lines. Change them to yours:
+## Minimum settings
 
 ```js
 export default {
-  title: 'My site',            // your name or site name (top-left corner & browser tab)
-  tagline: 'Designer & developer', // one line under the headline on the homepage
+  title: 'My site',                // name shown in the brand and browser tab
+  tagline: 'Designer & developer', // subtitle under the homepage headline
   description: 'A short sentence for search engines and link previews.',
-  url: 'https://example.com',  // your real address — set this before publishing
+  url: 'https://example.com',      // set before publishing
   author: 'Your Name',
   email: 'you@example.com',
 }
 ```
 
-That's the 80% case: **who you are** (`title`), **what you do** (`tagline`),
-**one line describing the site** (`description`), and **your address** (`url`).
-
 > [!IMPORTANT]
-> `url` matters more than it looks: when it's set, JPROT uses it for the
-> sitemap, RSS feed, and link previews (Open Graph). While you develop
-> locally, it's fine to leave it empty. Set your real address before
-> publishing so search engines and social links behave correctly.
+> `url` drives the sitemap, RSS feed, and Open Graph link previews. It may be
+> left empty during development; set your real address before publishing.
 
 ## A full example
 
@@ -180,6 +170,9 @@ export default {
 | `lang` | string | `'en'` | `<html lang>` attribute |
 | `dir` | string | `'ltr'` | Text direction (`'ltr'` or `'rtl'`) |
 | `url` | string | — | Canonical site URL (for sitemap, Open Graph, RSS, canonical tags) |
+| `basePath` | string | — | Static export prefix for project sites, e.g. `/REPOSITORY` (folded into exported URLs and `manifest.json`) |
+| `docs` | boolean | `false` | Enable docs navigation: breadcrumbs, sidebar reading order, previous/next links |
+| `catalogUrl` | string | — | Base URL of the element catalog for `jprot add` / `jprot search` |
 | `author` | string | — | Author name for JSON-LD `Person` |
 | `email` | string | — | Contact email (mailto fallback in the `Contact` component) |
 | `themeColor` | string | `#4f46e5` | PWA manifest + favicon + OG base color |

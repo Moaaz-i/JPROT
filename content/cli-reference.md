@@ -1,11 +1,13 @@
 ---
 title: CLI reference
 description: Complete reference for the jprot command-line interface.
-order: 7
+order: 8
 nav: CLI reference
 ---
 
 Run `jprot --help` at any time for the short version.
+
+## Commands
 
 | Command | What it does |
 |---|---|
@@ -18,7 +20,7 @@ Run `jprot --help` at any time for the short version.
 | `jprot new page "Title"` | Create a standalone page |
 | `jprot new project "Title"` | Create a project |
 | `jprot new ... --draft` | Create content hidden from production |
-| `jprot g component Name` | Create a custom theme component |
+| `jprot g component Name` | Create a custom theme component (`--format js` or `--format md`) |
 | `jprot g list` | List component palettes |
 | `jprot search [query]` | List catalog elements, optionally filtered by any word |
 | `jprot add <Name>` | Install a catalog element into `theme/components/` |
@@ -27,13 +29,14 @@ Run `jprot --help` at any time for the short version.
 | `jprot --prod --no-watch` | Serve with production caching and no drafts |
 | `jprot --version` | Print the installed version |
 
-## Useful options
+## Options
 
 ```bash
 jprot --port 5000
 jprot export --out dist --base-path /my-repository
 jprot new post "Release notes" --template meetup
 jprot g component Hobbies --palette cards
+jprot g component Hobbies --format md
 jprot add SplitHero
 jprot add SplitHero --from https://moaaz-i.github.io/jprot-catalog
 jprot search
@@ -66,7 +69,17 @@ See [Install catalog elements](catalog.md) for the full workflow.
 
 ## Custom components — `g`
 
-`jprot g component Name` templates a new component into your `theme/`
-folder, and applies the default palette. Built-in palettes: classic,
-playful, modern, minimal—`jprot g list` shows the current one. Add
-`--palette <name>` to switch styles for the generated file only.
+`jprot g component Name` templates a new component into `theme/components/`.
+Built-in palettes: `section`, `cards`, `cta`, `stats` — `jprot g list` shows the
+current ones. Add `--palette <name>` to pick a style for the generated file.
+
+By default the component is a JavaScript function (`Name.js`). Add
+`--format md` to generate a **Markdown component** (`Name.md`) with its default
+values in frontmatter and `[value]` placeholders in the body — no JavaScript:
+
+```bash
+jprot g component Hobbies --palette section --format md   # → theme/components/Hobbies.md
+```
+
+See [Customization → Markdown components](customization.md#markdown-components--no-javascript)
+for how the placeholders resolve.

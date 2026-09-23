@@ -393,10 +393,70 @@ export default function ${name}({ items = [] }) {
   },
 }
 
-export async function scaffoldComponent({ root, palette, name }) {
+// Markdown palettes: a `.md` component is frontmatter defaults + a body with
+// `[value]` placeholders — no JavaScript, rendered through the Markdown engine.
+const mdPalette = {
+  section: {
+    desc: 'Markdown: title, subtitle and a list — no JS',
+    body: (name) => `---
+title: Section title
+subtitle: A short descriptor.
+items: []
+---
+
+## [title]
+
+[subtitle]
+
+[items]
+`,
+  },
+  cards: {
+    desc: 'Markdown: title, one-line description and a list',
+    body: (name) => `---
+title: Cards
+description: One line about these.
+items: []
+---
+
+## [title]
+
+[description]
+
+[items]
+`,
+  },
+  cta: {
+    desc: 'Markdown: heading, text and a url',
+    body: (name) => `---
+title: Join the beta
+text: Shipping in February.
+url: /beta
+---
+
+## [title]
+
+[text]
+
+[url]
+`,
+  },
+  stats: {
+    desc: 'Markdown: a list of numbers, one per line',
+    body: (name) => `---
+items: []
+---
+
+> [items]
+`,
+  },
+}
+
+export async function scaffoldComponent({ root, palette, name, format = 'js' }) {
   const projectRoot = root || process.cwd()
-  const tpl = componentPalette[palette] || componentPalette.section
-  const file = join(projectRoot, 'theme', 'components', name + '.js')
+  const tpl = (format === 'md' ? mdPalette : componentPalette)[palette]
+    || (format === 'md' ? mdPalette : componentPalette).section
+  const file = join(projectRoot, 'theme', 'components', name + (format === 'md' ? '.md' : '.js'))
   if (await existsFile(file)) throw new Error(`jprot g component: ${file} already exists`)
   await mkdir(dirname(file), { recursive: true })
   await writeFile(file, tpl.body(name), 'utf8')

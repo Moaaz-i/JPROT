@@ -15,7 +15,7 @@ export default {
   description: "JPROT — a Markdown-driven site generator with no build step.",
   lang: "en",
   dir: "ltr",
-  url: "http://127.0.0.1:4114", // used for sitemap.xml, Open Graph and RSS
+  url: "https://moaaz-i.github.io/JPROT", // used for sitemap.xml, Open Graph and RSS
   basePath: "/JPROT", // static export prefix; remove for a root-domain deployment
   docs: true,
   author: "Moaaz",

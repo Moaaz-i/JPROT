@@ -1,14 +1,14 @@
 ---
 title: Catalog elements
 description: How to install ready-made components into your site with jprot add.
-order: 8
+order: 7
 nav: Catalog elements
 ---
 
-JPROT comes with a small, opinionated core of components. For everything else
-there is the **element catalog** — a library of ready-made, self-contained
-components (hero sections, cards, forms, testimonial grids, CTAs, and more)
-that you pull into your site on demand.
+JPROT ships a small, opinionated core of components. For everything else there
+is the **element catalog** — a library of ready-made, self-contained components
+(hero sections, cards, forms, testimonial grids, CTAs, and more) that you pull
+into your site on demand.
 
 An element is a single JavaScript file. Your site treats it exactly like a
 built-in component: drop it in, use it. No rebuild, no config.
@@ -28,7 +28,7 @@ picks it up automatically on the next page load.
 ✔ Installed SplitHero → theme/components/SplitHero.js
 ```
 
-Run the same command again and jprot politely points out it's already there:
+Run the same command again and jprot reports it's already installed:
 `✖ already installed: theme/components/SplitHero.js`.
 
 ## Using the element

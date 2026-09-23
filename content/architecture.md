@@ -1,7 +1,7 @@
 ---
 title: Architecture
 description: Learn how JPROT resolves content, renders components, and exports a site.
-order: 12
+order: 13
 nav: Architecture
 ---
 
@@ -35,12 +35,15 @@ test/             Node's built-in test runner (npm test)
 1. **`cli.js`** calls `createJprot()` and listens on the port.
 2. **`server.js`** reads `jprot.config.js` into `site` and scans `content/` into a navigation list.
 3. On each request the server:
-   - Resolves the path to a Markdown file (`content/`).
-   - Parses **frontmatter** (`lib/frontmatter.js`).
-   - Renders the body to HTML — first expanding `:::Component` **shortcodes**
-     (`core/server.js`), then running the classic Markdown pass
-     (`lib/markdown.js`).
-   - Picks the matching **component** (`Home`, `Page`, or a custom layout).
+- Resolves the path to a Markdown file (`content/`).
+    - Parses **frontmatter** (`lib/frontmatter.js`).
+    - Renders the body to HTML — first expanding `:::Component` **shortcodes**
+      (`core/server.js`), then running the classic Markdown pass
+      (`lib/markdown.js`).
+    - Picks the matching **component** (`Home`, `Page`, or a custom layout).
+  - In `docs` mode, a document reading order (`buildDocsNav`) supplies the
+    sidebar and previous/next links: every content page including nested ones,
+    sorted by frontmatter `order`, excluding blog/project entries.
 4. The `Layout` component wraps `Header` + content + `Footer` into a full HTML page with `styles.css` links injected.
 
 ## Component resolution
@@ -92,6 +95,9 @@ server, so a preview always matches what gets deployed.
   without serving duplicate content)
 - `/page/` → `301 /page` (trailing slashes collapse; `/`, `/index.html` and the
   homepage stay untouched)
+- Redirect `Location` headers are root-relative, so they stay on whatever
+  origin the visitor used (dev server, proxy, IPv6 literal) instead of leaking
+  the production `site.url`
 - internal links in rendered pages have their `.md` stripped automatically
 
 **Status codes** — `200` for pages, `404` for misses (a `content/404.md` can
@@ -126,6 +132,9 @@ from the navigation, sitemap, search index, RSS feed, and resolved as `404`.
 `jprot.config.js`, rebuilds the site state in place on change, and tells open
 pages to reload. `export` reuses the same HTTP pipeline and materializes the
 whole tree, including hashed assets, the static search index, and redirects.
+Exports run with the deployment-correct absolute URL (`site.url` + `basePath`)
+so sitemap/feed/llms/robots and canonical/OG point at the real host, and the
+PWA `manifest.json` paths are prefixed with the base path.
 
 ## Why this design
 

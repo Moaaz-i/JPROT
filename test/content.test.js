@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { resolveContent, listMarkdown, listProjects, buildNavigation, indexAll } from '../core/content.js'
+import { resolveContent, listMarkdown, listProjects, buildNavigation, buildDocsNav, indexAll } from '../core/content.js'
 import { setFallbackState, runScoped } from '../core/state.js'
 
 let dir
@@ -60,6 +60,20 @@ test('indexAll keeps nested index pages and normalizes scalar tags', async () =>
   const guide = idx.find((e) => e.url === '/guide')
   assert.deepEqual(guide.tags, ['one', 'two'])
   assert.equal(idx.some((e) => e.url === '/'), false, 'homepage index.md stays excluded')
+})
+
+test('buildDocsNav lists nested pages for the docs sidebar', async () => {
+  mkdirSync(join(dir, 'guide', 'nested'), { recursive: true })
+  writeFileSync(join(dir, 'guide', 'nested.md'), '---\ntitle: Nested\ndescription: d\norder: 2\n---\nn')
+  writeFileSync(join(dir, 'guide', 'nested', 'deep.md'), '---\ntitle: Deep\ndescription: d\norder: 3\n---\nd')
+  const nav = await runScoped({}, () => buildDocsNav(dir, [join(dir, 'blog'), join(dir, 'projects')]))
+  const urls = nav.map((n) => n.url)
+  assert.ok(urls.includes('guide/nested'), 'nested page included in docs sidebar')
+  assert.ok(urls.includes('guide/nested/deep'), 'deeply nested page included in docs sidebar')
+  assert.ok(!urls.some((u) => u.startsWith('blog/')), 'blog posts excluded from docs sidebar')
+  assert.ok(!urls.some((u) => u.startsWith('projects/')), 'project entries excluded from docs sidebar')
+  assert.ok(!urls.includes('index.md'), 'homepage index stays out of the docs sidebar')
+  assert.ok(!urls.includes('404.md'), '404 page stays out of the docs sidebar')
 })
 
 after(() => {

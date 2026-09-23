@@ -1,126 +1,76 @@
-# JPROT — Portfolio Site Generator Without a Build Step
+# JPROT
 
-**Zero dependencies. Zero build step. Full control.**
+**A portfolio site generator without a build step.**
 
-JPROT serves Markdown directly as a portfolio site with SSR, SPA navigation, dark mode, 4 built-in themes, animations, contact forms, SEO/JSON-LD, PWA support, TypeScript types, and a theme cycle button — all in ~30KB with zero `npm install`.
+JPROT serves Markdown directly with SSR and SPA navigation — zero dependencies,
+zero build, full control. It includes dark mode, four built-in themes, contact
+forms, SEO/JSON-LD, PWA support, TypeScript types, and a component system, all
+running on Node.js 18+.
 
-Project repository: [github.com/Moaaz-i/JPROT](https://github.com/Moaaz-i/JPROT).
-JPROT requires Node.js 18 or newer.
+- Project: <https://github.com/Moaaz-i/JPROT>
+- Live docs: <https://moaaz-i.github.io/JPROT/>
 
-The project documentation is published at
-[Moaaz-i.github.io/JPROT](https://moaaz-i.github.io/JPROT/).
+## Install
 
----
+```bash
+npm install -g jprot
+```
 
-## Start here
+Or run without installing:
 
-JPROT is designed around a short user journey:
-
-1. **Create a site** with `npx jprot init --portfolio`.
-2. **Write content** in `content/` as Markdown.
-3. **Customize** with `jprot.config.js`, CSS variables, or component overrides.
-4. **Publish** with `jprot export --out dist`.
-
-Read the [step-by-step documentation](https://moaaz-i.github.io/JPROT/) or
-follow the copy-paste guide below.
+```bash
+npx jprot
+```
 
 ## Quick start
 
 ```bash
-npx jprot
-# → http://127.0.0.1:4114
-```
-
-To create a new site instead of running the current folder:
-
-```bash
 mkdir my-site && cd my-site
-npx jprot init --portfolio
-npm start
+npx jprot init --portfolio   # or --docs / --resume
+npm start                    # → http://127.0.0.1:4114
 ```
 
-Expected result:
+Add a page by dropping a `.md` file into `content/`; save a file and refresh
+the browser — there is no build step.
 
-```text
-✔ Site scaffolded into the current folder.
-```
-
-Then start the site:
-
-```text
-Running locally at: http://127.0.0.1:4114
-```
-
-Or globally:
-
-```bash
-npm install -g jprot
-jprot 8080
-```
-
-### CLI Options
+## CLI
 
 | Command | Description |
 |---------|-------------|
 | `jprot` | Start dev server (default port 4114) |
 | `jprot 8080` | Start on a specific port |
-| `jprot init` | Scaffold a new site (`--portfolio`, `--docs`, `--resume`) |
+| `jprot init` | Scaffold a site (`--portfolio`, `--docs`, `--resume`) |
 | `jprot new <kind> "Title"` | Add `post` / `page` / `project` / `resume` (`--draft`, `--template <name>`) |
-| `jprot g component <Name>` | Scaffold a theme component (`--palette section\|cards\|cta\|stats`) |
+| `jprot g component <Name>` | Scaffold a component (`--palette section\|cards\|cta\|stats`, `--format js\|md`) |
 | `jprot g list` | List component palettes |
-| `jprot search [query]` | List catalog elements, optionally filtered by any word |
-| `jprot add <Name>` | Install an element from the catalog into `theme/components/` |
+| `jprot search [query]` | List catalog elements, optionally filtered |
+| `jprot add <Name>` | Install a catalog element into `theme/components/` |
 | `jprot lint` | Check content: broken links, missing metadata, oversized images |
-| `jprot export [--out dist]` | Export the whole site to static HTML in `dist/` |
-| `jprot --prod` | Serve with production caching; drafts return 404 |
-| `jprot --no-watch` | Disable file watcher |
+| `jprot export [--out dist]` | Export the whole site to static HTML |
+| `jprot --prod` | Production caching; drafts return 404 |
+| `jprot --no-watch` | Disable the file watcher |
 | `jprot --help` / `--version` | Show help / version |
 
-### Environment Variables
+Environment variables: `PORT` (default 4114), `HOST` (default 127.0.0.1),
+`NO_WATCH=1`.
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | 4114 | Port to listen on |
-| `HOST` | 127.0.0.1 | Host to bind |
-| `NO_WATCH` | — | Set `1` to disable watcher |
+## Content
 
+All content is Markdown with an optional YAML frontmatter block:
+
+```markdown
+---
+title: My page
+description: One line for SEO
 ---
 
-## Documentation
+# Hello
 
-This repository *is* a live documentation site. Read the pages below in your
-browser (`npm start` → open the links) or directly on GitHub:
+Write **Markdown** here.
+```
 
-| Page | What it covers |
-|------|----------------|
-| [Quick start](content/quick-start.md) | Create and preview a site in minutes |
-| [First site](content/getting-started.md) | Understand the generated files and workflow |
-| [Write content](content/content.md) | Markdown, frontmatter, projects, and shortcodes |
-| [Configure](content/configuration.md) | Site identity, navigation, SEO, and labels |
-| [Customize](content/customization.md) | CSS, themes, components, and sections |
-| [Publish](content/deploy.md) | Export to GitHub Pages or another static host |
-| [CLI reference](content/cli-reference.md) | All commands and useful options |
-| [API reference](content/api-reference.md) | Node.js and TypeScript usage |
-| [Troubleshooting](content/troubleshooting.md) | Fix common setup and deployment issues |
-| [FAQ](content/faq.md) | Commonly asked questions |
-| [Changelog](CHANGELOG.md) | Release notes |
-
----
-
-## Features
-
-- **4 built-in themes** (default, minimal, creative, corporate) cycled with the ◈ button — state persists in `localStorage`.
-- **Dark / light mode** (◐) with system-preference default.
-- **Responsive, mobile-first** design with an automatic hamburger menu ≤ 640px and `prefers-reduced-motion` support.
-- **Animations** — hero fade-in-up, scroll animations (`data-animate`, `data-stagger`).
-- **Contact forms** via Formspree (`formspree` / `email` config).
-- **SEO & structured data** — canonical, OG, Twitter, JSON-LD (Organization / Article / BlogPosting / Person + Breadcrumbs), file-backed SVG OG:image, hreflang, robots, `sitemap.xml` (git-aware `lastmod`), `feed.xml`, `llms.txt` + `llms-full.txt`, search index, PWA `manifest.json`.
-- **Drafts** — hidden from nav, sitemap, search, RSS and exports; `404` in production.
-- **Theme-aware 404** page.
-- **Instant search** (`Cmd/Ctrl + K`) backed by a live-generated index over the full body text, code blocks, frontmatter and site config, with highlighted matches.
-- **Printable resume** via `layout: resume`.
-- **Deep type support** — `jprot.d.ts` for the programmatic API and config autocomplete.
-- **Docs mode** — optional sidebar, breadcrumbs, on-page headings, previous/next links, callouts, and copy-code buttons.
+Pages live in `content/` and map directly to URLs. Project and blog posts also
+follow the folder conventions (`projectsDir`, `blogDir`).
 
 ## Configuration (`jprot.config.js`)
 
@@ -134,118 +84,85 @@ export default {
   dir: 'ltr',
   author: 'Your Name',
   email: 'you@example.com',
-  themeColor: '#4f46e5',       // PWA + favicon color
-  formspree: 'https://formspree.io/f/xxx',
-  homeLayout: 'Home',
-  defaultLayout: 'Page',
-  sidebar: false,
-  showNav: true,
-  themePicker: true,           // show variant cycle button
-  blogDir: 'blog',             // default: 'blog'
-  projectsDir: 'projects',     // default: 'projects'
-
+  basePath: '',            // '/repo' for a GitHub Pages project site
+  themeColor: '#4f46e5',
   hero: {
-    title: 'Hello, I\'m Jane',
+    title: "Hello, I'm Jane",
     subtitle: 'Full Stack Developer & Designer',
-    avatar: '/img/avatar.jpg',
     links: [
       { label: 'GitHub', url: 'https://github.com/you' },
       { label: 'Contact', url: '/contact' },
     ],
   },
-
-  labels: { /* every built-in UI string is overridable (i18n) — full list on the Configuration page */ },
-
-  head: `<!-- extra <head> content -->`,
+  sections: [
+    { component: 'Contact', title: 'Get in touch' },
+  ],
   nav: [
     { label: 'About', url: '/about' },
     { label: 'Blog', url: '/blog' },
   ],
-
-  sections: [
-    { component: 'Contact', title: 'Get in touch' },
-  ],
-
-  markdown: {
-    tables: true,
-    highlight: true,
-  },
 }
 ```
 
-Or use JSON: `jprot.config.json`. Every option — including the SEO keys
-(`searchUrl`, `twitter`, `ogLocale`, `sameAs`, `alternateLangs`, `logo`,
-`ogImage`, `ogColor`, `ogTextColor`) and the complete `labels` table — is
-documented on the [Configuration](content/configuration.md) page.
+JSON is supported too (`jprot.config.json`). Every option and the full `labels`
+table are documented on the [Configuration](content/configuration.md) page.
 
-## Content
+## Customization
 
-All content lives in `content/` as Markdown. Add, edit or remove a file and the site updates instantly — no build:
+Four levels, each independent:
 
-```
-content/
-  index.md              ← homepage
-  about.md              ← standalone page
-  projects/
-    project-name.md     ← project card on homepage
-  blog/
-    my-post.md          ← blog post
-```
-
-Frontmatter controls layout, tags, ordering, drafts, per-page SEO and more.
-See the [Content](content/content.md) page for the full option list.
-
-## Radically Customize
-
-Four levels, each independent — the complete guide is on [Customization](content/customization.md):
-
-1. **CSS variables (easiest)** — redefine any variable in `theme/custom.css` (colors, fonts, radius, container width, dark palette).
-2. **Replace components** — drop a file into `theme/components/` to override `Layout`, `Header`, `Footer`, `Home`, `Page` or any section component. Components are plain functions that receive `props` and return an HTML string.
-3. **Shortcodes** — call any registered component inline in Markdown with a `:::Name` block; the inner Markdown is rendered and passed as `children`.
+1. **CSS variables** — redefine any variable in `theme/custom.css`.
+2. **Component overrides** — drop a file into `theme/components/` to replace
+   `Layout`, `Header`, `Footer`, `Home`, `Page`, or any section.
+3. **Markdown components** — write a component as a `.md` file: frontmatter
+   defaults + `[value]` placeholders, no JavaScript.
 4. **Ready-made themes** — copy `examples/themes/*.css` into `theme/custom.css`.
 
-Scaffold a self-contained component in seconds:
+Scaffold a component:
 
 ```bash
-jprot g component Hobbies --palette cards   # works as a section AND a :::Hobbies shortcode
+jprot g component Hobbies --palette cards   # JS component
+jprot g component Hobbies --format md       # Markdown component
 ```
-
-Theme variants can be configured with `themes` in `jprot.config.js`; each
-variant object provides an `id`, optional label, and optional swatch. Components
-receive the current `site`, `page`, navigation, projects, posts, and rendered
-shortcode `children` through typed props. Malformed frontmatter is reported in
-the server log with a line number instead of silently disappearing.
 
 ## Programmatic API
 
 ```ts
-import { createJprot, renderPage, exportSite, runLint, scaffoldSite } from 'jprot'
+import { createJprot, exportSite, runLint, scaffoldSite } from 'jprot'
 
 const app = await createJprot({ root: '/path/to/project', port: 3000, watch: true })
 await app.listen(3000)
 
-// One-shot static export (same as `jprot export`)
 await exportSite({ root: '/path/to/project', outDir: '/tmp/dist' })
-
-// Content checks (same as `jprot lint`)
 const issues = await runLint({ root: '/path/to/project' })
-
-// Scaffold a site programmatically
 await scaffoldSite({ root: '/tmp/new-site', type: 'portfolio' })
 ```
 
-Runtime types for `createJprot`, `renderPage`, `exportSite`, `runLint`,
-`scaffoldSite`, `scaffoldNew`, `scaffoldComponent`, `componentPaletteList`,
-`renderUserTemplate`, `suggestConfigKey`, `writeSnippets`, plus every config and
-component prop, live in `jprot.d.ts`. `jprot.config.js` files get autocomplete
-with `/** @type {import('jprot').JprotConfig} */`.
+TypeScript types ship in `jprot.d.ts`; add `/** @type {import('jprot').JprotConfig} */`
+to a config file for autocomplete.
 
-## Project Layout
+## Documentation
+
+| Page | Covers |
+|------|--------|
+| [Quick start](content/quick-start.md) | Create and preview a site in minutes |
+| [First site](content/getting-started.md) | Generated files and workflow |
+| [Write content](content/content.md) | Markdown, frontmatter, shortcodes |
+| [Configure](content/configuration.md) | Identity, nav, SEO, labels |
+| [Customize](content/customization.md) | CSS, themes, components, sections |
+| [Publish](content/deploy.md) | Export and static hosting |
+| [CLI reference](content/cli-reference.md) | All commands and options |
+| [API reference](content/api-reference.md) | Node.js and TypeScript usage |
+| [Troubleshooting](content/troubleshooting.md) | Common issues |
+| [FAQ](content/faq.md) | Common questions |
+| [Changelog](CHANGELOG.md) | Release notes |
+
+## Project layout
 
 ```
 core/cli.js           CLI entry (server + init/new/g/export/lint)
-core/server.js        Server + rendering + shortcodes + JSON-LD + OG + PWA
-core/scaffold.js      jprot init/new/g scaffolds + snippets + config hints
+core/server.js        Server + rendering + shortcodes + SEO
+core/scaffold.js      init/new/g scaffolds + snippets + hints
 core/export.js        Static export to dist/
 core/lint.js          Content linting
 lib/markdown.js       Markdown → HTML (no dependencies)
@@ -261,14 +178,12 @@ jprot.d.ts            TypeScript definitions
 CHANGELOG.md          Release notes
 ```
 
----
-
-## License
-
-MIT — see [LICENSE](LICENSE).
-
 ## Contributing and security
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development and pull request
 guidance. Please report vulnerabilities privately according to
 [SECURITY.md](SECURITY.md), not in a public issue.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

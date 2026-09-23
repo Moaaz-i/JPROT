@@ -5,7 +5,8 @@ order: 5
 nav: Customize
 ---
 
-This is where JPROT stands out: you can restyle the site **entirely** without touching a single component — or go further and replace whole layout components.
+JPROT can be restyled entirely from CSS variables, or pushed further by
+replacing whole layout components.
 
 For a documentation site, set `docs: true` and `sidebar: true` in
 `jprot.config.js`. Regular pages then get breadcrumbs, an on-page table of
@@ -203,8 +204,8 @@ function that receives its section config + shared props.
 
 ## 6) Shortcodes — components inside any Markdown
 
-Now for the fun one. Every registered component is callable **inline** in any
-page with a `:::Name` block — no config, no frontmatter, no page rewrite:
+Every registered component is callable **inline** in any page with a
+`:::Name` block — no config, no frontmatter, no page rewrite:
 
 ```markdown
 :::CTA title="Join the beta" text="Shipping in February." label="Register" url="/beta"
@@ -253,6 +254,53 @@ jprot g component Hobbies --palette cards   # → theme/components/Hobbies.js
 The generated component is self-contained (own HTML escaping, no imports) and
 works both as a config `section` and as a `:::Hobbies` shortcode immediately.
 
+### Markdown components — no JavaScript
+
+If a component is mostly its **values** (a title, some text, a list), you can
+write it as a plain Markdown file instead of a JS function:
+
+```bash
+jprot g component Hobbies --palette section --format md   # → theme/components/Hobbies.md
+```
+
+```md
+---
+title: Section title
+subtitle: A short descriptor.
+items: []
+---
+
+## [title]
+
+[subtitle]
+
+[items]
+```
+
+How it works:
+
+- The file's **frontmatter is the component's default values**; the body is Markdown.
+- `[value]` placeholders are filled from those defaults, then overridden by the
+  section config or the shortcode attributes at the point of use:
+
+  ```js
+  sections: [ { component: 'Hobbies', title: 'هواياتي', items: ['القراءة', 'التصوير'] } ],
+  // or inline:
+  :::Hobbies title="هواياتي" items='["القراءة", "التصوير"]'
+  ```
+
+- Arrays become bullet lists, objects become JSON, and Markdown does its normal
+  rendering (escaping included) — no manual HTML to maintain.
+- Every Markdown component is automatically wrapped in `<div class="md-component-<Name>">`,
+  so you can style it entirely from `theme/custom.css` without touching HTML —
+  see the styled `Spotlight` example in `examples/components/`.
+- Rules that keep it predictable: only placeholders matching an actual key are
+  replaced (a Markdown link like `[title](https://…)` is left alone), and a
+  leading backslash escapes one: `\[title]` stays literal.
+- `.md` and `.js` components share the same registry, so both work as sections
+  and `:::Name` shortcodes; a `.js` file always wins over a `.md` file of the
+  same name (`loadComponents` merges in that order).
+
 ## 7) Blog
 
 Drop Markdown files into `content/blog/` and create a `blog` page
@@ -274,6 +322,12 @@ site navigation plus an auto-generated "On this page" list pulled from your
 headings (with live scroll-spy as you scroll). Disable it globally with
 `sidebar: false` in the config, or per page with `sidebar: false` in
 frontmatter.
+
+With `docs: true` in the config, the sidebar uses a **full reading order** —
+every content page including nested ones (e.g. `guide/nested.md`), sorted by
+frontmatter `order` — and regular pages get breadcrumbs and previous/next
+links. Blog posts and project entries are excluded from this tree. The compact
+navbar stays user-controlled via `site.nav`.
 
 Headings are auto-linked with slug ids, so anchors like `#section-4` just work.
 On mobile the sidebar slides in via the ☰ button.

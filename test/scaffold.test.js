@@ -70,6 +70,20 @@ test('jprot g component scaffolds a working component', async () => {
   }
 })
 
+test('jprot g component --format md scaffolds a markdown component', async () => {
+  const dir = await makeProject()
+  try {
+    const file = await scaffoldComponent({ root: dir, palette: 'section', name: 'Hobbies', format: 'md' })
+    assert.ok(file.endsWith('Hobbies.md'))
+    const src = await readFile(file, 'utf8')
+    assert.match(src, /^---/)
+    assert.match(src, /\[title\]/)
+    assert.match(src, /\[items\]/)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+
 test('shortcodes: :::component renders registered components', async () => {
   const dir = await makeProject({ component: 'Thing' })
   const slug = 'shortcode-page'

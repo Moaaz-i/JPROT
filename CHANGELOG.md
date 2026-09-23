@@ -4,7 +4,48 @@ All notable changes to JPROT are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 aims to follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.4.0] - 2026-09-23
+
+### Added
+
+- **Markdown components**: `jprot g component <Name> --format md` scaffolds a
+  `.md` component — frontmatter holds its default values and the body uses
+  `[value]` placeholders. No JavaScript required. Renders through the Markdown
+  engine, wrapped in a `.md-component-<Name>` div for pure-CSS styling.
+- **Docs navigation**: the docs sidebar and previous/next links now include
+  nested pages (e.g. `guide/nested.md`) sorted by frontmatter `order`, excluding
+  blog posts and project entries so they don't clutter the tree.
+- Examples: `Hobbies.md` and a styled `Spotlight.md` + `spotlight.css`
+  Markdown-component sample in `examples/components/`.
+- Lint reports invalid `date` frontmatter instead of letting it silently break
+  ordering and feeds.
+
+### Changed
+
+- `jprot export` now folds the deployment `basePath` into the site `url`, so
+  sitemap, RSS, `robots.txt`, `llms.txt` and canonical/OG URLs point at the real
+  host for project-site deployments without hand-editing `url`.
+- Static exports prefix `manifest.json` `start_url`, `scope` and icon paths with
+  the base path.
+- HTTP redirects (`.md` URLs and trailing slashes) now use root-relative
+  `Location` headers, so they never leak the production `site.url` to dev/proxy
+  visitors.
+- `[value]` interpolation in Markdown components protects whole `[...](...)`
+  link/image spans and renders arrays as bullet lists / objects as JSON.
+- `jprot g component` validates `--format js|md`.
+- Blog posts sort by a zero-padded date key, so `2026-1-5` no longer outranks
+  `2026-10-1`.
+
+### Fixed
+
+- IPv6 hosts (`HOST=::1`) now produce valid URLs (`http://[::1]:4114`) in the
+  banner and request parsing.
+- Shortcode scan treats a `:::` line inside a fenced code block as content, not
+  a close fence.
+- RSS feeds stop emitting a broken `<pubDate>Invalid Date</pubDate>` for
+  missing/unparseable dates.
+- Frontmatter single-quoted values now unescape `\'`.
+- Trailing newline normalization in interpolated template bodies.
 
 ## [0.3.0] - 2026-09-20
 

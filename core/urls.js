@@ -8,6 +8,16 @@ export function decodeRequestPath(pathname) {
   return decoded
 }
 
+// Build an `http://host[:port]` origin from a raw host string, bracketing IPv6
+// literals so `::1` becomes `[::1]` (otherwise `new URL('/x', 'http://::1:4114')`
+// is invalid).
+export function originFor(host, port) {
+  const h = String(host || '127.0.0.1').replace(/^\[|\]$/g, '')
+  const bracketed = h.includes(':') && !h.startsWith('[') ? `[${h}]` : h
+  const p = port ? `:${port}` : ''
+  return `http://${bracketed}${p}`
+}
+
 // Canonical clean URL for a /page.md request path, or null when the path is
 // not a .md URL. Index pages canonicalize to their directory (/index.md → /,
 // /blog/index.md → /blog/).

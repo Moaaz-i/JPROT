@@ -24,6 +24,19 @@ function normalizeBasePath(value) {
   return '/' + path.replace(/^\/+|\/+$/g, '')
 }
 
+// The URLs every machine/SEO endpoint (sitemap, llms.txt, feed, robots) is
+// built from. When a base path is configured (project-site deployments like
+// GitHub Pages), the site `url` must include it or every generated link would
+// 404 on the real host. We fold `basePath` into `url` for the export so the
+// live server's output is deployment-correct without the author hand-editing
+// `url`.
+function deployUrlFor(config, basePath) {
+  const base = String(config.url || '').replace(/\/+$/, '')
+  const path = basePath.replace(/^\/+|\/+$/g, '')
+  if (!base || !path) return base
+  return base.endsWith('/' + path) ? base : base + '/' + path
+}
+
 function addBasePath(body, basePath, pageUrls = new Set(), currentUrl = '/') {
   if (!basePath) return body
   const withPageSlash = (value) => {
@@ -68,7 +81,15 @@ export async function exportSite({ root, outDir, basePath } = {}) {
   const config = await loadSiteConfig(projectRoot)
   const siteBasePath = normalizeBasePath(basePath ?? config.basePath)
 
-  const app = await createJprot({ root: projectRoot, watch: false, prod: true })
+  // Run the export with the deployment-correct absolute URL (site.url +
+  // basePath) so sitemap/feed/llms/robots + canonical/OG point at the real
+  // host instead of a localhost/dev value.
+  const exportConfig = {
+    ...config,
+    url: deployUrlFor(config, siteBasePath),
+  }
+
+  const app = await createJprot({ root: projectRoot, watch: false, prod: true, config: exportConfig })
   const port = await app.listen(0)
   const base = `http://127.0.0.1:${port}`
 
@@ -141,6 +162,29 @@ export async function exportSite({ root, outDir, basePath } = {}) {
           }
         } catch (err) {
           console.warn('export: could not prefix search.json URLs — ' + err.message)
+        }
+      }
+      if (s === '/manifest.json' && siteBasePath) {
+        // PWA manifest points at the deployment root: prefix start_url, scope
+        // and icon paths so the installed app scopes to the real subpath.
+        try {
+          const manifest = JSON.parse(body)
+          const withRoot = (value) => {
+            if (typeof value !== 'string') return value
+            if (/^(?:https?:|data:|blob:)/i.test(value)) return value
+            const p = value.startsWith('/') ? value : '/' + value
+            return siteBasePath + (p === siteBasePath ? '/' : p)
+          }
+          manifest.start_url = withRoot(manifest.start_url || '/')
+          manifest.scope = withRoot(manifest.scope || '/')
+          if (Array.isArray(manifest.icons)) {
+            for (const icon of manifest.icons) {
+              if (icon && icon.src) icon.src = withRoot(icon.src)
+            }
+          }
+          body = JSON.stringify(manifest)
+        } catch (err) {
+          console.warn('export: could not prefix manifest.json paths — ' + err.message)
         }
       }
       await writeOut(dest, s.replace(/^\//, ''), body)

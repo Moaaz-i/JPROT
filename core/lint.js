@@ -84,6 +84,9 @@ export async function runLint({ root } = {}) {
     if (data.draft !== true && !data.description && !data.subtitle && !data.excerpt) {
       push(f, 'frontmatter', 'missing `description` / `excerpt`')
     }
+    if (data.date && typeof data.date === 'string' && Number.isNaN(Date.parse(data.date))) {
+      push(f, 'frontmatter', `invalid \`date\` → ${data.date}`)
+    }
 
     // markdown links — broken internal ones
     const isIndexPage = basename(rel) === 'index.md'

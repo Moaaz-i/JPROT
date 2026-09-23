@@ -60,10 +60,15 @@ export async function renderDocumentBody(source, md, components, props, headings
       // latter instead of silently swallowing the rest of the document.
       const inner = []
       let closed = false
+      let inFence = false
       let j = i + 1
       while (j < lines.length) {
-        if (/^\s*:::\s*$/.test(lines[j])) { closed = true; break }
-        inner.push(lines[j])
+        const l = lines[j]
+        // A `:::` line inside a fenced code block is content, not a close
+        // fence — mirror the main loop's fence tracking while scanning ahead.
+        if (/^\s*```+/.test(l)) { inFence = !inFence; inner.push(l); j++; continue }
+        if (!inFence && /^\s*:::\s*$/.test(l)) { closed = true; break }
+        inner.push(l)
         j++
       }
       if (!closed && inner.length && inner[0] !== '') {

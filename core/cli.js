@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { realpathSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join, resolve } from "node:path";
+import { originFor } from "./urls.js";
 
 function printHelp() {
   console.log(`
@@ -13,7 +14,7 @@ function printHelp() {
     jprot 8080           Start on a specific port
     jprot init           Scaffold a new site (--docs | --resume | --portfolio)
     jprot new <kind>     Add content: post | page | project | resume [title] [--draft]
-    jprot g component    Scaffold a theme component (--palette section|cards|cta|stats)
+    jprot g component    Scaffold a theme component (--palette section|cards|cta|stats, --format js|md)
     jprot lint           Check content for broken links / missing metadata
     jprot search [q]     Search the component catalog (or list everything)
     jprot add <Name>     Install a component from the catalog into theme/components/
@@ -162,8 +163,15 @@ export async function bootstrap() {
       const name = args[2];
       const pIdx = args.indexOf("--palette");
       const palette = pIdx >= 0 ? args[pIdx + 1] : "section";
+      const fIdx = args.indexOf("--format");
+      const format = fIdx >= 0 ? args[fIdx + 1] : "js";
       if (!/^[A-Za-z][A-Za-z0-9]*$/.test(name || "")) {
         console.error("  \u2716 component name must start with a letter and contain only letters/digits");
+        process.exitCode = 1;
+        return;
+      }
+      if (!/^(js|md)$/.test(format)) {
+        console.error("  \u2716 unknown format \"" + format + "\" (js | md)");
         process.exitCode = 1;
         return;
       }
@@ -174,7 +182,7 @@ export async function bootstrap() {
         return;
       }
       try {
-        const file = await scaffoldComponent({ palette, name });
+        const file = await scaffoldComponent({ palette, name, format });
         console.log(`  \u2714 Created component ${file}`);
         console.log("     Use it as a section: { component: '" + name + "', title: '…' } or inline: :::" + name + " title=\"…\"");
       } catch (err) {
@@ -183,7 +191,7 @@ export async function bootstrap() {
       }
       return;
     }
-    console.error("  Usage: jprot g component <Name> [--palette section|cards|cta|stats] | jprot g list");
+    console.error("  Usage: jprot g component <Name> [--palette section|cards|cta|stats] [--format js|md] | jprot g list");
     process.exitCode = 1;
     return;
   }
@@ -209,7 +217,7 @@ export async function bootstrap() {
   const port = Number.isFinite(portArg) && portArg > 0 ? portArg : 4114;
   const app = await createJprot({ port, host, watch: !noWatch, prod });
   const actualPort = await app.listen(port);
-  const url = `http://${host}:${actualPort}`;
+  const url = originFor(host, actualPort);
 
   console.log("");
   console.log("  ╭──────────────────────────────╮");

@@ -1,7 +1,7 @@
 ---
 title: Showcase
 description: A live render of every built-in JPROT section — the sample content shipped with `jprot init`.
-order: 10
+order: 15
 ---
 
 This page is the **working template showcase**: every section below renders

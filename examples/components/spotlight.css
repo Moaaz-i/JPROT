@@ -1,0 +1,85 @@
+/* Spotlight — styles for the Markdown component examples/components/Spotlight.md
+   Copy the file above to theme/components/Spotlight.md, then append this file's
+   rules to theme/custom.css. The wrapper class is automatic: every Markdown
+   component is wrapped in a div.md-component-<Name>. */
+
+.md-component-spotlight {
+  background:
+    radial-gradient(1200px 600px at 80% -20%, rgba(255, 255, 255, 0.25), transparent 60%),
+    linear-gradient(135deg, var(--color-accent, #4f46e5), #7c3aed 60%, #a21caf);
+  color: #fff;
+  border-radius: var(--radius, 16px);
+  padding: clamp(1.5rem, 5vw, 3rem);
+  margin: 2rem 0;
+  box-shadow: 0 24px 48px -24px rgba(79, 70, 229, 0.7);
+  position: relative;
+  overflow: hidden;
+}
+
+.md-component-spotlight::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.35) 1px, transparent 1px);
+  background-size: 22px 22px;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.md-component-spotlight .md-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.md-component-spotlight h1,
+.md-component-spotlight h2 {
+  margin: 0.4rem 0 0.8rem;
+  color: #fff;
+}
+
+.md-component-spotlight p {
+  color: rgba(255, 255, 255, 0.92);
+  max-width: 46em;
+}
+
+.md-component-spotlight ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 1.2rem 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.md-component-spotlight li {
+  position: relative;
+  padding-left: 1.3rem;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.md-component-spotlight li::before {
+  content: "✦";
+  position: absolute;
+  left: 0;
+  color: #fde047;
+}
+
+.md-component-spotlight .md-btn {
+  display: inline-block;
+  margin-top: 0.4rem;
+  padding: 0.7rem 1.4rem;
+  border-radius: 999px;
+  background: #fff;
+  color: #4f46e5;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.md-component-spotlight .md-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px -8px rgba(0, 0, 0, 0.4);
+}

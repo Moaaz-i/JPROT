@@ -11,6 +11,7 @@ import { createMarkdown } from "../lib/markdown.js";
 import { loadComponents } from "./components.js";
 import { DEFAULT_THEME_DIR, loadSiteConfig, loadThemeMeta } from "./config.js";
 import {
+  buildDocsNav,
   buildNavigation,
   indexAll,
   listPosts,
@@ -31,7 +32,7 @@ import {
 import { renderDocumentBody, renderSections } from "./render.js";
 import { suggestConfigKey } from "./scaffold.js";
 import { DEFAULT_LABELS, runScoped, setFallbackState, state } from "./state.js";
-import { absUrl, decodeRequestPath, mdCanonical } from "./urls.js";
+import { absUrl, decodeRequestPath, mdCanonical, originFor } from "./urls.js";
 import { MIME, esc, isInside } from "./utils.js";
 import { startReloadWatcher } from "./watch.js";
 
@@ -117,9 +118,14 @@ export async function createJprot(options = {}) {
     }
     // Docs mode gets its own full reading order (every content page, sorted by
     // frontmatter `order`) for the sidebar and prev/next — separate from the
-    // compact navbar, which is user-controlled via site.nav.
-    const docsNav = site.docs ? await buildNavigation(contentDir) : [];
-    const components = await loadComponents(userThemeDir, bust);
+    // compact navbar, which is user-controlled via site.nav. Blog posts and
+    // project entries are excluded so they don't clutter the docs sidebar.
+    const blogDir = join(contentDir, site.blogDir || "blog");
+    const projectsDir = join(contentDir, site.projectsDir || "projects");
+    const docsNav = site.docs
+      ? await buildDocsNav(contentDir, [blogDir, projectsDir])
+      : [];
+    const components = await loadComponents(userThemeDir, bust, markdown);
     let themeDir = DEFAULT_THEME_DIR;
     try {
       await stat(join(userThemeDir, "main.js"));
@@ -127,8 +133,6 @@ export async function createJprot(options = {}) {
     } catch {}
     const theme = await loadThemeMeta(themeDir);
     const labels = { ...DEFAULT_LABELS, ...(site.labels || {}) };
-    const blogDir = join(contentDir, site.blogDir || "blog");
-    const projectsDir = join(contentDir, site.projectsDir || "projects");
     const names = new Set(Object.keys(components));
     for (const sec of site.sections || []) {
       const n = sec.component || sec.type;
@@ -219,7 +223,7 @@ export async function createJprot(options = {}) {
       // never be parsed as an authority (new URL would take '//server.js' to
       // host 'server.js' and serve '/' instead of 404)
       if (req.url.startsWith("//")) req.url = req.url.slice(1);
-      const url = new URL(req.url, `http://${host}:${port}`);
+      const url = new URL(req.url, originFor(host, port));
       let pathname;
       try {
         pathname = decodeRequestPath(url.pathname);
@@ -285,11 +289,11 @@ export async function createJprot(options = {}) {
       // the clean URL so the site never serves duplicate content.
       const canonical = mdCanonical(pathname);
       if (canonical && (await resolveContent(contentDir, pathname))) {
-        const { site = {} } = state();
-        const location =
-          absUrl(site, canonical) || `http://${host}:${boundPort}${canonical}`;
+        // Root-relative Location so the redirect stays on whatever origin the
+        // visitor used (dev server, proxy, IPv6 literal) instead of following
+        // the production site.url.
         res.writeHead(301, {
-          Location: location,
+          Location: canonical,
           ...SECURITY_HEADERS,
           "Cache-Control": "no-cache",
         });
@@ -302,11 +306,8 @@ export async function createJprot(options = {}) {
       if (pathname.length > 1 && pathname.endsWith("/")) {
         const clean = pathname.replace(/\/+$/, "");
         if (await resolveContent(contentDir, clean)) {
-          const { site = {} } = state();
-          const location =
-            absUrl(site, clean) || `http://${host}:${boundPort}${clean}`;
           res.writeHead(301, {
-            Location: location,
+            Location: clean,
             ...SECURITY_HEADERS,
             "Cache-Control": "no-cache",
           });
@@ -559,15 +560,16 @@ async function serveFeed(res, url) {
   const base = (site.url || `http://${url.host}`).replace(/\/$/, "");
   const items = posts
     .map((p) => {
-      const d = p.data.date
-        ? new Date(p.data.date).toUTCString()
-        : new Date().toUTCString();
+      let pubDate = ""
+      if (p.data.date) {
+        const d = new Date(p.data.date)
+        if (!Number.isNaN(d.getTime())) pubDate = `\n    <pubDate>${d.toUTCString()}</pubDate>`
+      }
       const desc = esc(p.data.excerpt || p.excerpt || "");
       return `  <item>
     <title>${esc(p.data.title || p.slug)}</title>
     <link>${esc(base + "/" + p.url)}</link>
-    <guid>${esc(base + "/" + p.url)}</guid>
-    <pubDate>${d}</pubDate>
+    <guid>${esc(base + "/" + p.url)}</guid>${pubDate}
     <description>${desc}</description>
   </item>`;
     })

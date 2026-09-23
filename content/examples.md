@@ -1,11 +1,12 @@
 ---
 title: Examples
 description: Copy-paste configurations, themes, and component examples.
-order: 9
+order: 10
 nav: Examples
 ---
 
-Every example in the `examples/` folder is **copy-paste ready**. Copy it into your project and reload — no build, no restart.
+Every example in the `examples/` folder is copy-paste ready: copy it into your
+project and reload — no build, no restart.
 
 ## Themes (restyle in one step)
 
@@ -52,6 +53,8 @@ cp examples/components/Header.js theme/components/Header.js
 | `Header.js` | Navbar with a "GitHub" link appended |
 | `Footer.js` | Footer with a `site.social` links row |
 | `Home.js` | A simpler homepage layout (hero + grid) |
+| `Hobbies.md` | A Markdown component (no JS): frontmatter defaults + `[value]` placeholders |
+| `Spotlight.md` + `spotlight.css` | A styled Markdown component to show how pure-CSS theming works |
 
 Each file has a header comment explaining usage.
 
@@ -116,12 +119,20 @@ jprot g component SupportStrip --palette section
 ...and `:::SupportStrip` works on any page immediately. Type attrs as strings,
 numbers, booleans, or JSON (`items='[{"day":"Sun","hours":8}]'`).
 
+The same component can be authored as Markdown instead of JavaScript:
+
+```bash
+jprot g component Hobbies --format md   # → theme/components/Hobbies.md
+```
+
+See [Markdown components](customization.md#markdown-components--no-javascript).
+
 ## Sidebar, search, resume, SEO
 
-Right out of the box regular pages get a **docs sidebar** with on-page scroll
-spy, and every page has a **search** button (try `Cmd/Ctrl + K`). A
-`layout: resume` page gives you a printable CV, and `/sitemap.xml` +
-`/feed.xml` are generated automatically. See [Customization](customization.md).
+Regular pages get a **docs sidebar** with on-page scroll-spy, and every page has
+a **search** button (`Cmd/Ctrl + K`). A `layout: resume` page gives you a
+printable CV, and `/sitemap.xml` + `/feed.xml` are generated automatically. See
+[Customization](customization.md).
 
 ## Putting it all together — a dark, brand-colored site
 
@@ -130,6 +141,7 @@ cp examples/themes/dark-mode.css theme/custom.css
 cp examples/components/Header.js theme/components/Header.js
 ```
 
-Refresh the browser. Your site is now dark with a custom navbar — without touching any build tooling.
+Refresh the browser. The site is now dark with a custom navbar — no build
+tooling involved.
 
-Next: [Publish your site](deploy.md).
+Next: [Publish](deploy.md).
