@@ -148,6 +148,7 @@ export default {
   // --- Markdown parser options (all enabled by default) ---
   markdown: {
     inline: true,
+    headings: true,
     lists: true,
     table: true,
     code: true,
@@ -156,6 +157,9 @@ export default {
     links: true,
     images: true,
     emphasis: true,
+    footnotes: true,
+    autolinks: true,
+    taskLists: true,
   },
 }
 ```

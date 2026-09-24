@@ -2,4 +2,6 @@
 dist/
 .cache/
 *.log
+node_modules/
+__pycache__/
 jprot-components-pack/

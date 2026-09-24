@@ -66,7 +66,7 @@ export default {
   // ],
 
   // --- Markdown parser options (all default true) ---
-  // markdown: { tables: true, highlight: true },
+  // markdown: { table: true, footnotes: true, autolinks: true, taskLists: true },
 
   // --- Override built-in UI strings (i18n / branding) ---
   labels: {

@@ -140,11 +140,20 @@ export interface ThemeConfig {
 }
 
 export interface MarkdownConfig {
-  tables?: boolean
+  inline?: boolean
+  headings?: boolean
+  lists?: boolean
+  code?: boolean
+  blockquote?: boolean
+  hr?: boolean
+  links?: boolean
+  images?: boolean
+  table?: boolean
+  emphasis?: boolean
   footnotes?: boolean
-  highlight?: boolean
   autolinks?: boolean
-  tags?: boolean
+  /** Render GitHub-style task lists `[x]` / `[ ]` as checkboxes. Default true. */
+  taskLists?: boolean
 }
 
 export function parseFrontmatter(source: string): {

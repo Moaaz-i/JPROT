@@ -1,6 +1,6 @@
 {
   "name": "jprot",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A fully customizable Portfolio site generator that serves Markdown without a build step",
   "type": "module",
   "main": "./core/server.js",
@@ -20,6 +20,10 @@
     ".": {
       "types": "./jprot.d.ts",
       "default": "./core/server.js"
+    },
+    "./scaffold": {
+      "types": "./jprot.d.ts",
+      "default": "./core/scaffold.js"
     },
     "./package.json": "./package.json"
   },

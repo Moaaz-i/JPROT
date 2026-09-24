@@ -18,21 +18,34 @@ Install Node.js from <https://nodejs.org> if needed (use the LTS release).
 
 ## 1. Scaffold a site
 
+Fastest path — scaffold and install dependencies in one step:
+
+```bash
+npm create jprot@latest my-site
+cd my-site
+npm start
+```
+
+or scaffold into the current folder and let it install:
+
+```bash
+npm create jprot@latest
+```
+
+`@latest` keeps you on the newest release. The flag `--docs` gives a documentation
+starter and `--resume` a CV-style site (default is a portfolio).
+
+Alternative when JPROT is already installed or you prefer `npx`:
+
 ```bash
 mkdir my-site
 cd my-site
 npx jprot init --portfolio
 ```
 
-`--portfolio` creates a portfolio starter. Alternatives: `--docs` (documentation
-site), `--resume` (CV-style site).
-
-```text
-✔ Site scaffolded into the current folder.
-   Run `jprot` to preview, `jprot new post "My First Post"` to add content.
-```
-
-`jprot init` never overwrites existing files, so re-running it is safe.
+`jprot init` never overwrites existing files, so re-running it is safe — but it
+does not install dependencies for you (run `npm install` once if the `jprot`
+binary is not available).
 
 ## 2. Run the preview server
 

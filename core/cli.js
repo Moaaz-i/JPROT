@@ -130,6 +130,7 @@ export async function bootstrap() {
     console.log("");
     console.log("  \u2714 Site scaffolded into the current folder.");
     console.log("     Run `jprot` to preview, `jprot new post \"My First Post\"` to add content.");
+    console.log("     (Fresh folder? `npm create jprot` scaffolds and installs in one step.)");
     console.log("");
     return;
   }

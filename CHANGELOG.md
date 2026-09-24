@@ -4,6 +4,45 @@ All notable changes to JPROT are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 aims to follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+## [0.5.0] - 2026-09-24
+
+### Added
+
+- **`npm create jprot@latest`**: a one-command scaffold that scaffolds a site
+  and installs its dependencies (`--portfolio` / `--docs` / `--resume`,
+  `--no-install` to skip the install step). Ships as the `create-jprot`
+  package alongside `jprot`.
+- **Footnotes**: `[^id]` references any `[^id]: …` definition, forward
+  references included, with a generated notes section and backlinks
+  (`markdown.footnotes`, default on).
+- **Autolinks**: `<https://…>`, `<ftp://…>` and `<you@example.com>` become
+  links automatically (`markdown.autolinks`, default on).
+- **Nested lists**: lists can contain sub-lists, continuation paragraphs and
+  code blocks at any depth.
+- **Joined paragraphs**: consecutive non-blank lines form a single `<p>`
+  instead of one paragraph per line.
+- **Backslash escapes**: `\*`, `\[]`, `` \` `` and the rest of the ASCII
+  punctuation set now render literally instead of triggering Markdown.
+- **Reference-style links**: `[text][id]`, `[text][]` and shortcut `[text]`
+  resolve against `[id]: url` definitions anywhere in the document; labels are
+  case-insensitive, code-fence-aware, and unknown references stay literal.
+- **Nested emphasis**: `**bold *inner* mark**`, `***bold italic***` and the
+  `__`/`_` variants render correctly, while pathological runs (`****`) stay
+  literal.
+- **Task lists**: `- [x]` / `- [ ]` items render as disabled checkboxes with a
+  `task-list-item` class (`markdown.taskLists`, default on).
+
+### Changed
+
+- `jprot/scaffold` is now exported from the package, so `create-jprot` (and
+  any tooling) can reuse the scaffold engine instead of duplicating it.
+- `MarkdownConfig` in `jprot.d.ts` now matches the engine exactly
+  (`highlight` / `tags`, which were never implemented, were removed).
+- `jprot init` and the docs point newcomers to `npm create jprot@latest` first.
+- `.gitignore` now covers `node_modules/` and `__pycache__/`.
+
 ## [0.4.0] - 2026-09-23
 
 ### Added

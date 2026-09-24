@@ -179,7 +179,25 @@ Content below the frontmatter renders under the hero, above the project cards.
 
 ## Supported Markdown
 
-Headings, paragraphs, bold, italic, inline code, fenced code blocks, ordered and
-unordered lists, blockquotes, tables, images, links, and horizontal rules.
+Headings, paragraphs (consecutive lines join into one paragraph), bold, italic
+(including nested emphasis like `**bold _and_ nested**`), inline code, fenced
+code blocks, ordered and unordered lists (nested lists included), GitHub-style
+task lists, blockquotes and callouts, tables, images, links, reference-style
+links, horizontal rules, and backslash escapes (`\*` renders a literal star).
+
+Extras on top of CommonMark:
+
+- **Footnotes** — reference with `[^1]`, define anywhere with `[^1]: text`.
+  A notes section with backlinks is appended automatically. Turn off with
+  `markdown.footnotes: false`.
+- **Autolinks** — `<https://example.com>` and `<you@example.com>` become links
+  automatically. Turn off with `markdown.autolinks: false`.
+- **Task lists** — `- [ ] todo` and `- [x] done` render as disabled
+  checkboxes. Turn off with `markdown.taskLists: false`.
+- **Reference links** — write `[text][id]`, `[text][]` or `[text]` and define
+  the target once with `[id]: https://example.com`. Labels are
+  case-insensitive; definitions may appear anywhere (even after use).
+
+Every toggle lives under the `markdown` key in `jprot.config.js`.
 
 Next: [Configuration](configuration.md).
