@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createMarkdown } from '../lib/markdown.js'
+import { createMarkdown } from '../../lib/markdown.js'
 
 const md = createMarkdown()
 

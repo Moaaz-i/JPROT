@@ -1,0 +1,58 @@
+# Snapshot site
+
+A site used by the snapshot tests.
+
+## Pages
+
+### Snapshot site
+
+> Source: https://example.com/
+
+Welcome. See [about](about.md) and [a post](blog/hello.md).
+
+### About
+
+> Source: https://example.com/about
+
+# About
+
+Back to [home](/).
+
+## Details
+
+- one
+- two
+
+### Orphan
+
+> Source: https://example.com/orphan
+
+Nobody links here.
+
+### Hello
+
+> Source: https://example.com/blog/hello
+
+A post with a [relative link](../about.md) and a footnote.[^1]
+
+[^1]: The note.
+
+### Blog
+
+> Source: https://example.com/blog
+
+All posts.
+
+### Projects
+
+> Source: https://example.com/projects
+
+Projects.
+
+### Widget
+
+> Source: https://example.com/projects/widget
+
+:::Callout type="info"
+Hello from a shortcode.
+:::

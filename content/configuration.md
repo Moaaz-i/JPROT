@@ -178,6 +178,7 @@ export default {
 | `docs` | boolean | `false` | Enable docs navigation: breadcrumbs, sidebar reading order, previous/next links |
 | `catalogUrl` | string | — | Base URL of the element catalog for `jprot add` / `jprot search` |
 | `author` | string | — | Author name for JSON-LD `Person` |
+| `avatar` | string | — | Site-wide avatar image path (served from `public/`); `hero.avatar` overrides it on the homepage |
 | `email` | string | — | Contact email (mailto fallback in the `Contact` component) |
 | `themeColor` | string | `#4f46e5` | PWA manifest + favicon + OG base color |
 | `ogImage` | string | — | Explicit `og:image` URL (overrides the auto-generated SVG) |
@@ -213,12 +214,65 @@ export default {
 | `markdown` | object | all on | Toggle individual Markdown features |
 | `themes` | array | built-ins | Theme variants offered by the picker/cycle button |
 | `lint` | object | — | `{ ignore: string[] }` — globs of Markdown files `jprot lint` skips |
+| `plugins` | string[] | — | Plugin specifiers to run on every state build, e.g. `['./plugins/analytics.js']` (see [Plugins](customization.md#13-plugins)) |
+
+## Validating your config
+
+`jprot.d.ts` gives you autocomplete and type errors in the editor. `jprot check`
+gives you the same validation in CI, with file and line:
+
+```bash
+jprot check          # exits 1 on any error
+jprot check --strict # warnings count as errors too
+```
+
+```
+✖ check: 1 error(s) in /path/jprot.config.js
+  jprot.config.js:12  sections[0].component  no component named "Herro" — available: Hero, Skills
+```
+
+It validates the config against the schema **and** resolves the things a schema
+cannot know: that every `sections[].component` names a component that actually
+exists (including one added by a plugin), and that every entry in `plugins: [...]`
+resolves, imports, and completes `setup()`.
+
+Run it before `jprot lint`. `check` reads configuration; `lint` reads every
+content file and resolves every link against the real site. A broken config
+makes every other check meaningless.
+
+## Plugins
+
+`plugins` lists files to run before each state build. Each one exports a
+`setup(jprot)` function:
+
+```js
+export default {
+  plugins: [
+    './plugins/analytics.js',   // a file in this project
+    'jprot-plugin-rss',         // an installed package
+  ],
+}
+```
+
+A plugin may add components, serve its own routes, extend Markdown, and
+subscribe to build/render hooks — and nothing else. A plugin that throws is
+reported and skipped without taking the site down, but a plugin that is
+half-applied is never possible: everything a plugin registers is committed only
+after `setup()` returns.
+
+`jprot check` runs every plugin's `setup()` and fails if any of them throws, so a
+broken plugin is a red build rather than a blank page. Full guide in
+[Plugins](customization.md#13-plugins).
 
 ## Silence the linter
 
-`jprot lint` checks every file under `content/` for missing frontmatter,
-broken links, images without alt text, and oversized local images. Two ways to
-opt a file out.
+`jprot lint` is **site-aware** — it reads your site through the same Content
+Graph the server uses, so every check is resolved against pages that actually
+exist rather than against a file listing. It checks frontmatter, internal links
+and `#anchor` targets, image alt text, unreachable pages, duplicate heading
+anchors, SEO metadata, navigation ordering, section components, and asset paths.
+
+Two ways to opt a file out.
 
 **1. Glob patterns in the config** — skip exact files or whole groups:
 

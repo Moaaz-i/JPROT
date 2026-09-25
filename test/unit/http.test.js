@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { CSP, SECURITY_HEADERS, sendWithSecurity, setFramePolicy } from '../core/http.js'
+import { CSP, SECURITY_HEADERS, sendWithSecurity, setFramePolicy } from '../../core/http.js'
 
 function capture() {
   return {

@@ -48,7 +48,8 @@ the browser — there is no build step.
 | `jprot g list` | List component palettes |
 | `jprot search [query]` | List catalog elements, optionally filtered |
 | `jprot add <Name>` | Install a catalog element into `theme/components/` |
-| `jprot lint` | Check content: broken links, missing metadata, oversized images |
+| `jprot check` | Validate `jprot.config.js` and every plugin against the schema |
+| `jprot lint` | Site-aware content checks: broken links, missing metadata, duplicate anchors |
 | `jprot export [--out dist]` | Export the whole site to static HTML |
 | `jprot --prod` | Production caching; drafts return 404 |
 | `jprot --no-watch` | Disable the file watcher |
@@ -112,7 +113,7 @@ table are documented on the [Configuration](content/configuration.md) page.
 
 ## Customization
 
-Four levels, each independent:
+Five levels, each independent:
 
 1. **CSS variables** — redefine any variable in `theme/custom.css`.
 2. **Component overrides** — drop a file into `theme/components/` to replace
@@ -120,6 +121,8 @@ Four levels, each independent:
 3. **Markdown components** — write a component as a `.md` file: frontmatter
    defaults + `[value]` placeholders, no JavaScript.
 4. **Ready-made themes** — copy `examples/themes/*.css` into `theme/custom.css`.
+5. **Plugins** — one file that adds components, routes, Markdown rules, or
+   hooks (see below).
 
 Scaffold a component:
 
@@ -128,16 +131,45 @@ jprot g component Hobbies --palette cards   # JS component
 jprot g component Hobbies --format md       # Markdown component
 ```
 
+## Plugins
+
+For behaviour that spans components — several pages, the `<head>`, or a brand
+new endpoint — a plugin is one file exporting a `setup(jprot)` function:
+
+```js
+// plugins/analytics.js
+export default {
+  name: 'analytics',
+  setup({ on }) {
+    on('html:head', (html) =>
+      html.replace('</head>', `  <script defer src="/_a.js"></script>\n</head>`))
+  },
+}
+```
+
+```js
+// jprot.config.js
+export default { plugins: ['./plugins/analytics.js'] }
+```
+
+`setup` receives `addComponent`, `addRoute`, `extendMarkdown`, `on`, and the
+config — and nothing else, so the surface stays small enough to promise across
+major versions. A plugin that throws is reported and skipped without taking the
+site down, and a plugin is never left half-installed. `jprot check` runs every
+plugin's `setup()` so CI catches a broken one. See
+[Plugins](content/customization.md#13-plugins).
+
 ## Programmatic API
 
 ```ts
-import { createJprot, exportSite, runLint, scaffoldSite } from 'jprot'
+import { createJprot, exportSite, runLint, runCheck, scaffoldSite } from 'jprot'
 
 const app = await createJprot({ root: '/path/to/project', port: 3000, watch: true })
 await app.listen(3000)
 
 await exportSite({ root: '/path/to/project', outDir: '/tmp/dist' })
-const issues = await runLint({ root: '/path/to/project' })
+const code = await runLint({ root: '/path/to/project' })
+const report = await runCheck({ root: '/path/to/project' })
 await scaffoldSite({ root: '/tmp/new-site', type: 'portfolio' })
 ```
 
@@ -178,12 +210,21 @@ follows the Markdown file you're editing — save and it re-renders instantly.
 ## Project layout
 
 ```
-core/cli.js           CLI entry (server + init/new/g/export/lint)
-core/server.js        Server + rendering + shortcodes + SEO
+core/cli.js           CLI entry (server + init/new/g/check/lint/export)
+core/server.js        HTTP server, routing, virtual endpoints, SEO
+core/graph.js         The Content Graph — one parsed index of every page
+core/content.js       Facade over the graph (kept for existing imports)
+core/render.js        Shortcode AST + section rendering
+core/components.js    Component loading and the component contract
+core/plugins.js       The plugin API
+core/schema.js        Config schema + validation
+core/check.js         jprot check (config + plugins)
+core/lint.js          jprot lint (site-aware content checks)
+core/deploy.js        Where the site lives (basePath, canonical URLs)
+core/export.js        What gets written to dist/
+core/watch.js         Dependency-aware file watcher
 core/scaffold.js      init/new/g scaffolds + snippets + hints
-core/export.js        Static export to dist/
-core/lint.js          Content linting
-lib/markdown.js       Markdown → HTML (no dependencies)
+lib/markdown/         Markdown → HTML, split by concern
 lib/frontmatter.js    YAML frontmatter parser
 theme/default/        Built-in theme (components + styles)
 theme/custom.css      Your CSS overrides
@@ -191,7 +232,8 @@ theme/components/     Your component overrides
 content/              Your Markdown content
 public/               Static assets (images, fonts, files)
 examples/             Theme packs and component examples
-test/                 Node's built-in test runner (npm test)
+test/unit/            Pure-logic tests
+test/integration/     End-to-end tests + HTML/JSON snapshots
 jprot.d.ts            TypeScript definitions
 jprot-vscode/         VSCode extension (preview, highlighting, snippets)
 CHANGELOG.md          Release notes

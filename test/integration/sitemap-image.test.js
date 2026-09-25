@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { createJprot } from '../core/server.js'
+import { createJprot } from '../../core/server.js'
 
 // Sitemap image extension: <image:image> must be a child of <url>, not of
 // <urlset>, or Google's validator rejects it with "tag not recognized".

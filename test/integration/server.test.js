@@ -3,11 +3,11 @@ import assert from 'node:assert/strict'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { writeFile, unlink } from 'node:fs/promises'
-import { createJprot, renderPage } from '../core/server.js'
+import { createJprot, renderPage } from '../../core/server.js'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const app = await createJprot({ root, watch: false })
 const base = `http://127.0.0.1:${await app.listen(0)}`
 const server = app.server

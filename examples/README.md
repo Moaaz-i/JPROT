@@ -46,7 +46,7 @@ a gradient hero card. Drop the Markdown into `theme/components/` and append the
 CSS rules to `theme/custom.css`. Every Markdown component is automatically
 wrapped in `div.md-component-<Name>`, so you style it purely from CSS.
 
-See the in-repo docs page [Customization → Markdown components](../content/customization.md#markdown-components--no-javascript).
+See the in-repo docs page [Customization → Markdown components](../content/customization.md#markdown-components-no-javascript).
 
 ## config/
 

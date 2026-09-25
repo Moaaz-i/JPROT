@@ -31,5 +31,5 @@ Each component receives `props` and returns HTML as a string. Common props:
 | `children` | Inner Markdown of a `:::Name … :::` shortcode (nested) |
 
 The deeper guide lives in the project docs — see the repository
-[Customization](../content/customization.md) page. Ready-made component examples
+[Customization](../../content/customization.md) page. Ready-made component examples
 live in `examples/components/`.

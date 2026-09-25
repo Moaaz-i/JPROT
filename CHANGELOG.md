@@ -4,7 +4,118 @@ All notable changes to JPROT are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 aims to follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.7.0] - 2026-09-25
+
+### Added
+
+- **`--root <dir>`**: points `check`, `lint`, `export`, `init`, `new`, `g
+  component`, `search`, and `add` at a project other than the current directory,
+  so they are usable from a monorepo CI job.
+- **Plugin API** (`core/plugins.js`): a plugin is now a single file exporting
+  `setup(jprot)`, declared in `jprot.config.js` under `plugins: [...]`.
+  `setup` receives `addComponent`, `addRoute`, `extendMarkdown`, `on`, and the
+  loaded config — and nothing else, so the surface stays small enough to promise
+  across a major version. Available hooks: `state:build`, `components:load`,
+  `html:page`, `html:head`, `html:body-end`, `endpoint:json`, `build`, `export`.
+  A hook name that does not exist fails at setup time with the list of valid
+  ones, instead of silently never firing. `addComponent` registrations work as a
+  `:::Name` shortcode, a `sections[].component`, and a `layout:`.
+  - A broken plugin never takes the site down: import and `setup()` are both
+    wrapped, the failure is reported, the remaining plugins still load, and the
+    site keeps serving.
+  - A plugin is all-or-nothing: each one writes into a private staging area
+    committed only when `setup()` returns, so a plugin that throws halfway
+    leaves no half-registered component, route, or hook behind.
+- **`jprot check`**: validates `jprot.config.js` against the schema from the
+  command line and reports every problem with its `file:line`. Beyond types it
+  verifies what a type cannot express — that each `sections[].component` names
+  a component that exists (including ones added by a plugin), and that every
+  declared plugin resolves, imports, and completes `setup()`. Exits non-zero on
+  error; `--strict` promotes warnings to errors. Also available as
+  `checkConfig()` / `runCheck()`.
+- **`plugins` config key** and the `JprotPlugin`, `JprotPluginApi`,
+  `JprotHooks`, and `JprotPluginReport` types in `jprot.d.ts`.
+- **Committed HTML/JSON snapshots** (`test/snapshots/`): seven rendered pages and
+  seven endpoints, so a change in rendered output shows up as a reviewable diff
+  instead of a silently different site. Nonce, dev origin port, `<lastmod>`,
+  `<lastBuildDate>` and `"date"` are normalized so a nightly run doesn't fail on
+  a clock tick. Update with `npm run test:update`.
+- **Test suite split** into `test/unit/` and `test/integration/` with shared
+  fixtures in `test/helpers/`, plus `npm run test:unit` and
+  `npm run test:integration`.
+
+### Changed
+
+- **The Content Graph** (`core/graph.js`): one pass over `content/` now produces
+  every derived structure the server needs — pages, posts, projects, routes,
+  navigation, docs navigation, the search index, the internal link graph, and
+  orphan detection. Routing, the sitemap, the feed, `jprot lint` and
+  `jprot export` all read it, so they can no longer disagree about what pages
+  exist. It is cached and keyed by a `file:mtime:size` signature, so a rebuild
+  that changes nothing re-parses nothing. `core/content.js` remains as a
+  thin facade so existing imports keep working.
+- **`jprot lint` is now site-aware** and resolves every check against the graph
+  instead of a file listing. New checks: duplicate heading anchors, unreachable
+  pages, navigation ordering, unknown `sections[]` components, props a
+  component does not declare, and `og:image` / `avatar` / `logo` / `icon` paths
+  that would 404. The duplicate-anchor check replaces one that could never fire
+  because it could not see the renderer's disambiguated slugs.
+- **Internal links resolve against the served URL**, not the file path, so
+  `../guide.md` from `/docs/intro` is understood the same way the browser and
+  the server's own 301s understand it.
+- **Shortcodes parse into an AST** instead of being rewritten with string
+  surgery. Shortcodes nest (an inner `:::Name` is rendered first and passed to
+  the outer component as `children`), and a component that throws or a
+  shortcode that names something unregistered now degrades to a visible marker
+  for that one block instead of failing the page.
+- **Export and deploy are separate concerns.** `core/deploy.js` owns everything
+  about *where* the site lives — `normalizeBasePath`, `deployUrlFor`, and a
+  deployment object that rewrites HTML, the search index, and the PWA manifest
+  for a given base path and origin. `core/export.js` now only decides *what*
+  gets written.
+- **The watcher classifies changes** into `config | component | content | asset
+  | ignored` instead of rebuilding on anything. `dist/`, `node_modules/`,
+  `.git/`, `.next/` and `coverage/` are excluded, so `jprot export` can no
+  longer wake the watcher that wrote it.
+- **`lib/markdown/`** is split by concern — `definitions`, `blocks`, `inline`,
+  `links`, `footnotes`, `sanitize`, `slugify`, with `index.js` owning the pass
+  order. `lib/markdown.js` remains as a back-compat re-export.
+- **The component contract** (`core/components.js`): components may be a
+  function or `{ name, props, render }`, normalized to one internal shape.
+  Declaring `props` is optional and is what lets lint flag a section key a
+  component silently ignores.
+
+### Fixed
+
+- **`catalogUrl` was rejected by the config schema.** Every scaffold writes
+  `catalogUrl` into `jprot.config.js` and the options table documents it, but it
+  was missing from the schema's key list — so `jprot check` reported
+  `unknown config key` on a brand-new site, and `jprot check --strict` exited
+  `1` on a pristine project. Two regression tests now pin this: a pristine
+  scaffold must pass `--strict`, and every key the scaffold writes must be in
+  `CONFIG_KEYS`.
+- **`jprot init --root <dir>`, `jprot new --root <dir>` and `jprot g component
+  --root <dir>` ignored the flag** and wrote into the current directory instead.
+  `jprot init --root ./site` scaffolded an entire site into whatever folder the
+  user was standing in. A regression test asserts these commands leave the
+  repository's `git status` unchanged.
+- **`jprot check --root <dir>` reported on the wrong project.** `check`, `lint`
+  and `export` all hard-coded `process.cwd()`, so a CI job pointed at a
+  subdirectory got `✔ check: jprot.config.js is valid` about whatever repository
+  it happened to run in. A validator that passes on the wrong tree is worse than
+  one that fails.
+- The Organization JSON-LD `logo` ignored the site-wide `avatar` fallback, so
+  setting only `avatar` rendered an avatar in the hero while leaving
+  `schema.logo` empty.
+- Config validation accepted malformed entries inside arrays of objects — a
+  `sections` entry that was a string, or an object missing its required keys,
+  was not reported. `jprot check` now catches these.
+- `analyzeSite()` is exported alongside `runLint()`, so a host application can
+  read a structured lint report instead of parsing terminal output.
+- Documentation: three `#markdown-components--no-javascript` anchors used
+  GitHub's double-dash convention where JPROT's own slugger emits a single dash,
+  and `theme/components/README.md` linked to `../content/…` from
+  `theme/components/`, which resolves to `theme/content/…`.
 
 ## [0.6.0] - 2026-09-25
 

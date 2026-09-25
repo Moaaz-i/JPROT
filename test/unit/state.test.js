@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { state, runScoped, setFallbackState } from '../core/state.js'
+import { state, runScoped, setFallbackState } from '../../core/state.js'
 
 test('runScoped isolates concurrent state', async () => {
   const A = { site: { title: 'Site A' } }

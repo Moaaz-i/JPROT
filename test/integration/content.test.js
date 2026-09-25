@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { resolveContent, listMarkdown, listProjects, buildNavigation, buildDocsNav, indexAll } from '../core/content.js'
-import { setFallbackState, runScoped } from '../core/state.js'
+import { resolveContent, listMarkdown, listProjects, buildNavigation, buildDocsNav, indexAll } from '../../core/content.js'
+import { setFallbackState, runScoped } from '../../core/state.js'
 
 let dir
 

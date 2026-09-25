@@ -1,223 +1,94 @@
-import { readFile, readdir, stat } from 'node:fs/promises'
-import { join, extname, basename, normalize, sep } from 'node:path'
-import { parseFrontmatter } from '../lib/frontmatter.js'
+// Public content API. The work itself lives in core/graph.js — this module is
+// the stable surface the HTTP layer, the CLI and userland import, and every
+// function here is now a thin view over a single `Content Graph` build instead
+// of its own walk of the content tree.
+import { stat } from 'node:fs/promises'
+import { join, extname, normalize } from 'node:path'
 import { isInside } from './utils.js'
 import { state } from './state.js'
+import {
+  evictStaleCache,
+  getContentGraph,
+  invalidateContentGraph,
+  listMarkdown,
+  loadContentGraph,
+  readParsed,
+  stripMarkdown,
+} from './graph.js'
 
-const parsedCache = new Map()
+export { evictStaleCache, listMarkdown, loadContentGraph, readParsed, stripMarkdown }
+export { invalidateContentGraph } from './graph.js'
 
-// Reuse parsed content while its mtime/size is unchanged. This keeps search,
-// navigation, feeds and page rendering cheap without making edits stale.
-export async function readParsed(file) {
-  let info
-  try { info = await stat(file) } catch {
-    parsedCache.delete(file)
-    throw new Error(`File not found: ${file}`)
+// Directories the site treats as collections. Both are configurable, so they are
+// read from the request/instance state rather than hard-coded. `root` wins over
+// the state's contentDir so an explicit argument always decides.
+function graphOptions(root) {
+  const { site = {}, contentDir: stateContentDir } = state()
+  const contentDir = root || stateContentDir
+  return {
+    contentDir,
+    blogDir: join(contentDir, site.blogDir || 'blog'),
+    projectsDir: join(contentDir, site.projectsDir || 'projects'),
+    docs: site.docs === true,
   }
-  const cached = parsedCache.get(file)
-  if (cached && cached.mtimeMs === info.mtimeMs && cached.size === info.size) return cached.value
-  const raw = await readFile(file, 'utf8')
-  const value = parseFrontmatter(raw)
-  parsedCache.set(file, { mtimeMs: info.mtimeMs, size: info.size, value })
-  return value
 }
 
-// Evict cache entries for files that no longer exist on disk.
-export function evictStaleCache() {
-  for (const [file] of parsedCache) {
-    try { stat(file) } catch { parsedCache.delete(file) }
+// The graph for the current instance's content, reusing the previous build while
+// the tree is unchanged.
+export async function contentGraph() {
+  return getContentGraph(graphOptions())
+}
+
+// Post/project entries keep the historical shape (`url` is content-relative,
+// e.g. `blog/hello`) because themes build links as `/${p.url}`.
+function legacyItem(entry) {
+  return {
+    data: entry.data,
+    body: entry.body,
+    src: entry.src,
+    slug: entry.slug,
+    url: entry.url.replace(/^\//, ''),
+    excerpt: entry.data.excerpt
+      || String(entry.body || '').split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 3).join(' '),
   }
 }
 
-// Recursively collect every .md file under `dir`, skipping dotfiles.
-export async function listMarkdown(dir) {
-  const out = []
-  let entries
-  try { entries = await readdir(dir) } catch { return out }
-  const dirs = []
-  for (const entry of entries) {
-    if (entry.startsWith('.')) continue
-    const full = join(dir, entry)
-    let st
-    try { st = await stat(full) } catch { continue }
-    if (st.isDirectory()) {
-      dirs.push(full)
-    } else if (extname(entry) === '.md') {
-      out.push(full)
-    }
-  }
-  for (const d of dirs) out.push(...(await listMarkdown(d)))
-  return out
-}
+// Graph → legacy view, for callers that already hold a graph.
+export const postItems = (graph) => graph.posts.map(legacyItem)
+export const projectItems = (graph) => graph.projects.map(legacyItem)
 
-// Project entries from content/projects (or a custom projectsDir).
-export async function listProjects(contentDir, projectsDir) {
-  const { site } = state()
-  const dir = projectsDir || join(contentDir, site.projectsDir || 'projects')
-  const out = []
-  for (const f of await listMarkdown(dir)) {
-    if (basename(f, '.md') === 'index') continue
-    const { data, body } = await readParsed(f)
-    if (data.draft) continue
-    const rel = f.slice(contentDir.length + 1).replace(/\.md$/, '')
-    out.push({
-      data,
-      body,
-      src: f,
-      slug: basename(f, '.md'),
-      url: rel,
-    })
-  }
-  out.sort((a, b) => (a.data.order ?? Infinity) - (b.data.order ?? Infinity))
-  return out
-}
-
-// Normalize a `YYYY-M-D` / `YYYY-MM-DD` frontmatter date into a zero-padded
-// sortable key so non-padded dates (2026-1-5) don't misorder vs padded ones.
-function dateKey(value) {
-  if (typeof value !== 'string') return String(value ?? '')
-  const m = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
-  if (m) return `${m[1]}${m[2].padStart(2, '0')}${m[3].padStart(2, '0')}`
-  return value
-}
-
-// Blog posts from content/blog (or a custom blogDir), newest first.
 export async function listPosts(contentDir, blogDir) {
-  const { site } = state()
-  const dir = blogDir || join(contentDir, site.blogDir || 'blog')
-  const out = []
-  for (const f of await listMarkdown(dir)) {
-    if (basename(f, '.md') === 'index') continue
-    const { data, body } = await readParsed(f)
-    if (data.draft) continue
-    const rel = f.slice(contentDir.length + 1).replace(/\.md$/, '')
-    out.push({
-      data,
-      body,
-      src: f,
-      slug: basename(f, '.md'),
-      url: rel,
-      excerpt: data.excerpt || body.split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 3).join(' '),
-    })
-  }
-  out.sort((a, b) => {
-    const ka = dateKey(a.data.date)
-    const kb = dateKey(b.data.date)
-    return (kb || '') < (ka || '') ? -1 : (kb || '') > (ka || '') ? 1 : 0
-  })
-  return out
+  const opts = graphOptions(contentDir)
+  const graph = await getContentGraph({ ...opts, blogDir: blogDir || opts.blogDir })
+  return postItems(graph)
 }
 
-// Reduce Markdown to plain, searchable text. Nothing is discarded wholesale:
-// fenced code blocks keep their inner text (only the fence markers go), inline
-// code, link texts, image alts and surrounding text survive; HTML tags and
-// markdown decoration collapse to spaces. The original source stays available
-// as `raw` on each index entry so even fence markers, URLs and attribute
-// values remain searchable.
-export function stripMarkdown(src) {
-  return String(src || '')
-    .replace(/```[^\n]*\n?([\s\S]*?)```/g, '$1')
-    .replace(/`([^`]*)`/g, '$1')
-    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/[#>*_~|]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+export async function listProjects(contentDir, projectsDir) {
+  const opts = graphOptions(contentDir)
+  const graph = await getContentGraph({ ...opts, projectsDir: projectsDir || opts.projectsDir })
+  return projectItems(graph)
 }
 
-// Full-site index used by the search endpoint and sitemap.
+// Full-site index used by the search endpoint, sitemap and llms.txt.
 export async function indexAll(contentDir) {
-  const out = []
-  for (const f of await listMarkdown(contentDir)) {
-    const rel = f.slice(contentDir.length + 1).replace(/\.md$/, '').replace(/\/index$/, '')
-    // Skip only the site homepage and the 404 page, not nested index pages,
-    // so a browsable docs directory also appears in search/sitemap/export.
-    if (rel === 'index' || rel === '404') continue
-    const { data, body } = await readParsed(f)
-    if (data.hidden || data.draft) continue
-    const slug = basename(f, '.md')
-    const title = data.title || slug
-    const excerpt = (data.excerpt || data.description || body.split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 2).join(' '))
-      .replace(/[`*_~#>|]/g, '')
-      .slice(0, 140)
-    out.push({
-      title,
-      url: '/' + rel,
-      excerpt,
-      // Scalar frontmatter like `tags: guide` must not crash the client
-      // search (it calls .map on the value), so normalize to an array.
-      tags: Array.isArray(data.tags)
-        ? data.tags.map((t) => String(t))
-        : data.tags
-          ? [String(data.tags)]
-          : [],
-      date: data.date || '',
-      image: data.image || '',
-      body: stripMarkdown(body),
-      raw: String(body || '').trim(),
-      frontmatter: stripMarkdown(JSON.stringify(data)),
-    })
-  }
-  return out
+  return (await getContentGraph(graphOptions(contentDir))).searchIndex
 }
 
-// Builds the main navigation from top-level content pages.
 export async function buildNavigation(contentDir) {
-  const nav = []
-  for (const f of await listMarkdown(contentDir)) {
-    const { data } = await readParsed(f)
-    if (data.hidden || data.draft) continue
-    const rel = f.slice(contentDir.length + 1)
-    const slug = basename(f, '.md')
-    if (slug === 'index' || slug === '404') continue
-    // only top-level pages (no subfolder) appear in the main nav,
-    // unless a page explicitly declares a nav entry
-    const isTopLevel = !rel.includes('/')
-    if (!isTopLevel && data.nav === undefined) continue
-    const relUrl = rel.replace(/\.md$/, '').replace(/\/index$/, '/')
-    nav.push({
-      label: data.nav || data.title || slug,
-      url: relUrl,
-      order: data.order ?? Infinity,
-    })
-  }
-  nav.sort((a, b) => a.order - b.order)
-  return nav
+  return (await getContentGraph(graphOptions(contentDir))).navigation
 }
 
-// Docs-mode reading order for the sidebar and prev/next links: every content
-// page, including nested ones (unlike the compact navbar), sorted by
-// frontmatter `order`. Blog/project listings are excluded by passing their
-// directories so posts don't clutter the docs sidebar.
 export async function buildDocsNav(contentDir, excludeDirs = []) {
-  const nav = []
-  for (const f of await listMarkdown(contentDir)) {
-    if (excludeDirs.some((d) => f.startsWith(d + sep))) continue
-    const { data } = await readParsed(f)
-    if (data.hidden || data.draft) continue
-    const rel = f.slice(contentDir.length + 1)
-    const slug = basename(f, '.md')
-    if (rel === 'index.md' || slug === '404') continue
-    let url
-    let label
-    if (slug === 'index') {
-      url = dirnameContent(rel) + '/'
-      label = data.nav || data.title || basename(dirnameContent(rel))
-    } else {
-      url = rel.replace(/\.md$/, '')
-      label = data.nav || data.title || slug
-    }
-    nav.push({ label, url, order: data.order ?? Infinity })
-  }
-  nav.sort((a, b) => a.order - b.order || a.label.localeCompare(b.label))
-  return nav
-}
-
-// `/guide/index.md` → `/guide`
-function dirnameContent(rel) {
-  const dir = rel.replace(/\/index\.md$/, '')
-  return dir.includes('/') ? dir : ''
+  const opts = graphOptions(contentDir)
+  const graph = await getContentGraph({ ...opts, docs: opts.docs || excludeDirs.length > 0 })
+  // Callers may pass explicit directories to exclude (the server passes the
+  // configured blog/projects folders, but an API user can pass anything).
+  if (!excludeDirs.length) return graph.docsNavigation
+  const excluded = new Set(excludeDirs)
+  return graph.docsNavigation.filter((n) => {
+    const file = graph.byUrl.get('/' + n.url)?.src
+    return !file || !excluded.has(file.replace(/\/[^/]+$/, ''))
+  })
 }
 
 // Safely resolve a URL pathname to an existing content file, guarding against

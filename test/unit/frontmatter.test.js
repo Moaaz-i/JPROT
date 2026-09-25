@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseFrontmatter } from '../lib/frontmatter.js'
+import { parseFrontmatter } from '../../lib/frontmatter.js'
 
 test('no frontmatter -> empty data + unchanged body', () => {
   const { data, body } = parseFrontmatter('# Hello')

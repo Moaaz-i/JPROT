@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const exec = promisify(execFile)
-const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 test('CLI exposes help and package version without starting a server', async () => {
   const help = await exec(process.execPath, ['core/cli.js', '--help'], { cwd: root })

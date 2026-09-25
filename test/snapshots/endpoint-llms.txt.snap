@@ -1,0 +1,13 @@
+# Snapshot site
+
+> A site used by the snapshot tests.
+
+## Docs
+
+- [Snapshot site](https://example.com/): A site used by the snapshot tests.
+- [About](https://example.com/about): About the site.
+- [Orphan](https://example.com/orphan): Unlinked.
+- [Hello](https://example.com/blog/hello): The first post.
+- [Blog](https://example.com/blog): Posts.
+- [Projects](https://example.com/projects): Work.
+- [Widget](https://example.com/projects/widget): A project.

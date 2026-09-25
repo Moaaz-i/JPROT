@@ -1,16 +1,27 @@
-// `jprot lint` — content quality checks, zero runtime cost.
-//  * missing title / description in frontmatter
-//  * broken internal links (root-relative and relative-to-file)
-//  * images missing alt text
-//  * oversized local images referenced from Markdown
-import { readFile, stat } from 'node:fs/promises'
-import { join, dirname, basename } from 'node:path'
-import { parseFrontmatter } from '../lib/frontmatter.js'
-import { listMarkdown } from './content.js'
-import { isInside } from './utils.js'
+// `jprot lint` — a site analyzer, not just a content linter.
+//
+// Every check reads the same content graph the server renders from, so a page
+// that is unreachable in the running site is reported as unreachable here too.
+//
+//   Content    frontmatter, broken links, image alt text, oversized images,
+//              duplicate routes, duplicate heading anchors
+//   SEO        missing titles/descriptions, 404 handling
+//   Navigation orphan pages, nav entries that point nowhere
+//   Components unknown shortcode, missing/invalid component props
+//   Assets     referenced-but-missing files, unused files in public/
+//
+// The exit code is 1 when any *error* is reported; warnings and info do not
+// fail the command, so `jprot lint` stays usable as a CI gate.
+import { readdir, stat } from 'node:fs/promises'
+import { basename, dirname, join, relative } from 'node:path'
+import { loadComponents, validateProps } from './components.js'
 import { loadSiteConfig } from './config.js'
+import { canonPath, decodeHref, isExternalTarget, loadContentGraph, resolveInternalTarget } from './graph.js'
 
 const SIZE_LIMIT = 400 * 1024
+// Extensions worth reporting as "unused" in public/ — never stray dotfiles or
+// engine endpoints (robots.txt, favicon.svg, …).
+const ASSET_RE = /\.(?:png|jpe?g|gif|svg|webp|avif|ico|pdf|mp4|webm|zip)$/i
 
 async function isFile(p) {
   try { return (await stat(p)).isFile() } catch { return false }
@@ -30,125 +41,274 @@ function globToRegExp(pattern) {
   return new RegExp(re + '($|\\.md$)')
 }
 
-// Canonical page URL for a resolved path: trailing slashes off, .md off and
-// /index folded into its directory (so /index.md → /, /blog/index → /blog).
-function canonPath(p) {
-  let s = String(p || '').replace(/[?#].*$/, '').replace(/\/+$/, '')
-  s = s.replace(/\.md$/, '')
-  if (s.endsWith('/index')) s = s.slice(0, -6) || '/'
-  return s || '/'
+const SEVERITY_ORDER = { error: 0, warning: 1, info: 2 }
+
+// Every public/ file, so the analyzer can report the ones nothing references.
+async function listPublicAssets(publicDir) {
+  const out = []
+  const walk = async (dir, depth = 0) => {
+    if (depth > 6) return
+    let entries
+    try { entries = await readdir(dir, { withFileTypes: true }) } catch { return }
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) { await walk(full, depth + 1); continue }
+      out.push({ rel: relative(publicDir, full).split('\\').join('/'), abs: full })
+    }
+  }
+  await walk(publicDir)
+  return out
 }
 
-function decodeHref(s) {
-  try { return decodeURIComponent(String(s || '')) } catch { return String(s || '') }
+// `:::Name attr="v"` occurrences with their 1-based line numbers, skipping
+// fenced code blocks.
+function shortcodesIn(body) {
+  const out = []
+  let inCode = false
+  String(body || '').split(/\r?\n/).forEach((line, i) => {
+    if (/^\s*```+/.test(line)) { inCode = !inCode; return }
+    if (inCode) return
+    const m = /^\s*:::\s*([A-Za-z0-9-]+)(.*)$/.exec(line)
+    if (!m) return
+    const attrs = {}
+    for (const a of m[2].matchAll(/([A-Za-z0-9_-]+)=(?:"([^"]*)"|'([^']*)'|(\S+))/g)) {
+      let value = a[2] !== undefined ? a[2] : a[3] !== undefined ? a[3] : a[4]
+      if (/^-?\d+$/.test(value)) value = Number(value)
+      else if (value === 'true') value = true
+      else if (value === 'false') value = false
+      attrs[a[1]] = value
+    }
+    out.push({ name: m[1], attrs, line: i + 1 })
+  })
+  return out
 }
 
-export async function runLint({ root } = {}) {
+/**
+ * Analyze a site and return every issue found.
+ *
+ * @param {object} [options]
+ * @param {string} [options.root] project root (defaults to cwd)
+ * @returns {Promise<{code: number, issues: Array, counts: object, graph: object, fileCount: number}>}
+ */
+export async function analyzeSite({ root } = {}) {
   const projectRoot = root || process.cwd()
   const contentDir = join(projectRoot, 'content')
   const publicDir = join(projectRoot, 'public')
+  const userThemeDir = join(projectRoot, 'theme')
 
-  // Files matched by `lint.ignore` in jprot.config.js are skipped. Patterns
-  // are globs against the repo-relative Markdown path (e.g. `blog.md`,
-  // `projects/*.md`, `drafts/**`); the `.md` suffix is optional.
   const config = await loadSiteConfig(projectRoot)
+  const issues = []
+  const push = (level, file, type, msg) => issues.push({ level, file, type, msg })
+
   const ignore = Array.isArray(config.lint?.ignore) ? config.lint.ignore.map(globToRegExp) : []
-  const ignored = (rel) => ignore.some((re) => re.test(rel))
+  const graph = await loadContentGraph({
+    contentDir,
+    blogDir: join(contentDir, config.blogDir || 'blog'),
+    projectsDir: join(contentDir, config.projectsDir || 'projects'),
+    docs: config.docs === true,
+  })
 
-  const files = await listMarkdown(contentDir)
-  const reads = new Map()
-  for (const f of files) reads.set(f, await readFile(f, 'utf8'))
-
-  // every content URL (used to validate root-relative links)
-  const urlSet = new Set('/')
-  for (const f of files) {
-    const { data } = parseFrontmatter(reads.get(f))
-    if (data.hidden || data.draft) continue
-    const rel = f.slice(contentDir.length + 1).replace(/\.md$/, '').replace(/\/index$/, '')
-    urlSet.add('/' + (rel === 'index' ? '' : rel).replace(/\/$/, ''))
+  // Components are needed to check shortcode names and declared prop schemas.
+  // A theme that fails to load must not abort the whole analysis.
+  let components = {}
+  try {
+    components = await loadComponents(userThemeDir, false)
+  } catch (e) {
+    push('warning', 'theme/', 'components', `could not load components — ${e.message}`)
   }
 
-  const issues = []
-  const push = (file, type, msg) => issues.push({ file: file.slice(contentDir.length + 1), type, msg })
+  const referenced = new Set()
+  const publicAssets = await listPublicAssets(publicDir)
+  for (const asset of publicAssets) referenced.add('/' + asset.rel)
+  // Config-declared assets count as referenced.
+  for (const value of [config.logo, config.icon, config.ogImage, config.avatar, config.hero && config.hero.avatar]) {
+    if (typeof value === 'string' && value.startsWith('/')) referenced.add(value.split('?')[0])
+  }
 
-  for (const f of files) {
-    const raw = reads.get(f)
-    const { data, body } = parseFrontmatter(raw)
-    const rel = f.slice(contentDir.length + 1)
+  // Opt-outs: `lint.ignore` globs, or `lint: false` in a page's frontmatter.
+  const ignoredRel = new Set(
+    graph.entries
+      .filter((e) => ignore.some((re) => re.test(e.rel)) || e.data.lint === false)
+      .map((e) => e.rel),
+  )
+  const entries = graph.entries.filter((e) => !ignoredRel.has(e.rel))
+  const live = entries.filter((e) => !e.hidden && !e.draft)
+  const liveSet = new Set(live)
+  const pageUrlSet = new Set(live.filter((e) => e.kind !== 'notfound').map((e) => e.url))
+  const routeOwner = new Map()
 
-    // opt out per file (frontmatter) or via config unless — used for content
-    // that is intentionally stale, machine-generated or mirroring external posts
-    if (ignored(rel) || data.lint === false) continue
+  for (const e of entries) {
+    const rel = e.rel
 
-    if (!data.title) push(f, 'frontmatter', 'missing `title`')
-    if (data.draft !== true && !data.description && !data.subtitle && !data.excerpt) {
-      push(f, 'frontmatter', 'missing `description` / `excerpt`')
+    /* ---------------- content ---------------- */
+    if (e.kind !== 'home' && !e.data.title) push('warning', rel, 'frontmatter', 'missing `title`')
+    if (!e.data.draft && !e.data.description && !e.data.subtitle && !e.data.excerpt) {
+      push('warning', rel, 'frontmatter', 'missing `description` / `excerpt`')
     }
-    if (data.date && typeof data.date === 'string' && Number.isNaN(Date.parse(data.date))) {
-      push(f, 'frontmatter', `invalid \`date\` → ${data.date}`)
+    if (e.data.date && typeof e.data.date === 'string' && Number.isNaN(Date.parse(e.data.date))) {
+      push('error', rel, 'frontmatter', `invalid \`date\` → ${e.data.date}`)
     }
+    if (e.kind === 'notfound') push('info', rel, 'seo', 'custom 404 page — kept out of search and sitemap')
 
-    // markdown links — broken internal ones
-    const isIndexPage = basename(rel) === 'index.md'
-    const pageUrl = isIndexPage
-      ? (dirname(rel) === '.' ? '/' : '/' + dirname(rel) + '/')
-      : '/' + rel.replace(/\.md$/, '')
-    for (const m of body.matchAll(/\[[^\]]*\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g)) {
-      const target = m[1].split('#')[0].split('?')[0].trim()
-      if (!target || /^(https?:|mailto:|tel:|data:|news:)/.test(target) || target.startsWith('#')) continue
-      if (target === '/' || target.startsWith('//')) continue // home / protocol-relative (external) links are valid
-      if (target.startsWith('/')) {
-        // root-relative path; a .md suffix folds into the clean URL (the
-        // server 301s .md → clean, so both forms are valid)
-        const clean = canonPath(decodeHref(target))
-        if (urlSet.has(clean)) continue
-        if (await isFile(join(publicDir, target.replace(/^\//, '')))) continue
-        push(f, 'link', `broken internal link → ${target}`)
-      } else if (/^\.{1,2}\//.test(target)) {
-        // file-relative path (./x or ../x): resolved against the file on disk
-        const abs = join(dirname(f), decodeHref(target))
-        if (!isInside(contentDir, abs) || !(await isFile(abs))) {
-          push(f, 'link', `broken relative link → ${target}`)
-        }
+    // Two files answering one URL (`about.md` and `about/index.md`).
+    if (e.kind !== 'notfound' && !e.hidden && !e.draft) {
+      const owner = routeOwner.get(e.url)
+      if (owner && owner !== rel) {
+        push('error', rel, 'routes', `duplicate route \`${e.url}\` — already served by ${owner}`)
       } else {
-        // bare name: the browser resolves it against this page's URL
-        const resolved = new URL(decodeHref(target), `http://jprot.local${pageUrl}`).pathname
-        const clean = canonPath(resolved)
-        if (urlSet.has(clean)) continue
-        if (await isFile(join(contentDir, clean.replace(/^\//, '')))) continue // content-adjacent asset
-        push(f, 'link', `broken internal link → ${target}`)
+        routeOwner.set(e.url, rel)
       }
     }
 
-    // markdown images missing alt text
-    for (const m of body.matchAll(/!\[([^\]]*)\]\(([^)]+)\)/g)) {
-      if (!m[1].trim()) push(f, 'alt', 'image missing alt text')
-    }
-    // raw <img> tags missing alt
-    for (const m of body.matchAll(/<img\b[^>]*>/g)) {
-      if (!/\balt=/i.test(m[0])) push(f, 'alt', '<img> missing alt attribute')
+    // Duplicate heading anchors: the renderer de-duplicates by appending -2,
+    // so every `#intro` link lands on the first heading. `base` is the slug
+    // before that disambiguation, which is what collides.
+    const seenIds = new Set()
+    for (const h of e.headings) {
+      if (seenIds.has(h.base)) {
+        push('warning', rel, 'anchors', `duplicate heading id \`#${h.base}\` ("${h.text.trim()}") — the second becomes #${h.id}`)
+      }
+      seenIds.add(h.base)
     }
 
-    // oversized local images referenced from Markdown
-    for (const m of body.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)) {
-      const src = m[1].trim().split(' ')[0]
-      if (/^(https?:|data:)/.test(src) || src.startsWith('/')) continue
-      const abs = join(dirname(f), decodeURIComponent(src.split('#')[0]))
-      if (!isInside(contentDir, abs)) continue
-      try {
-        const st = await stat(abs)
-        if (st.isFile() && st.size > SIZE_LIMIT) {
-          push(f, 'size', `large image ${basename(abs)} (${Math.round(st.size / 1024)} KB > ${SIZE_LIMIT / 1024} KB)`)
-        }
-      } catch { /* reference points at nothing real */ }
+    /* ---------------- links & images ---------------- */
+    for (const link of e.links) {
+      const target = link.target
+      if (!target || isExternalTarget(target)) continue
+
+      if (link.kind === 'image') {
+        if (!link.text.trim()) push('warning', rel, 'alt', 'image missing alt text')
+        await checkAsset(e, target)
+        continue
+      }
+      if (target === '/' || target.startsWith('//')) continue
+
+      // Every non-root-relative target is resolved exactly as a browser would,
+      // against the URL the server actually serves (never with a trailing
+      // slash), then checked against the page set and the filesystem.
+      const clean = resolveInternalTarget(e, target)
+      if (target.startsWith('/') || /^\.{1,2}\//.test(target)) {
+        // root-relative: a .md suffix folds into the clean URL (the server
+        // 301s .md → clean, so both forms are valid)
+        if (pageUrlSet.has(clean)) continue
+        if (await isFile(join(publicDir, target.replace(/^\//, '')))) { referenced.add(clean); continue }
+        push('error', rel, 'links', `broken internal link → ${target}`)
+      } else {
+        if (pageUrlSet.has(clean)) continue
+        if (await isFile(join(contentDir, clean.replace(/^\//, '')))) continue // content-adjacent asset
+        push('error', rel, 'links', `broken internal link → ${target}`)
+      }
+    }
+
+    // raw <img> tags missing alt
+    for (const m of e.body.matchAll(/<img\b[^>]*>/g)) {
+      if (!/\balt=/i.test(m[0])) push('warning', rel, 'alt', '<img> missing alt attribute')
     }
   }
 
+  /* ---------------- navigation ---------------- */
+  // Nav entries and orphan detection read the graph's unfiltered views, so they
+  // are re-scoped here: an ignored page is neither a nav target we can vouch
+  // for nor an orphan worth reporting.
+  for (const item of graph.navigation) {
+    if (item.rel && ignoredRel.has(item.rel)) continue
+    if (!pageUrlSet.has(canonPath('/' + item.url))) {
+      push('warning', item.url, 'nav', `nav entry points at a page that does not exist: ${item.url}`)
+    }
+  }
+  for (const item of graph.docsNavigation) {
+    if (item.rel && ignoredRel.has(item.rel)) continue
+    if (!pageUrlSet.has(canonPath('/' + item.url))) {
+      push('warning', item.url, 'nav', `docs entry points at a page that does not exist: ${item.url}`)
+    }
+  }
+  for (const item of Array.isArray(config.nav) ? config.nav : []) {
+    const url = typeof item === 'string' ? item : item && item.url
+    if (typeof url !== 'string' || isExternalTarget(url) || url.startsWith('#')) continue
+    if (!pageUrlSet.has(canonPath(url))) {
+      push('warning', typeof item === 'string' ? item : item.label || url, 'nav', `site.nav target does not exist: ${url}`)
+    }
+  }
+  for (const page of graph.orphans(liveSet)) {
+    push('info', page.rel, 'nav', 'orphan page — not linked from any page, nav or sidebar')
+  }
+
+  /* ---------------- components ---------------- */
+  for (const e of entries) {
+    for (const { name, attrs, line } of shortcodesIn(e.body)) {
+      const component = components[name]
+      if (!component) {
+        push('error', e.rel, 'components', `unknown component :::${name} (line ${line})`)
+        continue
+      }
+      for (const issue of validateProps(component, attrs)) {
+        push(issue.level, e.rel, 'components', `:::${name} — ${issue.message}`)
+      }
+    }
+  }
+  for (const section of config.sections || []) {
+    const name = section && (section.component || section.type)
+    if (!name) continue
+    const component = components[name]
+    if (!component) {
+      push('error', 'jprot.config.js', 'components', `section "${name}" has no component with that name`)
+      continue
+    }
+    const { component: _c, type: _t, title: _title, ...rest } = section
+    for (const issue of validateProps(component, rest, { extra: ['title'] })) {
+      push(issue.level, 'jprot.config.js', 'components', `section "${name}" — ${issue.message}`)
+    }
+  }
+
+  /* ---------------- assets ---------------- */
+  for (const asset of publicAssets) {
+    if (!ASSET_RE.test(asset.rel)) continue
+    if (referenced.has('/' + asset.rel)) continue
+    push('info', asset.rel, 'assets', 'unused asset in public/ — nothing links to it')
+  }
+
+  issues.sort((a, b) => (SEVERITY_ORDER[a.level] - SEVERITY_ORDER[b.level]) || a.file.localeCompare(b.file) || a.type.localeCompare(b.type))
+  const counts = issues.reduce((acc, i) => { acc[i.level] = (acc[i.level] || 0) + 1; return acc }, {})
+  return { code: counts.error ? 1 : 0, issues, counts, graph, fileCount: entries.length }
+
+  // A referenced local file must exist; oversized images are reported too.
+  async function checkAsset(entry, src) {
+    const clean = src.split('#')[0].split('?')[0]
+    if (!clean || /^(?:https?:|data:)/i.test(clean)) return
+    const abs = clean.startsWith('/')
+      ? join(publicDir, clean.replace(/^\//, ''))
+      : join(dirname(entry.src), decodeHref(clean))
+    if (!(await isFile(abs))) {
+      // A root-relative target may legitimately be another page, not an asset.
+      if (clean.startsWith('/') && pageUrlSet.has(canonPath(clean))) return
+      push('error', entry.rel, 'assets', `missing asset → ${src}`)
+      return
+    }
+    const st = await stat(abs)
+    if (ASSET_RE.test(abs) && st.size > SIZE_LIMIT) {
+      push('warning', entry.rel, 'assets', `large image ${basename(abs)} (${Math.round(st.size / 1024)} KB > ${SIZE_LIMIT / 1024} KB)`)
+    }
+  }
+}
+
+/** CLI entry point: prints the report and returns the process exit code. */
+export async function runLint({ root } = {}) {
+  const { code, issues, counts, fileCount } = await analyzeSite({ root })
   if (!issues.length) {
-    console.log(`\u2714 lint: ${files.length} file(s) OK`)
+    console.log(`✔ lint: ${fileCount} file(s) OK`)
     return 0
   }
-  console.log(`\u2716 lint: ${issues.length} issue(s) in ${files.length} file(s)`)
-  for (const i of issues) console.log(`  ${i.file.padEnd(28)} ${i.type.padEnd(11)} ${i.msg}`)
-  return 1
+  const summary = Object.entries(counts).map(([k, v]) => `${v} ${k}`).join(', ')
+  console.log(`✖ lint: ${issues.length} issue(s) in ${fileCount} file(s) — ${summary}`)
+  let lastType = null
+  for (const issue of issues) {
+    if (issue.type !== lastType) {
+      console.log(`  ── ${issue.type}`)
+      lastType = issue.type
+    }
+    const mark = issue.level === 'error' ? '✗' : issue.level === 'warning' ? '⚠' : 'ℹ'
+    console.log(`  ${mark} ${issue.file.padEnd(28)} ${issue.msg}`)
+  }
+  return code
 }

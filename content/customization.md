@@ -142,6 +142,7 @@ config option — most built-in surfaces are:
 | A component inside a Markdown page | A `:::Component` shortcode (see section 6) |
 | A whole new component fast | `jprot g component <Name> --palette …` |
 | Extra `<head>` tags | `head` config |
+| Analytics, a custom endpoint, cross-page behaviour | A [plugin](#13-plugins) |
 
 A theme can also ship a `theme/main.js` that declares `defaultHome`,
 `defaultPage` and `name` — those set the default layouts used when the config
@@ -399,5 +400,147 @@ education:
 ```
 
 Body Markdown appears below the header; frontmatter fields map to blocks.
+
+## 13) Plugins
+
+A plugin is **one file** that exports a `setup(jprot)` function. It is the escape
+hatch for anything the config and components don't cover — analytics, a custom
+endpoint, a new Markdown rule, wrapping a built-in component.
+
+```js
+// plugins/analytics.js
+export default {
+  name: 'analytics',
+  setup({ on }) {
+    on('html:head', (html) =>
+      html.replace('</head>',
+        `  <script defer src="/_analytics.js" data-site="me"></script>\n</head>`))
+  },
+}
+```
+
+```js
+// jprot.config.js
+export default { plugins: ['./plugins/analytics.js'] }
+```
+
+Save, refresh — the plugin runs on the next state build. `jprot check` verifies
+it loads; see the [CLI reference](cli-reference.md#validating-configuration-check).
+
+### What a plugin can do
+
+`setup(jprot)` receives one object. Everything a plugin can reach is a method on
+it, which is what lets JPROT promise the surface across major versions.
+
+| Method | What it does |
+|---|---|
+| `addComponent(name, fn)` | Register a component, used by `sections`, layouts, **and** `:::Name` shortcodes. Applied after the theme's own, so re-using a built-in name intentionally overrides it. |
+| `addRoute(path, handler)` | Serve a response at an exact path, ahead of the content router. A plugin can never shadow a content page by accident. |
+| `extendMarkdown({ defaults, extensions })` | Patch Markdown feature flags and add extra renderers. |
+| `on(hook, handler)` | Subscribe to a build or render event. |
+| `config` | The loaded `jprot.config.js`, for reading the plugin's own options. |
+
+### Hooks
+
+```js
+setup({ on }) {
+  on('html:page', (html, page) => html)      // transform a finished page
+  on('html:head', (html, page) => html)      // inject into <head>
+  on('html:body-end', (html, page) => html)  // inject before </body>
+  on('endpoint:json', (data, path) => data)  // add keys to search.json / manifest.json
+  on('components:load', (components) => {}) // add or wrap components
+  on('state:build', (state) => {})          // inspect the render state
+  on('build', () => {})                     // any state build, before rendering
+  on('export', (dest) => {})                // a static export finished writing
+}
+```
+
+`html:*` and `endpoint:*` handlers **return** the new value. The rest are
+fire-and-forget. A misspelled hook name fails immediately:
+
+```
+[jprot] plugin "analytics": unknown hook "htlm:head" — available hooks: state:build, components:load, …
+```
+
+### A component plugin
+
+```js
+// plugins/reading-time.js
+export default {
+  name: 'reading-time',
+  setup({ addComponent }) {
+    addComponent('ReadingTime', ({ content }) => {
+      const words = String(content || '').replace(/<[^>]+>/g, ' ').split(/\s+/).length
+      return `<p class="muted">${Math.max(1, Math.round(words / 200))} min read</p>`
+    })
+  },
+}
+```
+
+```md
+<!-- any page -->
+:::ReadingTime
+:::
+```
+
+Because it goes through `addComponent`, it is a `:::Name` shortcode, a
+`sections[].component`, and a `layout:` — all three, with no extra wiring.
+
+### A custom endpoint
+
+```js
+// plugins/feed-alt.js
+export default {
+  name: 'feed-alt',
+  setup({ addRoute }) {
+    addRoute('/alt-feed.json', (req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({ generated: true }))
+    })
+  },
+}
+```
+
+The handler is your standard `http` response pair, so you keep full control of
+status, headers, and body.
+
+### A Markdown plugin
+
+```js
+// plugins/strike.js
+export default {
+  name: 'strike',
+  setup({ extendMarkdown }) {
+    extendMarkdown({ extensions: [(source) => source] })
+  },
+}
+```
+
+`defaults` patches feature flags, e.g. `{ defaults: { footnotes: false } }`.
+
+### Two guarantees
+
+**A broken plugin never takes the site down.** Import and `setup()` are both
+wrapped. A plugin that throws is reported and skipped, the other plugins still
+load, and the site still serves:
+
+```
+[jprot] plugin "feed-alt" threw during setup(): Cannot read properties of undefined
+```
+
+`jprot check` turns that into a non-zero exit code so CI catches it before a
+blank page does.
+
+**A plugin is all-or-nothing.** Each one writes into a private staging area that
+is committed only when `setup()` returns. A plugin that registers a component, a
+route, and two hooks and *then* throws leaves none of them behind — there is no
+such thing as a half-installed plugin.
+
+### When not to write a plugin
+
+A plugin can add components. If what you need is only a different **rendering** of
+one, drop a file into `theme/components/` instead — no config change, no
+`plugins` array, nothing to uninstall. Use a plugin when the behaviour spans
+components: multiple pages, the `<head>`, or a new endpoint.
 
 Next: [Publish your site](deploy.md).

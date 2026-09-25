@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>Snapshot site</title>
+  <link>https://example.com</link>
+  <description>A site used by the snapshot tests.</description>
+    <item>
+    <title>Hello</title>
+    <link>https://example.com/blog/hello</link>
+    <guid>https://example.com/blog/hello</guid>
+    <pubDate>Fri, 02 Jan 2026 00:00:00 GMT</pubDate>
+    <description>The first post.</description>
+  </item>
+</channel>
+</rss>

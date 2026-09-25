@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { esc, isInside, slugify, MIME } from '../core/utils.js'
-import { resolveRelativeUrl } from '../core/urls.js'
+import { esc, isInside, slugify, MIME } from '../../core/utils.js'
+import { resolveRelativeUrl } from '../../core/urls.js'
 
 test('esc escapes HTML metacharacters', () => {
   assert.equal(esc('a&b<c>"d"'), 'a&amp;b&lt;c&gt;&quot;d&quot;')

@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, writeFile, rm, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createServer } from 'node:http'
-import { addCatalogElement, resolveCatalogUrl, searchCatalog } from '../core/catalog.js'
+import { addCatalogElement, resolveCatalogUrl, searchCatalog } from '../../core/catalog.js'
 
 // Serve a minimal fake catalog locally so no test depends on the network.
 async function withCatalogServer(catalogDir, fn) {

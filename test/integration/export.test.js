@@ -4,9 +4,9 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { exportSite } from '../core/export.js'
+import { exportSite } from '../../core/export.js'
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 async function exists(p) { try { await stat(p); return true } catch { return false } }
 

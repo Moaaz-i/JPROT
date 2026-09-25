@@ -128,7 +128,7 @@ The same component can be authored as Markdown instead of JavaScript:
 jprot g component Hobbies --format md   # → theme/components/Hobbies.md
 ```
 
-See [Markdown components](customization.md#markdown-components--no-javascript).
+See [Markdown components](customization.md#markdown-components-no-javascript).
 
 ## Sidebar, search, resume, SEO
 

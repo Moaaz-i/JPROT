@@ -71,6 +71,16 @@ async function loadMdComponent(name, file, markdown) {
 
 // Loads every *.js / *.md component from the built-in theme dir plus user
 // overrides. User components with the same name override the built-ins.
+//
+// A component may be exported in two shapes:
+//
+//   export default function (props) { return html }          // simple
+//   export default { name, props, render(props) { … } }       // declared
+//
+// The declared shape is optional sugar for advanced components: it attaches a
+// prop schema so `jprot lint` can report a missing or misspelled prop, while
+// rendering stays exactly as simple. Both are normalized to a function here so
+// the renderer only ever deals with one thing.
 export async function loadComponents(userThemeDir, bust = false, markdown) {
   const md = markdown || createMarkdown()
   const candidates = [
@@ -90,15 +100,128 @@ export async function loadComponents(userThemeDir, bust = false, markdown) {
     const href = pathToFileURL(file).href + (bust ? '?t=' + Date.now() : '')
     try {
       const mod = await import(href)
-      const value = mod.default || mod
-      if (typeof value !== 'function') {
+      const component = normalizeComponent(name, mod.default || mod)
+      if (!component) {
         console.warn(`[jprot] component "${name}" in ${file} does not export a component function; skipping`)
         continue
       }
-      loaded[name] = value
+      loaded[name] = component
     } catch (e) {
       console.warn(`[jprot] could not load component "${name}" from ${file}: ${e.message}`)
     }
   }
   return loaded
+}
+
+// Props JPROT itself passes to every component. A declared schema must never
+// flag them, otherwise every component would report the same false positives.
+export const SHARED_PROPS = ['site', 'page', 'nav', 'docsNav', 'projects', 'posts', 'children', 'content', 'sectionsHtml', 'header', 'footer', 'sidebar']
+
+// `{ title: 'string', count: { type: 'number', required: true } }` → a flat
+// map of prop name → descriptor.
+export function propSchema(value) {
+  if (!value || typeof value !== 'object') return null
+  const out = {}
+  for (const [key, spec] of Object.entries(value)) {
+    out[key] = typeof spec === 'string' ? { type: spec, required: false } : { ...(spec || {}) }
+    if (!out[key].type) out[key].type = 'any'
+  }
+  return out
+}
+
+// Turns either supported export shape into a render function, keeping the
+// declared schema on the function for lint. Returns null when the value is not
+// a component at all.
+export function normalizeComponent(name, value) {
+  if (typeof value === 'function') {
+    value.componentName = name
+    return value
+  }
+  if (value && typeof value === 'object' && typeof value.render === 'function') {
+    const fn = async (props) => value.render(props)
+    fn.componentName = value.name || name
+    fn.props = propSchema(value.props)
+    return fn
+  }
+  return null
+}
+
+function typeOf(value) {
+  if (Array.isArray(value)) return 'array'
+  if (value === null) return 'null'
+  return typeof value
+}
+
+function typeMatches(spec, value) {
+  const actual = typeOf(value)
+  if (spec === 'any' || !spec) return true
+  if (spec === 'array') return actual === 'array'
+  if (spec === 'object') return actual === 'object' || actual === 'array'
+  if (spec === 'number') return actual === 'number' || actual === 'bigint'
+  if (spec === 'boolean') return actual === 'boolean'
+  if (spec === 'string') return actual === 'string' || actual === 'number' || actual === 'boolean'
+  return actual === spec
+}
+
+/**
+ * Check the props a component was called with against its declared schema.
+ *
+ * @param {Function|object} component  a loaded component or its raw export
+ * @param {object} values              the props it was invoked with
+ * @param {object} [options]
+ * @param {string[]} [options.extra]   additional prop names to ignore
+ * @returns {Array<{prop: string, level: 'error'|'warning', message: string}>}
+ */
+export function validateProps(component, values = {}, { extra = [] } = {}) {
+  const fn = typeof component === 'function' ? component : null
+  const schema = (fn && fn.props) || propSchema(component && component.props)
+  if (!schema) return []
+  const allowed = new Set([...SHARED_PROPS, ...extra])
+  const issues = []
+  for (const [prop, spec] of Object.entries(schema)) {
+    const value = values[prop]
+    if (value === undefined) {
+      if (spec.required) {
+        issues.push({ prop, level: 'error', message: `missing required prop \`${prop}\` (${spec.type})` })
+      }
+      continue
+    }
+    if (!typeMatches(spec.type, value)) {
+      issues.push({ prop, level: 'error', message: `prop \`${prop}\` should be ${spec.type}, got ${typeOf(value)}` })
+    }
+  }
+  for (const prop of Object.keys(values)) {
+    if (allowed.has(prop) || schema[prop]) continue
+    const hint = suggestKey(Object.keys(schema), prop)
+    issues.push({
+      prop,
+      level: 'warning',
+      message: `unknown prop \`${prop}\`${hint ? ` — did you mean \`${hint}\`?` : ''}`,
+    })
+  }
+  return issues
+}
+
+// Cheap "did you mean" for a misspelled prop name.
+function suggestKey(keys, input) {
+  const target = String(input).toLowerCase()
+  let best = null
+  let bestScore = Infinity
+  for (const key of keys) {
+    const score = distance(target, key.toLowerCase())
+    if (score < bestScore) { bestScore = score; best = key }
+  }
+  return bestScore <= Math.max(2, Math.floor(target.length / 3)) ? best : null
+}
+
+function distance(a, b) {
+  const rows = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)])
+  for (let j = 0; j <= b.length; j++) rows[0][j] = j
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      rows[i][j] = Math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + cost)
+    }
+  }
+  return rows[a.length][b.length]
 }

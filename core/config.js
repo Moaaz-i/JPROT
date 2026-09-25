@@ -45,19 +45,29 @@ async function importConfigFile(jsPath, bust) {
 
 // Loads the site configuration from (in order of precedence):
 // an explicitly provided object/handler, jprot.config.js, or jprot.config.json.
+//
+// `withSource` additionally returns the file the config came from and its raw
+// text, which is what lets `jprot check` report `jprot.config.js:18` for a bad
+// value instead of just naming the key.
 export async function loadSiteConfig(projectRoot, configOption, bust = false) {
+  const { config } = await loadConfigWithSource(projectRoot, configOption, bust)
+  return config
+}
+
+export async function loadConfigWithSource(projectRoot, configOption, bust = false) {
   if (typeof configOption === 'function') {
     const c = await configOption()
-    return unwrapConfig(c) || {}
+    return { config: unwrapConfig(c) || {}, file: '<inline config>', source: '' }
   }
-  if (configOption) return configOption
+  if (configOption) return { config: configOption, file: '<inline config>', source: '' }
 
   const fresh = (href) => (bust ? href + '?t=' + Date.now() : href)
   const jsPath = join(projectRoot, 'jprot.config.js')
   if (await hasFile(jsPath)) {
     try {
       const { mod } = await importConfigFile(jsPath, bust)
-      return unwrapConfig(mod) || {}
+      const source = await readFile(jsPath, 'utf8').catch(() => '')
+      return { config: unwrapConfig(mod) || {}, file: 'jprot.config.js', source }
     } catch (e) {
       console.warn('[jprot] Could not load jprot.config.js:', e.message)
     }
@@ -65,12 +75,13 @@ export async function loadSiteConfig(projectRoot, configOption, bust = false) {
   const jsonPath = join(projectRoot, 'jprot.config.json')
   if (await hasFile(jsonPath)) {
     try {
-      return JSON.parse(await readFile(jsonPath, 'utf8'))
+      const source = await readFile(jsonPath, 'utf8')
+      return { config: JSON.parse(source), file: 'jprot.config.json', source }
     } catch (e) {
       console.warn('[jprot] Could not load jprot.config.json:', e.message)
     }
   }
-  return {}
+  return { config: {}, file: 'jprot.config.js', source: '' }
 }
 
 // Reads theme/main.js so a theme can declare its default composition.

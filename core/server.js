@@ -8,14 +8,14 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { parseFrontmatter } from "../lib/frontmatter.js";
 import { createMarkdown } from "../lib/markdown.js";
-import { loadComponents } from "./components.js";
+import { loadComponents, normalizeComponent } from "./components.js";
 import { DEFAULT_THEME_DIR, loadSiteConfig, loadThemeMeta } from "./config.js";
+import { runPlugins } from "./plugins.js";
 import {
-  buildDocsNav,
-  buildNavigation,
-  indexAll,
-  listPosts,
-  listProjects,
+  contentGraph,
+  loadContentGraph,
+  postItems,
+  projectItems,
   readParsed,
   resolveContent,
   stripMarkdown,
@@ -110,8 +110,33 @@ export async function createJprot(options = {}) {
 
   async function buildState(bust = false) {
     const site = await loadSiteConfig(projectRoot, options.config, bust);
-    const markdown = createMarkdown(site.markdown || {});
-    let nav = await buildNavigation(contentDir);
+    // Plugins run first: they get to contribute components, routes, Markdown
+    // extensions and hook handlers before anything reads the registries, so a
+    // plugin component can be used by a section on this very build. A fresh
+    // registry per build keeps hot reload idempotent — a plugin that was removed
+    // from the config leaves nothing behind.
+    const { registry, plugins } = await runPlugins({
+      projectRoot,
+      config: site,
+      bust: true,
+    });
+    const markdown = createMarkdown({
+      ...registry.markdown.defaults,
+      ...(site.markdown || {}),
+    });
+    // Blog/project directories decide how a file is classified, so they must be
+    // known before the content graph is built.
+    const blogDir = join(contentDir, site.blogDir || "blog");
+    const projectsDir = join(contentDir, site.projectsDir || "projects");
+    // One graph build replaces four independent walks of the content tree
+    // (navbar, docs sidebar, posts, projects). Everything below reads from it.
+    const graph = await loadContentGraph({
+      contentDir,
+      blogDir,
+      projectsDir,
+      docs: site.docs === true,
+    });
+    let nav = graph.navigation;
     if (Array.isArray(site.nav) && site.nav.length) {
       nav = site.nav.map((n) =>
         typeof n === "string" ? { label: n, url: n } : n,
@@ -121,12 +146,13 @@ export async function createJprot(options = {}) {
     // frontmatter `order`) for the sidebar and prev/next — separate from the
     // compact navbar, which is user-controlled via site.nav. Blog posts and
     // project entries are excluded so they don't clutter the docs sidebar.
-    const blogDir = join(contentDir, site.blogDir || "blog");
-    const projectsDir = join(contentDir, site.projectsDir || "projects");
-    const docsNav = site.docs
-      ? await buildDocsNav(contentDir, [blogDir, projectsDir])
-      : [];
+    const docsNav = site.docs ? graph.docsNavigation : [];
     const components = await loadComponents(userThemeDir, bust, markdown);
+    // Plugin components are applied after the theme's, so `addComponent` with
+    // a built-in's name is a deliberate override.
+    for (const { name, component } of registry.components) {
+      components[name] = normalizeComponent(name, component);
+    }
     let themeDir = DEFAULT_THEME_DIR;
     try {
       await stat(join(userThemeDir, "main.js"));
@@ -187,10 +213,23 @@ export async function createJprot(options = {}) {
       components,
       blogDir,
       projectsDir,
+      graph,
       prod: options.prod === true,
       cssRegistry,
+      // Plugin output, kept on the state so request handlers and `jprot
+      // export` can reach the same hooks, routes and plugin list.
+      hooks: registry.hooks,
+      routes: registry.routes,
+      plugins,
     };
     setFallbackState(instanceState);
+    // A plugin may want to know a build happened (clear a cache, warm an
+    // index). Fire-and-forget: a throwing handler is already wrapped.
+    for (const handler of registry.hooks.build || []) {
+      try { await handler(instanceState); } catch (e) {
+        console.warn(`[jprot] plugin "build" hook failed: ${e.message}`);
+      }
+    }
   }
 
   await buildState(false);
@@ -204,6 +243,13 @@ export async function createJprot(options = {}) {
   setFramePolicy(options.allowEmbed ? ["'self'", "*"] : []);
 
   // watch the project for changes and hot-reload state (dev only)
+  //
+  // The watcher classifies each change, so an edit only invalidates the layer
+  // it can actually affect: a content edit re-walks the graph, a theme edit
+  // re-reads components + CSS with the module cache busted, and a public/
+  // asset edit needs no rebuild at all (those files are streamed from disk).
+  // `jprot export` writing to dist/ is ignored entirely, which is what keeps
+  // the dev server from reloading in a loop while you preview a build.
   const watcher =
     options.watch !== false
       ? startReloadWatcher({
@@ -215,7 +261,10 @@ export async function createJprot(options = {}) {
             join(projectRoot, "jprot.config.js"),
             join(projectRoot, "jprot.config.json"),
           ],
-          onReload: () => buildState(true),
+          onChange: (change) => {
+            if (change.rebuild === "none") return;
+            return buildState(change.bust);
+          },
         })
       : null;
 
@@ -284,6 +333,14 @@ export async function createJprot(options = {}) {
 
       if (pathname === "/" || pathname === "/index.html") {
         return await servePage(res, url, { home: true });
+      }
+
+      // Plugin routes are matched exactly and sit between the engine endpoints
+      // and the content router, so a plugin can serve a generated file
+      // (/feed.json, /api/search) without owning a content page for it.
+      const pluginRoute = (state().routes || []).find((r) => r.path === pathname);
+      if (pluginRoute) {
+        return await pluginRoute.handler(req, res, url);
       }
 
       const pubFile = join(publicDir, pathname.replace(/^\//, ""));
@@ -392,15 +449,10 @@ export async function createJprot(options = {}) {
 // Homepage is a first-class searchable page: its index.md body plus the whole
 // site config (hero, sections props, nav labels, tagline…) so config-driven
 // text is captured too. `raw` keeps every byte searchable.
-async function homepageSearchEntry(contentDir, site) {
+async function homepageSearchEntry(graph, site) {
   let md = "";
-  try {
-    md = parseFrontmatter(
-      await readFile(join(contentDir, "index.md"), "utf8"),
-    ).body;
-  } catch {
-    /* no homepage yet — the config text still counts */
-  }
+  const home = graph && graph.byUrl.get("/");
+  if (home) md = home.body;
   const config = JSON.stringify(site || {});
   return {
     title: site.title || "Home",
@@ -416,10 +468,11 @@ async function homepageSearchEntry(contentDir, site) {
 }
 
 async function serveSearchIndex(res) {
-  const { contentDir, site } = state();
-  const entries = await indexAll(contentDir);
-  entries.unshift(await homepageSearchEntry(contentDir, site));
-  sendWithSecurity(res, 200, "application/json", JSON.stringify(entries));
+  const { site } = state();
+  const graph = await contentGraph();
+  const entries = [...graph.searchIndex];
+  entries.unshift(await homepageSearchEntry(graph, site));
+  sendWithSecurity(res, 200, "application/json", JSON.stringify(await applyJsonHooks(entries, "/@jprot/search.json")));
 }
 
 // ISO date (yyyy-mm-dd) of the most recent commit touching `file`, from git.
@@ -462,7 +515,8 @@ async function pageLastmod(contentDir, entryUrl) {
 
 async function serveSitemap(res) {
   const { contentDir, site } = state();
-  const entries = await indexAll(contentDir);
+  const graph = await contentGraph();
+  const entries = graph.searchIndex;
   const base = (site.url || "").replace(/\/$/, "");
   const imageNS =
     ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"';
@@ -511,22 +565,17 @@ Disallow: /feed.xml${sitemap}
 // full file appends each page's Markdown body for depth.
 async function serveLlmsIndex(res, full) {
   const { contentDir, site } = state();
-  const entries = await indexAll(contentDir);
-  const home = await homepageSearchEntry(contentDir, site);
+  const graph = await contentGraph();
+  const entries = graph.searchIndex;
+  const home = await homepageSearchEntry(graph, site);
   const base = (site.url || "").replace(/\/$/, "");
   const name = site.title || "JPROT";
   const blurb = site.description || site.tagline || "";
   if (full) {
     const parts = [`# ${name}`, "", blurb, "", "## Pages", ""];
     // homepage first: index.md body + full config text so nothing is missing
-    let homeBody = home.body || "";
-    try {
-      homeBody = parseFrontmatter(
-        await readFile(join(contentDir, "index.md"), "utf8"),
-      ).body.trim();
-    } catch {
-      /* keep config text */
-    }
+    const homeEntry = graph.byUrl.get("/");
+    const homeBody = homeEntry ? homeEntry.body.trim() : home.body || "";
     parts.push(
       `### ${home.title}`,
       "",
@@ -536,19 +585,14 @@ async function serveLlmsIndex(res, full) {
       "",
     );
     for (const e of entries) {
-      const file = await contentFilePath(contentDir, e.url);
-      let body = "";
-      try {
-        body = parseFrontmatter(await readFile(file, "utf8")).body;
-      } catch {
-        body = "";
-      }
+      // The graph already holds every parsed body — no re-read from disk.
+      const entry = graph.lookup(e.url);
       parts.push(
         `### ${e.title}`,
         "",
         `> Source: ${base + e.url}`,
         "",
-        body.trim(),
+        (entry ? entry.body : "").trim(),
         "",
       );
     }
@@ -563,8 +607,9 @@ async function serveLlmsIndex(res, full) {
 }
 
 async function serveFeed(res, url) {
-  const { contentDir, site } = state();
-  const posts = await listPosts(contentDir);
+  const { site } = state();
+  const graph = await contentGraph();
+  const posts = graph.posts;
   const base = (site.url || `http://${url.host}`).replace(/\/$/, "");
   const items = posts
     .map((p) => {
@@ -574,10 +619,11 @@ async function serveFeed(res, url) {
         if (!Number.isNaN(d.getTime())) pubDate = `\n    <pubDate>${d.toUTCString()}</pubDate>`
       }
       const desc = esc(p.data.excerpt || p.excerpt || "");
+      // p.url is already the clean site path (`/blog/hello`).
       return `  <item>
     <title>${esc(p.data.title || p.slug)}</title>
-    <link>${esc(base + "/" + p.url)}</link>
-    <guid>${esc(base + "/" + p.url)}</guid>${pubDate}
+    <link>${esc(base + p.url)}</link>
+    <guid>${esc(base + p.url)}</guid>${pubDate}
     <description>${desc}</description>
   </item>`;
     })
@@ -608,7 +654,7 @@ async function serveManifest(res) {
       ? [{ src: site.icon, sizes: "any", type: "image/svg+xml" }]
       : [],
   };
-  sendWithSecurity(res, 200, "application/json", JSON.stringify(manifest));
+  sendWithSecurity(res, 200, "application/json", JSON.stringify(await applyJsonHooks(manifest, "/manifest.json")));
 }
 
 async function serveFavicon(res) {
@@ -723,8 +769,11 @@ function generateJsonLd({
     url: absUrl(site, "/"),
     description: desc,
   };
-  if (site.logo || site.hero?.avatar)
-    org.logo = absUrl(site, site.logo || site.hero.avatar);
+  // `logo` wins, then whichever avatar the hero actually renders — including the
+  // site-wide `avatar` fallback Home.js uses, so setting only `avatar` does not
+  // leave the Organization schema with an empty logo.
+  const orgLogo = site.logo || site.hero?.avatar || site.avatar;
+  if (orgLogo) org.logo = absUrl(site, orgLogo);
   if (site.email) org.email = site.email;
   if (site.sameAs || Array.isArray(site.social))
     org.sameAs = (site.sameAs || site.social)
@@ -850,27 +899,39 @@ async function isFile(path) {
 }
 
 async function servePage(res, url, { home, file, status } = {}) {
-  const { contentDir, site, markdown, nav, projectsDir } = state();
+  const { contentDir, site, markdown, nav } = state();
+  // Posts and projects come from the same content graph the nav and search use,
+  // so one request never walks the content tree more than once.
+  const graph = await contentGraph();
+  const projects = projectItems(graph);
+  const posts = postItems(graph);
   let page;
-  let projects;
   if (home) {
-    const idx = join(contentDir, "index.md");
-    try {
-      const parsed = await readParsed(idx);
-      reportFrontmatterDiagnostics(idx, parsed.diagnostics);
-      const { data, body } = parsed;
-      page = { data, body, path: "index.md", slug: "index", url: "/" };
-    } catch {
-      page = { data: {}, body: "", path: "index.md", slug: "index", url: "/" };
+    const entry = graph.byUrl.get("/");
+    if (entry) {
+      page = { data: entry.data, body: entry.body, path: "index.md", slug: "index", url: "/" };
+    } else {
+      const idx = join(contentDir, "index.md");
+      try {
+        const parsed = await readParsed(idx);
+        reportFrontmatterDiagnostics(idx, parsed.diagnostics);
+        const { data, body } = parsed;
+        page = { data, body, path: "index.md", slug: "index", url: "/" };
+      } catch {
+        page = { data: {}, body: "", path: "index.md", slug: "index", url: "/" };
+      }
     }
-    projects = await listProjects(contentDir, projectsDir);
   } else {
-    const parsed = await readParsed(file);
-    reportFrontmatterDiagnostics(file, parsed.diagnostics);
-    const { data, body } = parsed;
+    const entry = graph.entryFor(file);
     const slug = basename(file, ".md");
-    page = { data, body, path: file, slug, src: file, url: url.pathname };
-    projects = await listProjects(contentDir, projectsDir);
+    if (entry) {
+      page = { data: entry.data, body: entry.body, path: file, slug, src: file, url: url.pathname };
+    } else {
+      const parsed = await readParsed(file);
+      reportFrontmatterDiagnostics(file, parsed.diagnostics);
+      const { data, body } = parsed;
+      page = { data, body, path: file, slug, src: file, url: url.pathname };
+    }
   }
 
   function reportFrontmatterDiagnostics(file, diagnostics = []) {
@@ -884,7 +945,6 @@ async function servePage(res, url, { home, file, status } = {}) {
     return notFound(res, url);
   }
 
-  const posts = await listPosts(contentDir);
   const headings = [];
   const shortcodeProps = { site, page, nav, projects, posts };
   const content = await renderDocumentBody(
@@ -928,10 +988,72 @@ async function servePage(res, url, { home, file, status } = {}) {
     res,
     status || 200,
     "text/html; charset=utf-8",
-    html,
+    await applyHtmlHooks(html, page),
     nonce,
     { extraConnectSrc },
   );
+}
+
+/**
+ * Run the plugin `html:*` hooks over a rendered page.
+ *
+ * `html:head` and `html:body-end` are injection points, so a handler that
+ * returns nothing still gets the default split applied — the hook is a
+ * suggestion, not an obligation. `html:page` can replace the whole document.
+ * A throwing handler is skipped with a warning: one bad plugin must not take
+ * the page down.
+ */
+export async function applyHtmlHooks(html, page) {
+  const hooks = state().hooks || {};
+  let out = html;
+  for (const handler of hooks["html:head"] || []) {
+    try {
+      const injected = await handler(out, page);
+      if (typeof injected === "string" && injected !== out && injected.includes("</head>")) {
+        out = injected;
+      }
+    } catch (e) {
+      console.warn(`[jprot] plugin "html:head" hook failed: ${e.message}`);
+    }
+  }
+  for (const handler of hooks["html:body-end"] || []) {
+    try {
+      const injected = await handler(out, page);
+      if (typeof injected === "string" && injected !== out && injected.includes("</body>")) {
+        out = injected;
+      }
+    } catch (e) {
+      console.warn(`[jprot] plugin "html:body-end" hook failed: ${e.message}`);
+    }
+  }
+  for (const handler of hooks["html:page"] || []) {
+    try {
+      const replaced = await handler(out, page);
+      if (typeof replaced === "string") out = replaced;
+    } catch (e) {
+      console.warn(`[jprot] plugin "html:page" hook failed: ${e.message}`);
+    }
+  }
+  return out;
+}
+
+/**
+ * Run the plugin `endpoint:json` hooks over a JSON payload. Handlers may mutate
+ * the object in place and return nothing; returning an object replaces it.
+ */
+export async function applyJsonHooks(data, path) {
+  const handlers = state().hooks?.["endpoint:json"];
+  if (!handlers || !handlers.length) return data;
+  let out = data;
+  for (const handler of handlers) {
+    try {
+      const replaced = await handler(out, path);
+      if (replaced !== undefined) out = replaced;
+    } catch (e) {
+      console.warn(`[jprot] plugin "endpoint:json" hook failed: ${e.message}`);
+    }
+  }
+  return out;
 }
 
 export async function renderPage({

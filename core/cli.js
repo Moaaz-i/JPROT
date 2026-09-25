@@ -15,6 +15,7 @@ function printHelp() {
     jprot init           Scaffold a new site (--docs | --resume | --portfolio)
     jprot new <kind>     Add content: post | page | project | resume [title] [--draft]
     jprot g component    Scaffold a theme component (--palette section|cards|cta|stats, --format js|md)
+    jprot check          Validate jprot.config.js (and plugins) against the schema
     jprot lint           Check content for broken links / missing metadata
     jprot search [q]     Search the component catalog (or list everything)
     jprot add <Name>     Install a component from the catalog into theme/components/
@@ -24,6 +25,7 @@ function printHelp() {
 
   Options:
     --port <n>           Port to listen on (default 4114)
+    --root <dir>         Project to act on (default: current directory)
     --out <dir>          Export output directory (default dist/)
     --base-path <path>   Prefix exported URLs for a project site (e.g. /JPROT)
     --draft              'jprot new': mark the page as a draft
@@ -32,6 +34,7 @@ function printHelp() {
     --prod               Production mode: immutable cache headers, drafts hidden
     --no-watch           Disable the file watcher
     --allow-embed        Allow embedding the site in an iframe (editor previews)
+    --strict             'jprot check': treat warnings as errors
     -h, --help           Show this help
     -v, --version        Show the version
 
@@ -46,6 +49,21 @@ async function printVersion() {
   const here = dirname(fileURLToPath(import.meta.url));
   const pkg = JSON.parse(await readFile(join(here, "../package.json"), "utf8"));
   console.log(pkg.version);
+}
+
+/**
+ * The project a command should act on: `--root <path>` when given, else the cwd.
+ *
+ * Without this, `jprot check --root ./site` silently checks the *current*
+ * directory instead — a validator that reports "✔ valid" about the wrong
+ * project is worse than one that fails.
+ */
+function projectRoot() {
+  const i = process.argv.indexOf("--root");
+  if (i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith("-")) {
+    return resolve(process.argv[i + 1]);
+  }
+  return resolve(process.cwd());
 }
 
 export async function bootstrap() {
@@ -63,8 +81,7 @@ export async function bootstrap() {
   if (args[0] === "search" || args[0] === "add") {
     const { searchCatalog, addCatalogElement, resolveCatalogUrl, catalogHelp } = await import("./catalog.js");
     const fromIdx = args.indexOf("--from");
-    const projectRoot = resolve(process.cwd());
-    const catalogUrl = await resolveCatalogUrl({ projectRoot, from: fromIdx >= 0 ? args[fromIdx + 1] : undefined });
+    const catalogUrl = await resolveCatalogUrl({ projectRoot: projectRoot(), from: fromIdx >= 0 ? args[fromIdx + 1] : undefined });
     if (!catalogUrl) {
       console.error("  \u2716 no catalog URL configured.");
       for (const l of catalogHelp()) console.error(l);
@@ -112,14 +129,21 @@ export async function bootstrap() {
     const outDir = outIdx >= 0 ? args[outIdx + 1] : undefined;
     const baseIdx = args.indexOf("--base-path");
     const basePath = baseIdx >= 0 ? args[baseIdx + 1] : undefined;
-    const dest = await exportSite({ outDir, basePath });
+    const dest = await exportSite({ root: projectRoot(), outDir, basePath });
     console.log(`  Exported site to: ${dest}`);
+    return;
+  }
+
+  if (args[0] === "check") {
+    const { runCheck } = await import("./check.js");
+    const code = await runCheck({ root: projectRoot(), strict: args.includes("--strict") });
+    process.exitCode = code;
     return;
   }
 
   if (args.includes("lint")) {
     const { runLint } = await import("./lint.js");
-    const code = await runLint({});
+    const code = await runLint({ root: projectRoot() });
     process.exitCode = code;
     return;
   }
@@ -127,9 +151,10 @@ export async function bootstrap() {
   if (args[0] === "init") {
     const { scaffoldSite } = await import("./scaffold.js");
     const type = args.find((a) => ["--portfolio", "--docs", "--resume"].includes(a))?.replace("--", "") || "portfolio";
-    await scaffoldSite({ type });
+    const root = projectRoot();
+    await scaffoldSite({ type, root });
     console.log("");
-    console.log("  \u2714 Site scaffolded into the current folder.");
+    console.log(`  \u2714 Site scaffolded into ${root === resolve(process.cwd()) ? "the current folder" : root}.`);
     console.log("     Run `jprot` to preview, `jprot new post \"My First Post\"` to add content.");
     console.log("     (Fresh folder? `npm create jprot` scaffolds and installs in one step.)");
     console.log("");
@@ -144,7 +169,7 @@ export async function bootstrap() {
     const tIdx = args.indexOf("--template");
     const template = tIdx >= 0 ? args[tIdx + 1] : undefined;
     try {
-      const file = await scaffoldNew({ kind, title, draft, template });
+      const file = await scaffoldNew({ root: projectRoot(), kind, title, draft, template });
       console.log(`  \u2714 Created ${file}`);
     } catch (err) {
       console.error(`  \u2716 ${err.message}`);
@@ -184,7 +209,7 @@ export async function bootstrap() {
         return;
       }
       try {
-        const file = await scaffoldComponent({ palette, name, format });
+        const file = await scaffoldComponent({ root: projectRoot(), palette, name, format });
         console.log(`  \u2714 Created component ${file}`);
         console.log("     Use it as a section: { component: '" + name + "', title: '…' } or inline: :::" + name + " title=\"…\"");
       } catch (err) {

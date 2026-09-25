@@ -1,0 +1,7 @@
+# JPROT
+User-agent: *
+Allow: /
+Disallow: /@jprot/
+Disallow: /@editor/
+Disallow: /feed.xml
+Sitemap: https://example.com/sitemap.xml

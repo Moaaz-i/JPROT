@@ -4,10 +4,10 @@ import { mkdtemp, mkdir, writeFile, readFile, stat, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createJprot } from '../core/server.js'
-import { scaffoldSite, scaffoldNew, scaffoldComponent, componentPaletteList } from '../core/scaffold.js'
+import { createJprot } from '../../core/server.js'
+import { scaffoldSite, scaffoldNew, scaffoldComponent, componentPaletteList } from '../../core/scaffold.js'
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 async function makeProject(extra = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'jprot-t-'))

@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
-const bin = join(dirname(fileURLToPath(import.meta.url)), '..', 'create-jprot', 'index.js')
+const bin = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'create-jprot', 'index.js')
 
 async function pathExists(p) {
   try { await stat(p); return true } catch { return false }
