@@ -474,7 +474,9 @@ async function serveSitemap(res) {
       entry && entry.image
         ? `<image:image><image:loc>${esc(/^(https?:|data:)/.test(entry.image) ? entry.image : base + entry.image)}</image:loc></image:image>`
         : "";
-    return `  <url><loc>${loc}</loc>${lm ? `<lastmod>${lm}</lastmod>` : ""}<changefreq>${u === "/" ? "daily" : "weekly"}</changefreq><priority>${priority}</priority></url>${img ? "\n  " + img : ""}`;
+    // <image:image> must be a child of <url>, not of <urlset> — otherwise
+    // Google's validator reports "tag not recognized / parent tag: urlset".
+    return `  <url><loc>${loc}</loc>${lm ? `<lastmod>${lm}</lastmod>` : ""}<changefreq>${u === "/" ? "daily" : "weekly"}</changefreq><priority>${priority}</priority>${img}</url>`;
   });
   const body = await Promise.all(urls);
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

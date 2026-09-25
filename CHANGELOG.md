@@ -6,6 +6,15 @@ aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-25
+
+### Fixed
+
+- Sitemap: `<image:image>` entries are now nested **inside** their `<url>`
+  element instead of being emitted as direct children of `<urlset>`. Pages with
+  an `image` frontmatter value no longer produce a sitemap that Google's
+  validator rejects with "This tag was not recognized / Parent tag: urlset".
+
 ## [0.5.0] - 2026-09-24
 
 ### Added
