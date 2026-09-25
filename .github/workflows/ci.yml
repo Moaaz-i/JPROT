@@ -88,12 +88,17 @@ jobs:
               echo "==> $name@$version is already published; skipping."
               return 0
             fi
-            echo "==> publishing $name@$version"
+            # "./" is load-bearing. `npm publish create-jprot` resolves the bare
+            # name against the registry, so it would repack the *published*
+            # 0.5.0 tarball and try to ship that as a new version. Verified:
+            # `npm pack create-jprot` reports version 0.5.0, while
+            # `npm pack ./create-jprot` reports this repo's.
+            echo "==> publishing $name@$version from $dir"
             npm publish "$dir" --provenance --access public --ignore-scripts
           }
 
           publish_if_unreleased .
-          publish_if_unreleased create-jprot
+          publish_if_unreleased ./create-jprot
 
   pages:
     name: Deploy documentation to GitHub Pages

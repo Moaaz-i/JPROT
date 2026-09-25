@@ -67,11 +67,16 @@ test('create-jprot pins the jprot range the repo actually ships', async () => {
 
 test('the publish workflow releases both packages in one run', async () => {
   const ci = await readFile(join(root, '.github', 'workflows', 'ci.yml'), 'utf8')
-  assert.match(ci, /publish_if_unreleased \.$/m, 'jprot must be published')
-  assert.match(ci, /publish_if_unreleased create-jprot$/m, 'create-jprot must be published too')
+  const code = ci.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')
+  assert.match(code, /publish_if_unreleased \.$/m, 'jprot must be published')
+  assert.match(code, /publish_if_unreleased \.\/create-jprot$/m, 'create-jprot must be published too')
+  // The bare name resolves against the registry, not this checkout, so
+  // `npm publish create-jprot` repacks the published 0.5.0 tarball instead of
+  // the code in this repo. It failed CI with an opaque provenance E422; left
+  // alone it would have shipped stale content under a new version number.
+  assert.doesNotMatch(code, /publish_if_unreleased create-jprot$/m, 'use ./create-jprot, not a bare name')
   // The old guard could never fire: checkout is a depth-1 clone, so HEAD has no
   // parent and `diff-tree` lists the whole tree, matching package.json always.
-  const code = ci.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')
   assert.doesNotMatch(code, /diff-tree/, 'the dead package.json-changed guard must stay gone')
 })
 
