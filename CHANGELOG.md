@@ -6,6 +6,8 @@ aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-25
+
 ### Added
 
 - **VSCode extension** (`jprot-vscode/`): live side-by-side preview of your site
@@ -14,9 +16,10 @@ aims to follow [Semantic Versioning](https://semver.org/).
   posts, projects, resumes and `jprot.config.js`. The extension drives the
   project's own jprot server — no bundled runtime, no build step.
 - **`--allow-embed`**: an explicit dev-server opt-in that relaxes the framing
-  headers (`X-Frame-Options`, `frame-ancestors`) so the site can live inside an
-  iframe — what editor live previews need. Framing stays fully blocked by
-  default; every other security header is unchanged.
+  headers (`X-Frame-Options`, `frame-ancestors`, `Cross-Origin-Resource-Policy`)
+  so the site can live inside an iframe — what editor live previews need.
+  Framing stays fully blocked by default; every other security header is
+  unchanged. Exposed as `JprotOptions.allowEmbed` in the API.
 
 ## [0.5.1] - 2026-09-25
 
