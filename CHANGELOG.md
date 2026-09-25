@@ -13,6 +13,10 @@ aims to follow [Semantic Versioning](https://semver.org/).
   `:::Component` shortcodes, `[value]` placeholders) and snippets for pages,
   posts, projects, resumes and `jprot.config.js`. The extension drives the
   project's own jprot server — no bundled runtime, no build step.
+- **`--allow-embed`**: an explicit dev-server opt-in that relaxes the framing
+  headers (`X-Frame-Options`, `frame-ancestors`) so the site can live inside an
+  iframe — what editor live previews need. Framing stays fully blocked by
+  default; every other security header is unchanged.
 
 ## [0.5.1] - 2026-09-25
 

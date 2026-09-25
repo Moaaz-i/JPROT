@@ -9,7 +9,9 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Live side-by-side preview** — a JPROT activity-bar panel that embeds the
   project's own dev server, follows the active Markdown editor and re-renders
-  on save; status-bar entry with the running URL.
+  on save; status-bar entry with the running URL. The preview server runs with
+  jprot's explicit `--allow-embed` flag so the site may frame itself while you
+  preview.
 - **JPROT Markdown syntax highlighting** — injected TextMate grammar for
   frontmatter, `:::Component` shortcodes and `[value]` placeholders.
 - **Snippets** — `jprot-page`, `jprot-post`, `jprot-project`, `jprot-resume`,

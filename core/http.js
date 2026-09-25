@@ -9,20 +9,33 @@ export const SECURITY_HEADERS = {
   'Cross-Origin-Resource-Policy': 'same-origin',
 }
 
+// Framing policy: empty by default, so embedding is fully blocked
+// (X-Frame-Options: DENY + frame-ancestors 'none'). Switch to a list of
+// CSP source expressions (e.g. ['*']) via setFramePolicy() when the site
+// should be embeddable — currently only the dev-server `--allow-embed`
+// opt-in used by editor live previews turns this on.
+let frameAncestors = []
+
+export function setFramePolicy(sources = []) {
+  frameAncestors = sources.filter(Boolean)
+}
+
 export function newNonce() {
   return randomBytes(16).toString('base64')
 }
 
 export const CSP = (nonce, extraOrigins = []) => {
   const allowed = ["'self'", ...extraOrigins.filter(Boolean)].join(' ')
+  const framers = frameAncestors.length ? frameAncestors.join(' ') : "'none'"
   return `default-src 'self'; script-src 'self' 'nonce-${nonce}'; ` +
     `style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; ` +
-    `font-src 'self' data:; connect-src ${allowed}; frame-ancestors 'none'; ` +
+    `font-src 'self' data:; connect-src ${allowed}; frame-ancestors ${framers}; ` +
     `base-uri 'self'; form-action ${allowed}`
 }
 
 export function sendWithSecurity(res, status, contentType, body, nonce = '', opts = {}) {
   const headers = { ...SECURITY_HEADERS, 'Cache-Control': opts.cache || 'no-cache' }
+  if (frameAncestors.length) delete headers['X-Frame-Options']
   if (opts.etag) headers.ETag = opts.etag
   if (opts.extraConnectSrc && opts.extraConnectSrc.length) headers['Content-Security-Policy'] = CSP(nonce, opts.extraConnectSrc)
   else if (nonce) headers['Content-Security-Policy'] = CSP(nonce)

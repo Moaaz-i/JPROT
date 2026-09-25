@@ -234,6 +234,8 @@ export interface JprotOptions {
   watch?: boolean
   /** Production mode: immutable asset caching, drafts hidden. */
   prod?: boolean
+  /** Allow embedding the site in an iframe (relaxes X-Frame-Options / frame-ancestors). Off by default; used by editor live previews. */
+  allowEmbed?: boolean
   /** Inline config object or loader function. */
   config?: Record<string, unknown> | (() => Promise<Record<string, unknown>>)
   /** Content directory (defaults to <root>/content). */

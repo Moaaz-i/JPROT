@@ -31,6 +31,7 @@ function printHelp() {
     --from <url>         'jprot add/search': catalog base URL override
     --prod               Production mode: immutable cache headers, drafts hidden
     --no-watch           Disable the file watcher
+    --allow-embed        Allow embedding the site in an iframe (editor previews)
     -h, --help           Show this help
     -v, --version        Show the version
 
@@ -216,7 +217,14 @@ export async function bootstrap() {
   const noWatch = args.includes("--no-watch") || process.env.NO_WATCH === "1" || prod;
 
   const port = Number.isFinite(portArg) && portArg > 0 ? portArg : 4114;
-  const app = await createJprot({ port, host, watch: !noWatch, prod });
+  const allowEmbed = args.includes("--allow-embed");
+  const app = await createJprot({
+    port,
+    host,
+    watch: !noWatch,
+    prod,
+    allowEmbed,
+  });
   const actualPort = await app.listen(port);
   const url = originFor(host, actualPort);
 
@@ -228,6 +236,7 @@ export async function bootstrap() {
   console.log(`   Running locally at: ${url}`);
   console.log(`   Production mode: ${prod ? "yes" : "no"}`);
   console.log(`   Watching for file changes: ${noWatch ? "disabled" : "yes"}`);
+  console.log(`   Embedding in iframes: ${allowEmbed ? "allowed" : "blocked"}`);
   console.log(`   Press Ctrl+C to stop`);
   console.log("");
 }

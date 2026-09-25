@@ -41,9 +41,14 @@ jprot add SplitHero
 jprot add SplitHero --from https://moaaz-i.github.io/jprot-catalog
 jprot search
 jprot search hero
+jprot --allow-embed
 ```
 
 `HOST`, `PORT`, and `NO_WATCH=1` are also supported environment variables.
+`--allow-embed` relaxes the `X-Frame-Options` / `frame-ancestors` security
+headers so the site can be embedded in an iframe — this is what the JPROT
+VSCode extension's live preview turns on. Every other security header stays
+in place, and framing remains blocked unless the flag is explicit.
 See [Publish your site](deploy.md) for a complete export workflow.
 
 ## Catalog elements — `search` and `add`

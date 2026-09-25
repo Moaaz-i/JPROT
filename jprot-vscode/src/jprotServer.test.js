@@ -48,6 +48,13 @@ test("startServer boots the real server, parses the URL and stops", async () => 
     assert.match(url, /^http:\/\/127\.0\.0\.1:\d+$/);
     assert.equal((await fetch(url + "/sitemap.xml")).status, 200);
     assert.equal((await fetch(url + "/")).status, 200);
+    // the preview server is started with --allow-embed: framing must be
+    // possible (no X-Frame-Options: DENY, frame-ancestors relaxed)
+    const home = await fetch(url + "/");
+    assert.equal(home.headers.get("x-frame-options"), null);
+    const csp = home.headers.get("content-security-policy") || "";
+    assert.match(csp, /frame-ancestors/);
+    assert.doesNotMatch(csp, /frame-ancestors 'none'/);
   } finally {
     if (handle) handle.stop();
   }

@@ -92,6 +92,7 @@ function startServer({ workspace, port, prod = false, onReady, onExit }) {
   }
   const args = [cli, "--port", String(port)];
   if (prod) args.push("--prod"); // CLI forces --no-watch in prod already
+  args.push("--allow-embed"); // the live preview embeds the site in an iframe
   const child = spawn(process.execPath, args, {
     cwd: workspace,
     stdio: ["ignore", "pipe", "pipe"],

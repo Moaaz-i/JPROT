@@ -84,6 +84,16 @@ The dev server starts automatically on workspace open by default
   (it falls back to `core/cli.js`).
 - Node.js ≥ 18 (whatever you use for jprot)
 
+## Security note
+
+JPROT locks down framing by default (`X-Frame-Options: DENY` +
+`frame-ancestors 'none'`), so the preview lets the site be embedded **only**
+while you preview: the panel boots your project's dev server with the explicit
+`--allow-embed` flag, which drops those two framing headers and keeps every
+other security header intact. Production/export output is never affected, and
+ordinary `jprot` runs remain fully locked down unless you pass the flag
+yourself.
+
 ## Extension settings
 
 | Setting | Default | Description |

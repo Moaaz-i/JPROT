@@ -28,6 +28,7 @@ import {
   methodNotAllowed,
   newNonce,
   sendWithSecurity,
+  setFramePolicy,
 } from "./http.js";
 import { renderDocumentBody, renderSections } from "./render.js";
 import { suggestConfigKey } from "./scaffold.js";
@@ -196,6 +197,11 @@ export async function createJprot(options = {}) {
 
   const port = Number(options.port ?? process.env.PORT ?? 4114);
   const host = options.host ?? process.env.HOST ?? "127.0.0.1";
+
+  // Dev-server opt-in: allow the site to be embedded in an iframe (the VSCode
+  // extension's live preview). Everything else stays fully locked down — this
+  // only relaxes framing, and only when explicitly enabled.
+  setFramePolicy(options.allowEmbed ? ["'self'", "*"] : []);
 
   // watch the project for changes and hot-reload state (dev only)
   const watcher =
