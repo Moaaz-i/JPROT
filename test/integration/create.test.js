@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
-const bin = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'create-jprot', 'index.js')
+const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+const bin = join(root, 'create-jprot', 'index.js')
 
 async function pathExists(p) {
   try { await stat(p); return true } catch { return false }
@@ -42,6 +43,36 @@ test('create-jprot --docs scaffolds the documentation shell', async () => {
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
+})
+
+test('create-jprot pins the jprot range the repo actually ships', async () => {
+  // Regression: `jprotSpec()` writes create-jprot's own `dependencies.jprot`
+  // into every new site verbatim, and a caret range cannot cross a 0.x minor.
+  // While the workflow published only the root package, create-jprot stayed at
+  // 0.5.0 on npm and `npm create jprot` scaffolded and pinned jprot@0.5.1 —
+  // no `jprot check`, no plugin API, with nothing in the output to hint at it.
+  // CI now publishes both packages in the same run; this test keeps their
+  // version fields from drifting apart again.
+  const jprot = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+  const create = JSON.parse(await readFile(join(root, 'create-jprot', 'package.json'), 'utf8'))
+  assert.equal(
+    create.version, jprot.version,
+    'create-jprot must be released in lockstep with jprot',
+  )
+  assert.equal(
+    create.dependencies.jprot, `^${jprot.version}`,
+    'a new site must be pinned to the version this repo ships',
+  )
+})
+
+test('the publish workflow releases both packages in one run', async () => {
+  const ci = await readFile(join(root, '.github', 'workflows', 'ci.yml'), 'utf8')
+  assert.match(ci, /publish_if_unreleased \.$/m, 'jprot must be published')
+  assert.match(ci, /publish_if_unreleased create-jprot$/m, 'create-jprot must be published too')
+  // The old guard could never fire: checkout is a depth-1 clone, so HEAD has no
+  // parent and `diff-tree` lists the whole tree, matching package.json always.
+  const code = ci.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')
+  assert.doesNotMatch(code, /diff-tree/, 'the dead package.json-changed guard must stay gone')
 })
 
 test('create-jprot refuses a folder that already has a site', async () => {

@@ -50,7 +50,7 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-      - name: Publish only a new package version
+      - name: Publish jprot and create-jprot
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -64,19 +64,36 @@ jobs:
           npm config set //registry.npmjs.org/:_authToken "$NODE_AUTH_TOKEN"
           npm config set fund false
           npm config set audit false
-          changed_files="$(git diff-tree --root --no-commit-id --name-only -r HEAD)"
-          if ! printf '%s\n' "$changed_files" | grep -qx 'package.json'; then
-            echo "package.json did not change; skipping publish."
-            exit 0
-          fi
-          package_version="$(node -p "JSON.parse(require('fs').readFileSync('./package.json','utf8')).version")"
-          package_name="$(node -p "JSON.parse(require('fs').readFileSync('./package.json','utf8')).name")"
-          published_version="$(npm view "$package_name@$package_version" version 2>/dev/null || true)"
-          if [ -n "$published_version" ] && [ "$package_version" = "$published_version" ]; then
-            echo "Version $package_version is already published; skipping."
-            exit 0
-          fi
-          npm publish --provenance --access public --ignore-scripts
+
+          # `create-jprot` is the package `npm create jprot` runs, and it writes
+          # the jprot range into every new site straight from its own
+          # dependencies.jprot (create-jprot/index.js, jprotSpec()). Because a
+          # caret range cannot cross a 0.x minor, publishing jprot without
+          # create-jprot leaves `npm create jprot` scaffolding and pinning an
+          # old release — a new user gets a site with none of the current
+          # features and no way to notice. So the two always go out together.
+          #
+          # "Is this version already on npm?" is the whole gate. The previous
+          # `git diff-tree … | grep -qx package.json` guard was dead code:
+          # actions/checkout is a depth-1 clone, so HEAD has no parent and
+          # diff-tree lists the entire tree, matching package.json on every
+          # push. Asking the registry is both correct and self-healing — it
+          # also publishes a version that a failed run left behind.
+          publish_if_unreleased() {
+            dir="$1"
+            meta="$(node -p "const p=require('fs').readFileSync('$dir/package.json','utf8');const j=JSON.parse(p);j.name+' '+j.version")"
+            name="${meta% *}"
+            version="${meta##* }"
+            if [ -n "$(npm view "$name@$version" version 2>/dev/null || true)" ]; then
+              echo "==> $name@$version is already published; skipping."
+              return 0
+            fi
+            echo "==> publishing $name@$version"
+            npm publish "$dir" --provenance --access public --ignore-scripts
+          }
+
+          publish_if_unreleased .
+          publish_if_unreleased create-jprot
 
   pages:
     name: Deploy documentation to GitHub Pages
