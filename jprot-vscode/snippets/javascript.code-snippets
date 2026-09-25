@@ -1,0 +1,39 @@
+{
+  "JPROT: config file (jprot.config.js)": {
+    "prefix": "jprot-config",
+    "body": [
+      "export default {",
+      "  title: \"${1:Your Name}\",",
+      "  tagline: \"${2:What you do}\",",
+      "  description: \"${3:SEO description}\",",
+      "  url: \"${4:https://yoursite.com}\",",
+      "  email: \"${5:you@example.com}\",",
+      "  nav: [",
+      "    { label: \"About\", url: \"/about\" },",
+      "    { label: \"Blog\", url: \"/blog\" }",
+      "  ],",
+      "  sections: [",
+      "    { type: \"${6:Hero}\" }",
+      "  ]",
+      "};",
+      "$0"
+    ],
+    "description": "a complete JPROT site configuration scaffold"
+  },
+  "JPROT: add a section to config": {
+    "prefix": "jprot-section",
+    "body": [
+      "{ type: \"${1:ComponentName}\", title: \"${2:Section title}\"${3:, props: {}} },",
+      "$0"
+    ],
+    "description": "a homepage section — the component must exist in theme/components/"
+  },
+  "JPROT: nav entry": {
+    "prefix": "jprot-nav",
+    "body": [
+      "{ label: \"${1:Label}\", url: \"/${2:page}\" },",
+      "$0"
+    ],
+    "description": "a navbar entry"
+  }
+}

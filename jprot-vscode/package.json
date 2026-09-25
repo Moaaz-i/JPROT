@@ -1,0 +1,174 @@
+{
+  "name": "jprot-vscode",
+  "displayName": "JPROT — live preview & tooling",
+  "description": "Modern editor tooling for JPROT: live side-by-side preview, JPROT Markdown syntax highlighting, and snippets for posts, pages, projects, resumes and shortcodes. No build step, no dependencies — it drives your project's own jprot.zero-config server.",
+  "version": "0.1.0",
+  "publisher": "moaaz-i",
+  "license": "MIT",
+  "icon": "media/jprot-icon.png",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization",
+    "Snippets"
+  ],
+  "keywords": [
+    "jprot",
+    "markdown",
+    "portfolio",
+    "static-site",
+    "ssg",
+    "preview",
+    "ssr",
+    "no-build"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Moaaz-i/JPROT.git",
+    "directory": "jprot-vscode"
+  },
+  "homepage": "https://github.com/Moaaz-i/JPROT#readme",
+  "bugs": {
+    "url": "https://github.com/Moaaz-i/JPROT/issues"
+  },
+  "main": "./src/extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:jprot-vscode.startServer",
+    "onCommand:jprot-vscode.stopServer",
+    "onCommand:jprot-vscode.openInBrowser",
+    "onCommand:jprot-vscode.refreshPreview"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "jprot-vscode.startServer",
+        "title": "JPROT: Start dev server",
+        "icon": "$(play)"
+      },
+      {
+        "command": "jprot-vscode.stopServer",
+        "title": "JPROT: Stop dev server",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "jprot-vscode.openInBrowser",
+        "title": "JPROT: Open current page in browser",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "jprot-vscode.refreshPreview",
+        "title": "JPROT: Refresh preview",
+        "icon": "$(refresh)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "jprot",
+          "title": "JPROT",
+          "icon": "media/activity-icon.png"
+        }
+      ]
+    },
+    "views": {
+      "jprot": [
+        {
+          "type": "webview",
+          "id": "jprotPreview",
+          "name": "Live preview"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "jprotPreview",
+        "contents": "Start the live preview of your JPROT site.\n\nOpen any folder with a `content/` directory and a `jprot.config.js`, then press **JPROT: Start dev server**.\n\n[Start server](command:jprot-vscode.startServer)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "jprot-vscode.openInBrowser",
+          "when": "resourceLangId == markdown && jprot.isServerRunning",
+          "group": "navigation@1"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "jprot-vscode.openInBrowser",
+          "when": "view == jprotPreview",
+          "group": "navigation@1"
+        },
+        {
+          "command": "jprot-vscode.refreshPreview",
+          "when": "view == jprotPreview",
+          "group": "navigation@2"
+        },
+        {
+          "command": "jprot-vscode.startServer",
+          "when": "view == jprotPreview && !jprot.isServerRunning",
+          "group": "navigation@3"
+        },
+        {
+          "command": "jprot-vscode.stopServer",
+          "when": "view == jprotPreview && jprot.isServerRunning",
+          "group": "navigation@3"
+        }
+      ]
+    },
+    "grammars": [
+      {
+        "language": "markdown",
+        "scopeName": "source.markdown.jprot",
+        "path": "./syntaxes/jprot-markdown.tmLanguage.json",
+        "injectTo": [
+          "source.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.frontmatter": "yaml"
+        }
+      }
+    ],
+    "snippets": [
+      {
+        "language": "markdown",
+        "path": "./snippets/markdown.code-snippets"
+      },
+      {
+        "language": "javascript",
+        "path": "./snippets/javascript.code-snippets"
+      }
+    ],
+    "configuration": {
+      "title": "JPROT",
+      "properties": {
+        "jprotVscode.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start the dev server when opening a folder that has jprot installed and a content/ directory."
+        },
+        "jprotVscode.prod": {
+          "type": "boolean",
+          "default": false,
+          "description": "Serve the preview in production mode (drafts hidden, immutable caching). Restart the server to apply."
+        },
+        "jprotVscode.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Reload the preview whenever you save a Markdown file or switch editors."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "test": "node --test src/*.test.js",
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.2.1"
+  }
+}

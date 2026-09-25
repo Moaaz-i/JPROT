@@ -25,6 +25,17 @@ jobs:
       - run: npm test
       - run: npm pack --dry-run
 
+  extension:
+    name: VSCode extension tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+        working-directory: jprot-vscode
+
   publish:
     name: Publish to npm
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

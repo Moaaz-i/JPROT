@@ -1,0 +1,106 @@
+{
+  "JPROT: page frontmatter": {
+    "prefix": "jprot-page",
+    "body": [
+      "---",
+      "title: \"${1:Page title}\"",
+      "description: \"${2:A short summary used for SEO and excerpts}\"",
+      "order: ${3:10}",
+      "---",
+      "",
+      "$0"
+    ],
+    "description": "A standard JPROT page (clean URL, appears in nav, sitemap and search)"
+  },
+  "JPROT: blog post frontmatter": {
+    "prefix": "jprot-post",
+    "body": [
+      "---",
+      "title: \"${1:Post title}\"",
+      "description: \"${2:A short summary used for SEO and excerpts}\"",
+      "date: ${3:YYYY-MM-DD}",
+      "tags: [\"${4:tag}\"]",
+      "image: \"${5:/images/cover.png}\"",
+      "---",
+      "",
+      "$0"
+    ],
+    "description": "a blog post — shows up in the blog listing, sitemap, RSS and search"
+  },
+  "JPROT: project frontmatter": {
+    "prefix": "jprot-project",
+    "body": [
+      "---",
+      "title: \"${1:Project title}\"",
+      "description: \"${2:What does it do?}\"",
+      "image: \"${3:/images/project.png}\"",
+      "tags: [\"${4:tag}\"]",
+      "---",
+      "",
+      "$0"
+    ],
+    "description": "a project entry for your portfolio grid"
+  },
+  "JPROT: resume entry frontmatter": {
+    "prefix": "jprot-resume",
+    "body": [
+      "---",
+      "title: \"${1:Role or section title}\"",
+      "org: \"${2:Company}\"",
+      "period: \"${3:2024 — 2026}\"",
+      "tags: [\"${4:skill}\"]",
+      "---",
+      "",
+      "$0"
+    ],
+    "description": "a printable resume entry"
+  },
+  "JPROT: draft page frontmatter": {
+    "prefix": "jprot-draft",
+    "body": [
+      "---",
+      "title: \"${1:Working title}\"",
+      "draft: true",
+      "---",
+      "",
+      "$0"
+    ],
+    "description": "a draft page — visible in dev, hidden from production, search and sitemap"
+  },
+  "JPROT: hidden page frontmatter": {
+    "prefix": "jprot-hidden",
+    "body": [
+      "---",
+      "title: \"${1:Page title}\"",
+      "hidden: true",
+      "---",
+      "",
+      "$0"
+    ],
+    "description": "a page reachable by URL but hidden from nav, search and sitemap"
+  },
+  "JPROT: shortcode block": {
+    "prefix": "jprot-shortcode",
+    "body": [
+      ":::${1:ComponentName} ${2:title=\"Value\"}",
+      "${3:children markdown}",
+      ":::",
+      "$0"
+    ],
+    "description": "render a registered theme component (or self-closing: :::Name on its own line)"
+  },
+  "JPROT: Markdown component": {
+    "prefix": "jprot-md-component",
+    "body": [
+      "---",
+      "title: \"${1:Default title}\"",
+      "---",
+      "",
+      "## [title]",
+      "",
+      "${2:[value] — replaced by the value passed to the component}",
+      "$0"
+    ],
+    "description": "a .md component — frontmatter holds defaults, body uses [value] placeholders"
+  }
+}

@@ -144,6 +144,21 @@ await scaffoldSite({ root: '/tmp/new-site', type: 'portfolio' })
 TypeScript types ship in `jprot.d.ts`; add `/** @type {import('jprot').JprotConfig} */`
 to a config file for autocomplete.
 
+## Editor tooling
+
+**JPROT for Visual Studio Code** — install from the Marketplace (or build the
+VSIX in `jprot-vscode/`). It gives you a live side-by-side preview of your site,
+JPROT Markdown highlighting (frontmatter, `:::Component` shortcodes,
+`[value]` placeholders) and snippets for pages, posts, projects, resumes and
+`jprot.config.js` — all by driving the project's own jprot server:
+
+```bash
+code --install-extension jprot-vscode-0.1.0.vsix   # from jprot-vscode/
+```
+
+Open any JPROT project, press the **JPROT** activity-bar panel, and the preview
+follows the Markdown file you're editing — save and it re-renders instantly.
+
 ## Documentation
 
 | Page | Covers |
@@ -178,6 +193,7 @@ public/               Static assets (images, fonts, files)
 examples/             Theme packs and component examples
 test/                 Node's built-in test runner (npm test)
 jprot.d.ts            TypeScript definitions
+jprot-vscode/         VSCode extension (preview, highlighting, snippets)
 CHANGELOG.md          Release notes
 ```
 

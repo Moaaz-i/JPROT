@@ -1,0 +1,97 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "JPROT Markdown",
+  "scopeName": "source.markdown.jprot",
+  "injectionSelector": "L:text.html.markdown",
+  "patterns": [
+    {
+      "include": "#frontmatter"
+    },
+    {
+      "include": "#shortcode-open"
+    },
+    {
+      "include": "#shortcode-close"
+    },
+    {
+      "include": "#value-placeholder"
+    }
+  ],
+  "repository": {
+    "frontmatter": {
+      "name": "meta.embedded.block.frontmatter",
+      "begin": "^---\\s*$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.frontmatter.jprot"
+        }
+      },
+      "end": "^---\\s*$",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.frontmatter.jprot"
+        }
+      },
+      "patterns": [
+        {
+          "include": "source.yaml"
+        },
+        {
+          "match": "^(draft|hidden|image|tags|date|title|description|excerpt|order|nav|template)(\\s*:)(.*)$",
+          "captures": {
+            "1": {
+              "name": "variable.other.key.frontmatter.jprot"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.jprot"
+            },
+            "3": {
+              "name": "string.other.value.frontmatter.jprot"
+            }
+          }
+        }
+      ]
+    },
+    "shortcode-open": {
+      "name": "meta.shortcode.block.jprot",
+      "begin": "^:::(?!\\s*$)",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.block.jprot"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "match": "^\\s*[A-Za-z_][A-Za-z0-9_-]*",
+          "name": "entity.name.tag.jprot"
+        },
+        {
+          "include": "#shortcode-attr"
+        }
+      ]
+    },
+    "shortcode-close": {
+      "match": "^:::\\s*$",
+      "name": "punctuation.definition.block.jprot"
+    },
+    "shortcode-attr": {
+      "match": "\\b([A-Za-z_][A-Za-z0-9_-]*)\\s*(=)\\s*(\"[^\"]*\"|'[^']*'|[^\\s]+)",
+      "captures": {
+        "1": {
+          "name": "entity.other.attribute-name.jprot"
+        },
+        "2": {
+          "name": "punctuation.separator.key-value.jprot"
+        },
+        "3": {
+          "name": "string.other.attribute-value.jprot"
+        }
+      }
+    },
+    "value-placeholder": {
+      "match": "\\[[^\\[\\]()]+\\](?!\\s*\\()",
+      "name": "variable.other.placeholder.jprot"
+    }
+  }
+}

@@ -6,6 +6,14 @@ aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **VSCode extension** (`jprot-vscode/`): live side-by-side preview of your site
+  in the editor, JPROT-specific Markdown syntax highlighting (frontmatter,
+  `:::Component` shortcodes, `[value]` placeholders) and snippets for pages,
+  posts, projects, resumes and `jprot.config.js`. The extension drives the
+  project's own jprot server — no bundled runtime, no build step.
+
 ## [0.5.1] - 2026-09-25
 
 ### Fixed

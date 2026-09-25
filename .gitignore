@@ -2,6 +2,7 @@
 dist/
 .cache/
 *.log
+*.vsix
 node_modules/
 __pycache__/
 jprot-components-pack/
