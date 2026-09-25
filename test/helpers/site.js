@@ -35,6 +35,15 @@ export async function makeSite({ content = {}, public: publicFiles = {}, theme =
     await mkdir(dirname(full), { recursive: true })
     await writeFile(full, typeof body === 'string' ? body : JSON.stringify(body, null, 2))
   }
+  // A real site is an ES module: `jprot init` writes this file, and without
+  // `"type": "module"` every `theme/components/*.js` and `plugins/*.js` is
+  // parsed as CommonJS and dies with "Unexpected token 'export'" on Node 18
+  // (Node 20.19+/22 sniff the syntax, so the failure only shows up on 18).
+  // Writing it here keeps the fixture identical to a scaffolded project, which
+  // is the whole point of centralising these five lines.
+  if (!('package.json' in files)) {
+    await write('package.json', { private: true, type: 'module' })
+  }
   for (const [rel, body] of Object.entries(content)) await write(join('content', rel), body)
   for (const [rel, body] of Object.entries(publicFiles)) await write(join('public', rel), body)
   for (const [rel, body] of Object.entries(theme)) await write(join('theme', rel), body)

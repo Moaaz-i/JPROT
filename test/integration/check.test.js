@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync, statSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { REPO_ROOT, makeSite, captureLogs } from '../helpers/site.js'
@@ -150,6 +150,19 @@ test('--root targets the given project, not the current directory', async () => 
     try { await jprot('check', '--root', bad) } catch (e) { code = e.code }
     assert.equal(code, 1, 'the bad project must fail, proving --root was honored')
   } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('a fixture site is an ES module, like a scaffolded one', async () => {
+  // Regression: `makeSite` wrote no package.json, so a fixture's
+  // `theme/components/*.js` and `plugins/*.js` were parsed as CommonJS. Node
+  // 20.19+/22 sniff the syntax and shrug; Node 18 does not, and 11 tests failed
+  // there with "Unexpected token 'export'" — a red CI matrix that a local
+  // `npm test` on a modern Node cannot see.
+  const site = await makeSite({ theme: { 'components/A.js': 'export default () => ""' } })
+  try {
+    const pkg = JSON.parse(readFileSync(join(site.root, 'package.json'), 'utf8'))
+    assert.equal(pkg.type, 'module', 'every fixture must declare "type": "module"')
+  } finally { await site.cleanup() }
 })
 
 test('a directory with no config at all is not an error', async () => {
