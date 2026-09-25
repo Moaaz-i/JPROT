@@ -49,9 +49,11 @@ test("startServer boots the real server, parses the URL and stops", async () => 
     assert.equal((await fetch(url + "/sitemap.xml")).status, 200);
     assert.equal((await fetch(url + "/")).status, 200);
     // the preview server is started with --allow-embed: framing must be
-    // possible (no X-Frame-Options: DENY, frame-ancestors relaxed)
+    // possible (no X-Frame-Options: DENY, frame-ancestors relaxed, CORP
+    // relaxed so Chromium actually loads the cross-origin iframe)
     const home = await fetch(url + "/");
     assert.equal(home.headers.get("x-frame-options"), null);
+    assert.equal(home.headers.get("cross-origin-resource-policy"), "cross-origin");
     const csp = home.headers.get("content-security-policy") || "";
     assert.match(csp, /frame-ancestors/);
     assert.doesNotMatch(csp, /frame-ancestors 'none'/);

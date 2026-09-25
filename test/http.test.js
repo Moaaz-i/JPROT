@@ -27,6 +27,8 @@ test('setFramePolicy removes X-Frame-Options and relaxes frame-ancestors', () =>
   sendWithSecurity(res, 200, 'text/html', '<p>hi</p>', 'abc')
   assert.equal(res.headers['X-Frame-Options'], undefined)
   assert.match(res.headers['Content-Security-Policy'], /frame-ancestors \*;/)
+  // CORP must relax too, or Chromium still blanks a cross-origin iframe
+  assert.equal(res.headers['Cross-Origin-Resource-Policy'], 'cross-origin')
   // everything else stays locked down
   assert.equal(res.headers['X-Content-Type-Options'], 'nosniff')
   assert.equal(res.headers['Permissions-Policy'], SECURITY_HEADERS['Permissions-Policy'])

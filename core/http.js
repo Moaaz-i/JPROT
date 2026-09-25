@@ -35,7 +35,14 @@ export const CSP = (nonce, extraOrigins = []) => {
 
 export function sendWithSecurity(res, status, contentType, body, nonce = '', opts = {}) {
   const headers = { ...SECURITY_HEADERS, 'Cache-Control': opts.cache || 'no-cache' }
-  if (frameAncestors.length) delete headers['X-Frame-Options']
+  if (frameAncestors.length) {
+    // Embedding opt-in (--allow-embed): drop X-Frame-Options and relax CORP.
+    // With X-Frame-Options gone but CORP 'same-origin' left behind, Chromium
+    // still refuses to load a cross-origin iframe document and the preview
+    // stays blank. Everything else — CSP, nosniff, COOP — is unchanged.
+    delete headers['X-Frame-Options']
+    headers['Cross-Origin-Resource-Policy'] = 'cross-origin'
+  }
   if (opts.etag) headers.ETag = opts.etag
   if (opts.extraConnectSrc && opts.extraConnectSrc.length) headers['Content-Security-Policy'] = CSP(nonce, opts.extraConnectSrc)
   else if (nonce) headers['Content-Security-Policy'] = CSP(nonce)
