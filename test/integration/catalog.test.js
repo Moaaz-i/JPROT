@@ -4,7 +4,14 @@ import { mkdtemp, mkdir, writeFile, rm, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createServer } from 'node:http'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { addCatalogElement, resolveCatalogUrl, searchCatalog } from '../../core/catalog.js'
+
+const execFileAsync = promisify(execFile)
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 // Serve a minimal fake catalog locally so no test depends on the network.
 async function withCatalogServer(catalogDir, fn) {
@@ -44,6 +51,48 @@ test('resolveCatalogUrl prefers --from, then config catalogUrl, then default', a
       await resolveCatalogUrl({ projectRoot: dir, from: 'https://flag.example' }),
       'https://flag.example',
     )
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+
+test('`jprot add` and `jprot search` run through the CLI', async () => {
+  // Regression: when `--root` was introduced, the `add` branch kept passing
+  // `projectRoot` as a bare identifier while it had become a *function*, so
+  // `jprot add AvatarHero` died with:
+  //   The "path" argument must be of type string. Received function projectRoot
+  // Every other test here calls addCatalogElement directly, so the whole suite
+  // stayed green while the actual command was broken for users. This one goes
+  // through the CLI, which is the only place that bug could live.
+  const dir = await mkdtemp(join(tmpdir(), 'jprot-add-cli-'))
+  try {
+    await writeFile(join(dir, 'jprot.config.js'), 'export default { title: "T", description: "D" }\n')
+    await writeFile(join(dir, 'package.json'), '{ "private": true, "type": "module" }\n')
+    await withCatalogServer(resolve('test/fixtures'), async (url) => {
+      const cli = (...args) => execFileAsync(
+        process.execPath,
+        [join(REPO_ROOT, 'core', 'cli.js'), ...args],
+        { cwd: REPO_ROOT },
+      )
+
+      const { stdout: search } = await cli('search', 'hero', '--from', url)
+      assert.match(search, /element\(s\).*for "hero"/)
+
+      const { stdout: added } = await cli('add', 'SplitHero', '--root', dir, '--from', url)
+      assert.match(added, /Installed SplitHero/)
+      const installed = await readFile(join(dir, 'theme', 'components', 'SplitHero.js'), 'utf8')
+      assert.match(installed, /split hero component/)
+
+      // A second add must fail as a duplicate, not crash.
+      await assert.rejects(
+        () => cli('add', 'SplitHero', '--root', dir, '--from', url),
+        (err) => {
+          assert.equal(err.code, 1)
+          assert.match(String(err.stderr), /already installed/)
+          return true
+        },
+      )
+    })
   } finally {
     await rm(dir, { recursive: true, force: true })
   }

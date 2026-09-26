@@ -113,7 +113,7 @@ export async function bootstrap() {
       return;
     }
     try {
-      const installed = await addCatalogElement({ projectRoot, catalogUrl: catalogUrl, name });
+      const installed = await addCatalogElement({ projectRoot: projectRoot(), catalogUrl: catalogUrl, name });
       console.log(`  \u2714 Installed ${installed.name} → ${installed.file}`);
       console.log(`     Use it as a section: { component: '${installed.name}' } or inline: :::${installed.name}`);
     } catch (err) {
