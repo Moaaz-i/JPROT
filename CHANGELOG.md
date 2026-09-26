@@ -4,6 +4,33 @@ All notable changes to JPROT are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 aims to follow [Semantic Versioning](https://semver.org/).
 
+## [0.7.1] - 2026-09-26
+
+### Fixed
+
+- **`jprot add <Name>` crashed** with `The "path" argument must be of type
+  string. Received function projectRoot`. Adding `--root` turned `projectRoot`
+  from a string into a function, and the `addCatalogElement` call kept the bare
+  identifier, so the function was passed where a path was expected. `jprot
+  search` and every other command were unaffected.
+- The release workflow now publishes `create-jprot` in the same run as `jprot`.
+  It previously published only the root package, so `create-jprot` sat at 0.5.0
+  on npm and `npm create jprot` scaffolded and pinned `jprot@0.5.1` — no
+  `jprot check`, no plugin API, with nothing in the output to hint at it. This
+  run also ships `create-jprot@0.7.1`, the first release of that package since
+  0.5.0.
+- The workflow passes `./create-jprot` to `npm publish`. A bare name resolves
+  against the registry, which repacked the published 0.5.0 tarball and tripped
+  a provenance mismatch — the failure mode was to ship 0.5.0's code under a
+  0.7.0 version number.
+- The publish gate is now only "is this version already on npm?". The previous
+  `git diff-tree … | grep package.json` check could never fire: checkout is a
+  depth-1 clone, so `HEAD` has no parent and `diff-tree` lists the whole tree.
+  Asking the registry is also self-healing.
+- Test fixtures declare `"type": "module"`, matching a scaffolded site. Node 18
+  cannot load a fixture's `theme/components/*.js` or `plugins/*.js` without it
+  and 11 tests failed there, while modern Node sniffed the syntax and hid it.
+
 ## [0.7.0] - 2026-09-25
 
 ### Added
