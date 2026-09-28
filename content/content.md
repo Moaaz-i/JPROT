@@ -32,6 +32,10 @@ converts dynamic content (like `jprot new post "My Title"`) to dashed slugs.
 The block between two `---` lines at the top of a file holds the page's
 settings. It is YAML: `key: value` lines.
 
+The complete, precise syntax — which values, maps, lists and block scalars are
+accepted and which are not — is on the [frontmatter reference](frontmatter.md)
+page; what matters for pages is below.
+
 ```markdown
 ---
 title: About me

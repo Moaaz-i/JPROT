@@ -18,8 +18,10 @@
 // derived structures only when the file set itself changed — so repeated
 // requests are nearly free while edits still show up immediately.
 import { readFile, readdir, stat } from 'node:fs/promises'
-import { basename, extname, join, sep } from 'node:path'
+import { basename, extname, join, normalize, sep } from 'node:path'
 import { parseFrontmatter } from '../lib/frontmatter.js'
+import { isInside } from './utils.js'
+import { state } from './state.js'
 
 const parsedCache = new Map()
 
@@ -463,4 +465,69 @@ export async function getContentGraph(options = {}) {
 export function invalidateContentGraph(options) {
   if (!options) { graphCache.clear(); return }
   graphCache.delete(graphKey(options))
+}
+
+/* ---------------- instance views (formerly core/content.js) ---------------- */
+
+// Directories the site treats as collections. Both are configurable, so they
+// are read from the current instance's state rather than hard-coded. `root`
+// wins over the state's contentDir so an explicit argument always decides.
+function graphOptions(root) {
+  const { site = {}, contentDir: stateContentDir } = state()
+  const contentDir = root || stateContentDir
+  return {
+    contentDir,
+    blogDir: join(contentDir, site.blogDir || 'blog'),
+    projectsDir: join(contentDir, site.projectsDir || 'projects'),
+    docs: site.docs === true,
+  }
+}
+
+// The graph for the current instance's content, reusing the previous build
+// while the tree is unchanged.
+export async function contentGraph() {
+  return getContentGraph(graphOptions())
+}
+
+// Post/project entries keep the historical shape (`url` is content-relative,
+// e.g. `blog/hello`) because themes build links as `/${p.url}`.
+function legacyItem(entry) {
+  return {
+    data: entry.data,
+    body: entry.body,
+    src: entry.src,
+    slug: entry.slug,
+    url: entry.url.replace(/^\//, ''),
+    excerpt: entry.data.excerpt
+      || String(entry.body || '').split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 3).join(' '),
+  }
+}
+
+// Graph → legacy view, for callers that already hold a graph.
+export const postItems = (graph) => graph.posts.map(legacyItem)
+export const projectItems = (graph) => graph.projects.map(legacyItem)
+
+// Safely resolve a URL pathname to an existing content file, guarding against
+// path traversal (../) by normalizing and verifying the result stays inside
+// contentDir.
+export async function resolveContent(contentDir, pathname) {
+  if (pathname === '/') return null
+  let clean = normalize(pathname.replace(/^\/+|\/+$/g, ''))
+  if (!clean || clean === '.') return null
+  const full = join(contentDir, clean)
+  const candidates = []
+  if (extname(full) === '.md') {
+    candidates.push(full)
+  } else {
+    candidates.push(full + '.md')
+    candidates.push(join(full, 'index.md'))
+    candidates.push(join(full, 'README.md'))
+  }
+  for (const p of candidates) {
+    if (!isInside(contentDir, p)) continue
+    try {
+      if ((await stat(p)).isFile()) return p
+    } catch { /* not a file */ }
+  }
+  return null
 }

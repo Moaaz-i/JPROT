@@ -4,6 +4,43 @@ All notable changes to JPROT are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 aims to follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Block scalars in frontmatter.** `key: |` (literal — line breaks kept) and
+  `key: >` (folded — joined with spaces) now parse correctly, with chomping and
+  width indicators (`|-`, `>+`, `|2`) accepted using clip semantics. They were
+  documented as supported but previously parsed to the literal string `|` and
+  produced two "Expected key: value" diagnostics. The exact supported subset is
+  specified in [`content/frontmatter.md`](content/frontmatter.md).
+- **CI smoke-test of the packed tarball.** A new `smoke` job packs the tarball,
+  asserts the shipped file list (core, lib, theme, `jprot.d.ts`; no private
+  `*.local.md`), installs it into a temp project, runs the real `jprot init`,
+  boots the server and curls `/` for a `200` plus the default theme's
+  `.skip-link` — so a missing `files` entry, a broken bin path or an
+  ESM/CJS mixup fails on a PR instead of on npm. `publish` now waits on
+  `[test, smoke]`.
+
+### Fixed
+
+- **Frontmatter silently swallowed keys after a nested map.** A top-level key
+  following a nested map with no intervening list was parsed *into* the map
+  (`b:` after `a:\n  x: 1` became `a.b`, and a `title:` after `sections:`
+  landed inside the section object), silently corrupting page metadata. The
+  map parser now respects dedentation; the parser was already non-throwing,
+  and 30 new table-driven, adversarial and round-trip tests pin the subset
+  down.
+
+### Changed
+
+- **`core/content.js` retired.** Its `contentGraph`, `postItems`,
+  `projectItems` and `resolveContent` (plus the `legacyItem`/`graphOptions`
+  shims) moved into `core/graph.js`, and `core/server.js` now imports from
+  there. **Breaking for anyone importing `core/content.js` directly** — the
+  migration is a one-line import change (`~0.6` users included). The layout
+  table in the README and `content/architecture.md` were updated.
+
 ## [0.8.0] - 2026-09-28
 
 ### Added

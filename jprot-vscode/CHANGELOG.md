@@ -3,22 +3,29 @@
 All notable changes to this extension are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.1.0] - 2026-09-25
+## [0.2.0] - 2026-09-28
+
+### Removed — the live preview is gone
+
+This is a **breaking** release. The side-by-side preview panel and everything it
+needed — `src/preview.js`, `src/jprotServer.js`, `src/urls.js`, the `JPROT:`
+commands, the activity-bar view, the three `jprotVscode.*` settings — has been
+**removed**. The extension is now grammar and snippets only: no runtime code,
+nothing to start, nothing to configure.
+
+Why it went, so it is never rediscovered as a mystery:
+`src/jprotServer.js` spawned the dev server with `process.execPath` and never
+set `ELECTRON_RUN_AS_NODE=1`. Inside VS Code `process.execPath` is the
+Code/Electron binary, so without that variable the extension launched VS Code
+with the CLI path as an argument instead of running a Node child — the preview
+could never work, and it was removed rather than half-fixed.
+
+What stays: the JPROT Markdown grammar (`source.markdown.jprot`) and every
+snippet (`jprot-page` … `jprot-nav`).
 
 ### Added
 
-- **Live side-by-side preview** — a JPROT activity-bar panel that embeds the
-  project's own dev server, follows the active Markdown editor and re-renders
-  on save; status-bar entry with the running URL. The preview server runs with
-  jprot's explicit `--allow-embed` flag so the site may frame itself while you
-  preview.
-- **JPROT Markdown syntax highlighting** — injected TextMate grammar for
-  frontmatter, `:::Component` shortcodes and `[value]` placeholders.
-- **Snippets** — `jprot-page`, `jprot-post`, `jprot-project`, `jprot-resume`,
-  `jprot-draft`, `jprot-hidden`, `jprot-shortcode`, `jprot-md-component`, plus
-  `jprot-config` / `jprot-section` / `jprot-nav` for `jprot.config.js`.
-- **Commands** — start/stop dev server, open current page in browser, refresh
-  preview (also available from the editor title bar and view toolbar).
-- **Zero-dependency design** — the extension drives the workspace's installed
-  jprot (or the repository checkout) and has no build step of its own.
-- Unit tests for URL mapping and integration tests that boot the real server.
+- `test/grammar.test.js` — parses the grammar and both snippet files so a
+  malformed grammar fails before it reaches the Marketplace.
+
+## [0.1.0] - 2026-09-25

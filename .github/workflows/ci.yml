@@ -36,10 +36,61 @@ jobs:
       - run: npm test
         working-directory: jprot-vscode
 
+  smoke:
+    name: Smoke-test the packed tarball
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pack and inspect the tarball contents
+        run: |
+          set -euo pipefail
+          tar_file="$(npm pack --silent)"
+          echo "tarball: $tar_file"
+          # The packed file list is part of the contract. Core, lib, theme and
+          # the type definitions must ship; private notes must not.
+          tar -tzf "$tar_file" > packed-files.txt
+          grep -qx 'package/core/server.js' packed-files.txt
+          grep -qx 'package/core/graph.js' packed-files.txt
+          grep -qx 'package/lib/frontmatter.js' packed-files.txt
+          grep -qx 'package/theme/default/styles.css' packed-files.txt
+          grep -qx 'package/jprot.d.ts' packed-files.txt
+          if grep -Eq '(^|/)ROADMAP\.local\.md$|\.local\.md$' packed-files.txt; then
+            echo "A private *.local.md file leaked into the tarball" >&2
+            exit 1
+          fi
+          mv "$tar_file" jprot.tgz
+      - name: Scaffold, boot and curl through the installed tarball
+        run: |
+          set -euo pipefail
+          mkdir site && cd site
+          # Install the actual packed bytes, not the working tree.
+          npm install ../jprot.tgz --no-save --silent
+          # Scaffold a real site through the packed CLI's own `init`.
+          node_modules/.bin/jprot init --portfolio
+          # Boot the packed server in the background.
+          node_modules/.bin/jprot --port 4657 &
+          server=$!
+          trap 'kill $server 2>/dev/null || true' EXIT
+          for _ in $(seq 1 40); do
+            if curl -sf http://127.0.0.1:4657/ >/dev/null 2>&1; then break; fi
+            sleep 0.5
+          done
+          status=$(curl -s -o /tmp/jprot-home.html -w '%{http_code}' http://127.0.0.1:4657/)
+          test "$status" = "200" || { echo "/ returned $status" >&2; exit 1; }
+          grep -q '<title>' /tmp/jprot-home.html
+          # The default theme's Layout must have shipped and rendered.
+          grep -q 'class="skip-link"' /tmp/jprot-home.html
+          kill "$server"
+          trap - EXIT
+          echo "Smoke test passed: tarball installs, scaffolds, boots and serves /"
+
   publish:
     name: Publish to npm
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: test
+    needs: [test, smoke]
     runs-on: ubuntu-latest
     permissions:
       contents: read

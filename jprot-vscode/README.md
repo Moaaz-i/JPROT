@@ -1,128 +1,66 @@
 # JPROT for Visual Studio Code
 
-Modern editor tooling for **JPROT** — the zero-build portfolio site generator. This
-extension brings a live side-by-side preview, JPROT-specific Markdown highlighting
-and snippets straight into your editor, while staying true to JPROT's philosophy:
-**no build step, no bundled runtime, no dependencies**.
-
-It never re-implements JPROT. It drives *your project's own* jprot server
-(`node_modules/jprot/core/cli.js`, or the repository checkout), so the preview is
-byte-for-byte what your visitors see — SSR, hot reload, SPA navigation, search,
-themes — all of it.
+Markdown tooling for **JPROT** — the zero-build portfolio site generator. This
+extension brings JPROT-specific Markdown highlighting and snippets into your
+editor. It never re-implements JPROT and ships **no runtime code**: nothing to
+start, nothing to configure, nothing to break.
 
 ## Features
 
-### 🔴 Live side-by-side preview
-
-The **JPROT** activity-bar panel embeds your site's dev server in a frame:
-
-- follows the Markdown file you're editing (`blog/post.md` ⇄ `/blog/post`)
-- **re-renders on save** — save, look, ship
-- status-bar entry with the running URL, one click to open your browser
-- dev mode by default (drafts visible); flip to production via the
-  `jprotVscode.prod` setting
-
 ### 🎨 JPROT Markdown highlighting
 
-A scoped TextMate grammar makes the pieces that are *JPROT* stand out:
+A scoped TextMate grammar (injected into plain `source.markdown`) makes the
+pieces that are *JPROT* stand out:
 
-- `---` YAML **frontmatter** with its jprot keys (`title`, `date`, `tags`,
-  `image`, `draft`, `hidden`, `order`, `nav`, …)
-- `:::Component` **shortcodes** — open, self-closing and close fences, with their
-  `key="value"` attributes
-- `[value]` placeholders in Markdown components
+- `---` YAML frontmatter, embedded as YAML so keys, strings and booleans colour
+  like YAML
+- `:::Component` shortcode blocks
+- `[value]` placeholders in templates and posts
 
-Markdown itself keeps its native theme highlighting — the grammar injects on top.
+### ✂️ Snippets
 
-### ⚡ Snippets
+Runnable in Markdown and JavaScript files where it matters:
 
-Type `jprot-` to insert ready-made blocks:
-
-| Prefix | What you get |
+| Prefix | Inserts |
 | --- | --- |
-| `jprot-page` | standard page frontmatter |
-| `jprot-post` | blog post (date, tags, image, …) |
-| `jprot-project` | portfolio project entry |
-| `jprot-resume` | printable resume entry |
-| `jprot-draft` / `jprot-hidden` | pre-privatized pages |
-| `jprot-shortcode` | a `:::Component` block |
-| `jprot-md-component` | a Markdown component with `[value]` body |
-
-In `jprot.config.js` (`javascript` files): `jprot-config`, `jprot-section`,
-`jprot-nav`.
-
-### 🧭 Commands
-
-- **JPROT: Start dev server** — boots the project's jprot server on a free port
-- **JPROT: Stop dev server**
-- **JPROT: Open current page in browser**
-- **JPROT: Refresh preview**
-
-The editor title bar and the preview view toolbar put the most useful ones one
-click away.
+| `jprot-page` | Page frontmatter (`title`, `nav`, `order`, …) |
+| `jprot-post` | Blog post frontmatter (with `date`, `draft`) |
+| `jprot-project` | Project frontmatter |
+| `jprot-resume` | Resume frontmatter |
+| `jprot-draft` | Hide a page as a draft (`draft: true`) |
+| `jprot-hidden` | Remove from navigation (`hidden: true`) |
+| `jprot-shortcode` | A `:::Component` block |
+| `jprot-md-component` | An inline component reference |
+| `jprot-config` | A `jprot.config.js` skeleton |
+| `jprot-section` | A portfolio section entry |
+| `jprot-nav` | Navigation settings in `jprot.config.js` |
 
 ## Getting started
 
-1. Open the folder of a JPROT project (any folder with a `content/` directory
-   and `jprot.config.js`). No project yet?
+1. Install from the Marketplace, or build and install the VSIX from this
+   folder:
 
    ```bash
-   npm create jprot@latest
+   npm run package            # produces jprot-vscode-0.2.0.vsix
+   code --install-extension jprot-vscode-0.2.0.vsix
    ```
 
-2. Open the **JPROT** activity-bar panel (or run **JPROT: Start dev server**).
-3. Open a Markdown file from `content/` — the preview follows it.
-
-The dev server starts automatically on workspace open by default
-(`jprotVscode.autoStart`).
+2. Open any JPROT project — highlighting applies to Markdown files and
+   `jprot.config.js`, and the snippets are one `jprot-…` tab away.
 
 ## Requirements
 
 - **Visual Studio Code** ≥ 1.85
-- **jprot** installed in the workspace (`npm install -D jprot`) — the extension
-  locates it in `node_modules/`; opening the JPROT repository itself also works
-  (it falls back to `core/cli.js`).
-- Node.js ≥ 18 (whatever you use for jprot)
 
-## Security note
+## Release history
 
-JPROT locks down framing by default (`X-Frame-Options: DENY` +
-`frame-ancestors 'none'` + `Cross-Origin-Resource-Policy: same-origin`), so the
-preview lets the site be embedded **only** while you preview: the panel boots
-your project's dev server with the explicit `--allow-embed` flag, which relaxes
-those three framing headers and keeps every other security header intact.
-Production/export output is never affected, and ordinary `jprot` runs remain
-fully locked down unless you pass the flag yourself.
-
-## Extension settings
-
-| Setting | Default | Description |
-| --- | --- | --- |
-| `jprotVscode.autoStart` | `true` | Start the server when the workspace opens |
-| `jprotVscode.prod` | `false` | Serve in production mode (drafts hidden, immutable caching) |
-| `jprotVscode.autoRefresh` | `true` | Re-render the preview on save / editor switch |
+See [CHANGELOG.md](CHANGELOG.md). Up to 0.1.0 this extension shipped a live
+preview panel; it could not work inside VS Code and was removed in 0.2.0 — the
+changelog records why.
 
 ## Development
 
-The extension is dependency-free CommonJS on purpose — there is **no build step
-for the extension either**:
-
 ```bash
-npm test                # node --test (unit + real-server integration tests)
-npm install             # installs @vscode/vsce (dev-only)
-npm run package         # produces jprot-vscode-0.1.0.vsix
+npm test        # parses the grammar and snippets — the whole product
+npm run package # build the VSIX
 ```
-
-To try it locally: open this `jprot-vscode/` folder in VSCode, press `F5`
-(Run Extension), then open a JPROT project in the Extension Development Host.
-
-## Publishing
-
-`npm run publish` (via `@vscode/vsce`) publishes to the Marketplace under the
-`moaaz-i` publisher; the same package can be published to Open VSX. Set your
-`VSCE_PAT` before running. This is intentionally outside the npm CI — the
-extension lives on the Marketplace, not on npm.
-
-## License
-
-MIT — see [LICENSE](LICENSE).

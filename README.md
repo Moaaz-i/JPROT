@@ -214,7 +214,6 @@ follows the Markdown file you're editing — save and it re-renders instantly.
 core/cli.js           CLI entry (server + init/new/g/check/lint/export)
 core/server.js        HTTP server, routing, virtual endpoints, SEO
 core/graph.js         The Content Graph — one parsed index of every page
-core/content.js       Facade over the graph (kept for existing imports)
 core/render.js        Shortcode AST + section rendering
 core/components.js    Component loading and the component contract
 core/plugins.js       The plugin API

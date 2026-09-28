@@ -19,7 +19,7 @@ import {
   readParsed,
   resolveContent,
   stripMarkdown,
-} from "./content.js";
+} from "./graph.js";
 import {
   CSP,
   SECURITY_HEADERS,

@@ -14,7 +14,6 @@ core/
   cli.js          CLI entry point — server + init/new/g/check/lint/export
   server.js       HTTP server, routing, virtual endpoints, component invocation
   graph.js        The Content Graph — one parsed index of every page
-  content.js      Thin facade over the graph (readContentSite, getPage, …)
   render.js       Shortcode AST + section rendering
   components.js   Component loading and the component contract
   plugins.js      The plugin API (setup, hooks, registries)
@@ -59,9 +58,10 @@ Each file owns one question, and only that question:
 | Output | `export.js` | What gets written to disk? |
 | Confidence | `check.js`, `lint.js` | Is this site actually correct? |
 
-`content.js` stays as a **facade** so existing imports keep working, but it holds
-no logic of its own — it re-exports the graph. That is what keeps the dependency
-arrows pointing one way (`server → content → graph`) with no import cycle.
+`core/graph.js` is the one module that owns content. The old `core/content.js`
+facade was retired in 0.8.x: the instance views it provided (`contentGraph`,
+`postItems`, `projectItems`, `resolveContent`) now live here, and the dependency
+arrows point one way (`server → graph → lib`) with no import cycle.
 
 ## The Content Graph
 
