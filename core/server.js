@@ -1553,7 +1553,22 @@ const spaScript = (nonce) => `
       var cur = path.replace(/\\/$/, '')
       var active = hrefPath === cur || (hrefPath !== '/' && cur.startsWith(hrefPath))
       a.classList.toggle('active', active)
+      if (active) a.setAttribute('aria-current', 'page')
+      else a.removeAttribute('aria-current')
     })
+  }
+
+  // After a route change, move focus into the freshly loaded <main> and tell
+  // assistive tech which page we're on. Without this, a keyboard or
+  // screen-reader user follows a link and nothing announces that the page
+  // changed - they stay where they were on the old page.
+  function announceAndFocus() {
+    var live = document.getElementById('jprot-announce')
+    if (live) live.textContent = document.title
+    var main = document.querySelector('main')
+    if (!main) return
+    try { main.focus({ preventScroll: true }) }
+    catch (e) { /* old browser: focus without scroll locking; applyScroll below wins */ main.focus() }
   }
 
   function scrollToHash(hash) {
@@ -1589,6 +1604,7 @@ const spaScript = (nonce) => `
       document.title = doc.title || document.title
       if (push) { history.pushState({ path: finalUrl }, '', finalUrl) }
       setActiveLink()
+      announceAndFocus()
       applyScroll(finalUrl, restore)
     } catch {
       window.location.href = url

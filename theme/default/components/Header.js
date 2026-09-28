@@ -15,7 +15,9 @@ export default function Header(props) {
     const isExternal = /^(?:[a-z][a-z\d+.-]*:|#)/i.test(rel)
     const target = href.replace(/\/+$/, '') || '/'
     const active = !isExternal && current.length > 1 && (current === target || current + '/' === href)
-    return `<a href="${esc(safeHref(href))}" class="nav-link${active ? ' active' : ''}">${esc(item.label)}</a>`
+    const activeCls = active ? ' active' : ''
+    const currentAttr = active ? ' aria-current="page"' : ''
+    return `<a href="${esc(safeHref(href))}" class="nav-link${activeCls}"${currentAttr}>${esc(item.label)}</a>`
   }).join('\n      ')
 
   const hasNav = site.showNav !== false && items.length > 0

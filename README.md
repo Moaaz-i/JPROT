@@ -4,8 +4,9 @@
 
 JPROT serves Markdown directly with SSR and SPA navigation — zero dependencies,
 zero build, full control. It includes dark mode, four built-in themes, contact
-forms, SEO/JSON-LD, PWA support, TypeScript types, and a component system, all
-running on Node.js 18+.
+forms, SEO/JSON-LD, PWA support, accessible SPA navigation (skip link, focus
+management, live page announcements), TypeScript types, and a component system,
+all running on Node.js 18+.
 
 - Project: <https://github.com/Moaaz-i/JPROT>
 - Live docs: <https://moaaz-i.github.io/JPROT/>

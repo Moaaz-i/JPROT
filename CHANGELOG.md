@@ -4,6 +4,28 @@ All notable changes to JPROT are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 aims to follow [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] - 2026-09-28
+
+### Added
+
+- **Accessible SPA navigation.** Navigating between pages no longer happens in
+  silence for assistive tech. Every page now renders:
+  - a **skip link** (`Skip to content`) as the first focusable element,
+    visually hidden until keyboard focus lands on it;
+  - the main content as a **focus target** (`<main id="jprot-main"
+    tabindex="-1">`), so the SPA can move the focus there after a route change
+    instead of leaving the user reading the old page;
+  - a **live region** (`role="status"`) that announces the new page title
+    whenever the SPA swaps pages;
+  - `aria-current="page"` on the active nav link, kept in sync on the server
+    render and during SPA navigation alike.
+
+  The inline SPA script (`core/server.js`, `spaScript`) gained
+  `announceAndFocus()`, which moves focus into the freshly loaded `<main>` with
+  `preventScroll` (so scroll restoration on Back/Forward is never disturbed)
+  and announces the new title. Covers keyboard users, screen readers, and
+  scroll restoration together — previously only scroll was handled.
+
 ## [0.7.1] - 2026-09-26
 
 ### Fixed

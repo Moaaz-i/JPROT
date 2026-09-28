@@ -1083,3 +1083,36 @@ a:hover { text-decoration: underline; }
 @media (prefers-reduced-motion: reduce) {
   .hero-badge .dot { animation: none; }
 }
+
+/* ---------- Accessibility ---------- */
+/* Skip link: visually hidden until focused with the keyboard, then pinned to
+   the top-left corner above everything else. */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 1001;
+  padding: 0.6rem 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  border-radius: 0 0 var(--radius) 0;
+}
+.skip-link:focus-visible {
+  top: 0;
+}
+
+/* Visually hidden element that stays audible to screen readers — used for the
+   JPROT SPA page-change announcement. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

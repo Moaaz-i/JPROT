@@ -6,3 +6,6 @@ dist/
 node_modules/
 __pycache__/
 jprot-components-pack/
+
+.env
+ROADMAP.local.md
