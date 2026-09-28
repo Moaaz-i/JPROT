@@ -66,8 +66,16 @@ jobs:
         run: |
           set -euo pipefail
           mkdir site && cd site
-          # Install the actual packed bytes, not the working tree.
-          npm install ../jprot.tgz --no-save --silent
+          # Install the actual packed bytes, not the working tree. `--prefix .`
+          # is load-bearing: without it npm finds the repo's own package.json by
+          # walking up from the dependency-free `site/` folder and installs into
+          # the workspace root, silently succeeding while
+          # `site/node_modules/.bin` stays empty.
+          npm install --prefix . ../jprot.tgz --no-save --silent
+          test -x node_modules/.bin/jprot || {
+            echo "packed jprot bin was not linked into site/node_modules/.bin" >&2
+            exit 1
+          }
           # Scaffold a real site through the packed CLI's own `init`.
           node_modules/.bin/jprot init --portfolio
           # Boot the packed server in the background.
