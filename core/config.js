@@ -64,24 +64,41 @@ export async function loadConfigWithSource(projectRoot, configOption, bust = fal
   const fresh = (href) => (bust ? href + '?t=' + Date.now() : href)
   const jsPath = join(projectRoot, 'jprot.config.js')
   if (await hasFile(jsPath)) {
+    const source = await readFile(jsPath, 'utf8').catch(() => '')
     try {
       const { mod } = await importConfigFile(jsPath, bust)
-      const source = await readFile(jsPath, 'utf8').catch(() => '')
       return { config: unwrapConfig(mod) || {}, file: 'jprot.config.js', source }
     } catch (e) {
-      console.warn('[jprot] Could not load jprot.config.js:', e.message)
+      // A broken config is fatal. Falling back to `{}` used to produce a fully
+      // functional but completely unconfigured site — no nav, no theme, no
+      // plugins, no error page — which reads as "JPROT is broken" rather than
+      // "your config has a typo". `jprot check` reports this with a line
+      // number, and the dev server refuses to start until it is fixed.
+      throw new ConfigLoadError('jprot.config.js', e)
     }
   }
   const jsonPath = join(projectRoot, 'jprot.config.json')
   if (await hasFile(jsonPath)) {
+    const source = await readFile(jsonPath, 'utf8').catch(() => '')
     try {
-      const source = await readFile(jsonPath, 'utf8')
       return { config: JSON.parse(source), file: 'jprot.config.json', source }
     } catch (e) {
-      console.warn('[jprot] Could not load jprot.config.json:', e.message)
+      throw new ConfigLoadError('jprot.config.json', e)
     }
   }
-  return { config: {}, file: 'jprot.config.js', source: '' }
+  return { config: {}, file: '', source: '' }
+}
+
+// Thrown when a config file exists but cannot be loaded. `file` is the bare
+// name so `jprot check` can point at it, and `cause` keeps the original
+// SyntaxError/message intact.
+export class ConfigLoadError extends Error {
+  constructor(file, cause) {
+    super(`Could not load ${file}: ${cause && cause.message ? cause.message : cause}`)
+    this.name = 'ConfigLoadError'
+    this.file = file
+    this.cause = cause
+  }
 }
 
 // Reads theme/main.js so a theme can declare its default composition.

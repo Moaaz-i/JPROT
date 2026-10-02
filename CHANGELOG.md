@@ -4,6 +4,365 @@ All notable changes to JPROT are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 aims to follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+## [0.9.0] - 2026-10-02
+
+A correctness and security pass over the whole framework. Nothing here changes
+the content authoring format; the only user-visible rendering change is that the
+docs sidebar now works by default (see below).
+
+### Security
+
+- **XSS in the default theme's `Projects` component.** Project `description`,
+  `date`, `demo` and `repo` were interpolated raw, and `cover` was placed in an
+  `<img src>`. Any of them, taken from frontmatter, could close the attribute and
+  inject markup. All are now escaped, and every URL goes through the shared
+  `safeHref()`. `Home.js` (avatar `src`, project cover) and `Sidebar.js` (nav
+  `href`) had the same class of bug and are fixed too.
+- **One `safeHref` instead of four.** Three drifted copies existed in theme
+  components (no control-character check; `data:` allowed even for links). They
+  were replaced by a single implementation in `core/utils.js`, shared with the
+  Markdown renderer's `safeUrl`. A behavioural test now renders every component
+  with hostile props, so a new component cannot reintroduce the class of bug.
+- **`themeColor` could break out of `<style>` and the SVG attributes.** The 404
+  page's inline stylesheet, the favicon and OG image, the web manifest and
+  `<meta name="theme-color">` all interpolated it unescaped. They now go through
+  `safeColor()`. The favicon also gets a real CSP.
+- **The 500 page leaked the error.** The body was `"Server error: " + err.message`,
+  disclosing absolute filesystem paths and internal module names, and it was
+  sent through a bare `writeHead` that skipped every security header. The body is
+  now generic, the detail stays in the server log, and the response carries the
+  full header set.
+- `escapeHtml()` now escapes `'` as well, matching `esc()`.
+
+### Fixed
+
+- **A broken config no longer degrades to an empty site.** A `jprot.config.js`
+  that failed to parse produced a fully functional but completely unconfigured
+  site — no nav, no theme, no plugins — which reads as "JPROT is broken" rather
+  than "you have a typo". It is now fatal (`ConfigLoadError`): `jprot check`
+  reports it with a line number, and every other command exits `1` with a
+  readable message instead of a stack trace.
+- **`jprot --root <dir>` served the current directory.** `--root` was documented
+  and honoured by every subcommand except the dev server, which simply never
+  passed it through. It now does.
+- **The docs sidebar was dead by default.** `Sidebar.js` re-derived its own
+  decision (`if (!site.sidebar) return ''`) and vetoed the server, so the sidebar
+  never rendered unless the config literally set `sidebar: true` — and a
+  per-page `sidebar: true` could never work at all. `jprot.d.ts` documents the
+  default as `true` and the server already treated unset as "not false". The
+  component now honours an explicit `false` and nothing else. Sites that follow
+  the documented configuration (which sets `sidebar: true`) are unaffected.
+- **CLI dispatch was substring matching on `args[0]`.** `jprot --root X new page
+  foo` started the dev server and hung instead of scaffolding, and any project
+  path or title containing a command word could hijack dispatch. Replaced with
+  `positionals()`, which strips flags and their values.
+- **`evictStaleCache()` was a no-op.** Its synchronous `try { stat(file) } catch`
+  could never fire, because a missing file rejects the returned promise rather
+  than throwing — so nothing was ever evicted. It also was never called. It is
+  now awaited, called on every graph build, and the parse cache is capped.
+- **A `sections:` entry could override the framework context.** In
+  `renderSections`, the entry's own props were spread *after* `site`/`page`/`nav`,
+  so a frontmatter key could replace what a component was rendering against.
+- **A missing snapshot reported `match: true`.** `matchSnapshot` created the
+  file and passed, so a new test was green on its first run. It now fails, and
+  only `UPDATE_SNAPSHOTS=1` writes.
+- **`jprot check` claimed a nonexistent file was valid.** Projects with no
+  config file were reported as "`jprot.config.js` is valid". It now says there is
+  no config file and points at `jprot init`.
+- **`jprot.d.ts` declared exports the package did not have.** Every name in the
+  type file's `export` statements had to resolve at runtime, but several did
+  not, so a TypeScript user importing them got a clean compile and then a
+  `SyntaxError` at import time. The API is now actually exported (above) and a
+  test fails if the two ever diverge.
+
+#### Markdown renderer: fifteen bugs found by fuzzing
+
+Found by throwing generated hostile documents at the renderer and asserting on
+the *visible* output rather than on HTML shape. Every one is pinned by a named
+test in `test/unit/markdown.test.js` explaining the mechanism. The unifying
+theme is text quietly leaving the page while the renderer reported success.
+
+- **Text vanished instead of degrading to text.** Footnote and link definitions
+  were skipped by the emitter based on its *own* pattern, while a separate
+  pre-scan decided what was collected. Five separate disagreements each threw
+  text away:
+  - The pre-scan only looked at top-level lines, so `- [^a]: the note` was
+    skipped by the emitter and never collected — an empty `<li>`. The emitter now
+    asks the pre-scan (`footnote[1] in doc.noteDefs`, `link[1].toLowerCase() in
+    doc.linkDefs`) and skips exactly the span the pre-scan claimed. A
+    disagreement now degrades to "the definition renders as visible text".
+  - The pre-scan accepted any run of backticks as a fence while the emitter
+    required exactly three. `lib/markdown/fence.js` now owns `FENCE_OPEN_RE` and
+    `forEachOutsideCode`, shared by every stage.
+  - `[a]: /url #frag and more words` matched the emitter's shape but not the
+    collector's, so the sentence after it left the page. Both sides now share one
+    anchored `LINK_DEF_RE`.
+  - A definition's extent is stored as a *count* of lines and the emitter spends
+    it as "skip the next N lines from here", but `forEachOutsideCode` hides fence
+    lines from the collector. A fence between the count and the spend made the
+    emitter skip the fence **opener**, leaving the fence unclosed and taking the
+    rest of the page with it — a document with one fence after one footnote
+    definition rendered as nothing at all. `forEachOutsideCode` now reports fence
+    lines through an optional `onFence` callback, and `collectFootnoteDefs` ends a
+    definition at one. Lines *inside* a fence still neither extend nor end it.
+  - A table's row loop is the only block rule that reaches further than a single
+    line, and it ran straight past the line the emitter has promised to skip —
+    the definition branches test `blockLines[j]`, and by the time they would run
+    the row was already collected. `[^a]: the note` after a one-column table
+    became a `<td>`, so the `[^a]` in it rendered as a *live* reference while the
+    footnote it named had no definition: a number on the page that jumped
+    nowhere, and no note. The loop now asks the same question the other branches
+    ask, through a shared `isCollectedDefinition()` — and the question includes
+    `toc`, because inside a list item or a quote the emitter renders a definition as
+    the paragraph it looks like. Answering "yes" there would end the table early and
+    let a definition change a table's shape.
+- **A footnote whose body cited another footnote rendered only one of them.** The
+  footnote section was built with `Array.prototype.map`, which fixes its length
+  before iteration; rendering a note can register a *new* note during that map, so
+  the second note got a superscript pointing at an `#fn-…` that did not exist and
+  its text never reached the page. It is a worklist bounded by a `done` set now.
+- **A link definition's title was parsed and thrown away**, so the author's title
+  disappeared from the page while the line was consumed either way. It now
+  reaches the anchor, and the first definition still wins.
+- **A refused URL produced a dead `href="#"` and a stray `)`.** `renderLink`
+  returns `null` for a refused destination, so the link renders as the literal
+  text the author wrote. An image keeps `src="#"` so its alt text survives.
+- **A placeholder injected by the renderer could be forged from user text.**
+  A document containing a NUL-wrapped digit sequence restored a code span, or
+  printed `undefined`. Placeholder characters are now rejected in source.
+- **A duplicate `id="fnref-x"`** appeared when a footnote was referenced twice.
+- **Emphasis rules paired across the renderer's own tags**, producing
+  `_<strong><del></strong>_</del>` from `___~~___~~`. Emphasis, strikethrough and
+  the rest now run inside one masked pipeline, and `~~` is no longer a pass that
+  runs outside it.
+- **A stray `[` claimed the rest of the page as link text.** Labels now match
+  balanced brackets rather than running to the first `]`, and URLs allow one level
+  of balanced parentheses — which also fixed `![b](data:…,alert(1))` printing a
+  lone `)`.
+- **A list item's continuation lines were dedented by the full marker column**, so
+  a two-space fence inside `1. ` was sliced to a stray backtick and rendered as
+  text, and `1. a` followed by `  hello` lost its first two letters.
+- **Brackets and parens were matched with quadratic scans.** 16 000 `[` went from
+  2384 ms to 0.3 ms.
+
+#### Other fixes
+
+- **`extendMarkdown({ extensions })` did nothing.** The functions were validated,
+  collected into `registry.markdown.extensions`, and never read by anything:
+  `createMarkdown` was handed `defaults` only. A plugin author's correct call was
+  silently inert. They are now applied to the Markdown source before it is split
+  into lines, in registration order. A throwing extension is reported and skipped
+  without stopping the others, and a non-string return is ignored — so
+  `s => { sideEffect() }` cannot replace the document with the word `undefined`.
+- **The built-in theme was not direction-neutral.** Five rules used physical
+  properties, so an RTL site got the code-block Copy button on the wrong side, a
+  "next" page label reading against its own arrow, the corporate project accent
+  bar on the wrong edge, a mobile nav dropdown spanning from the wrong origin, and
+  — worst — `direction: ltr` from the `--dir` variable overriding the `dir="rtl"`
+  attribute on `<html>` entirely. All logical properties now; the one thing CSS
+  cannot express logically, `direction`, is flipped in a single `[dir="rtl"]`
+  block, and the horizontal scroll animations are mirrored there too.
+- **`jprot check` said nothing about a `lang`/`dir` mismatch.** An Arabic page
+  that set only `lang` rendered correctly and laid out backwards, silently.
+  Inferred `dir` would be the wrong fix — an explicit declaration the author can
+  grep for beats a guess that overrides them — so this is a warning, not an error
+  and not a guess.
+
+### Added
+
+- **Public API surface.** `core/server.js` (the package root) now exports
+  everything the README and `jprot.d.ts` document: `createJprot`, `exportSite`,
+  `runLint`/`analyzeSite`, `runCheck`/`checkConfig`, `scaffoldSite`/`scaffoldNew`,
+  `createMarkdown`, `loadSiteConfig`/`ConfigLoadError`, `contentGraph`,
+  `loadContentGraph`, the `HOOKS` registry, `loadPlugins`/`runPlugins`,
+  `validateConfig`/`CONFIG_KEYS`/`formatConfigIssues`, and the shared helpers
+  `esc`/`safeHref`/`safeColor`/`isInside`/`slugify`/`MIME`/`editDistance`. A test
+  asserts the type file declares nothing the package does not export.
+- **Hook coverage.** `state:build`, `components:load` and `build` now actually
+  fire, and `export` fires from `core/export.js`. `HOOKS.build.args` was
+  documented as `['args']` but receives `['state']`.
+- `SECURITY.md` and `CHANGELOG.md` are now in the published `files` list.
+- 41 new tests: behavioural component-escaping guard, API surface, config load
+  failures, hooks, security headers and CSP, CLI dispatch.
+
+#### Property-based and fuzz testing
+
+- **`test/unit/property.test.js`** — 25 invariants over generated inputs:
+  escaping never emits a raw `<`, slugs are stable and URL-safe, `safeHref`
+  refuses every dangerous scheme, front matter reports the right line numbers,
+  rendering is deterministic. No dependency: a seeded generator, so a failure
+  prints a reproducible case.
+- **`test/unit/markdown-fuzz.test.js` + `test/helpers/md-fuzz.js`** — 21 fuzz
+  properties over hostile generated documents, plus a **shrinker** that reduces a
+  failure to a minimal document before printing it. The oracle checks the
+  *visible* text and `alt`/`title` attributes of the whole output, not its HTML
+  shape, which is what makes "the text quietly left the page" detectable at all.
+  Raise the case count for a harder run: `MD_FUZZ_CASES=5000 npm run test:unit`.
+- **The oracle now models code and containers, and the model is itself tested.** Wide
+  seed sweeps turned up two renderer defects (above) and **eleven** ways the *oracle*
+  was wrong about the renderer's documented behaviour — each of which had been quietly
+  reducing coverage rather than producing a false alarm:
+  1. It decided a footnote was referenced because `[^a]` appeared somewhere in the
+     file, without noticing that the only occurrence sat inside a code span, where it
+     is literal text.
+  2. It read footnote definitions with an unanchored regex, so an *indented* `[^a]:`
+     counted as a definition — while the renderer's `FOOTNOTE_DEF_RE` is
+     column-anchored and renders such a line as the paragraph it looks like.
+  3. It treated a reference inside an *orphan* definition's body as a reference. It is
+     not: the definition it lives in renders as nothing, so the text is never shown
+     and the note it cites never gets a superscript. Orphans nest, so the two sets are
+     resolved together to a fixed point.
+  4. Its code-span scan resumed one backtick *pair* after a failed match. A global
+     regex resumes at the next *position*, so in `true```` the fourth backtick opens
+     the span and not the first — the miss left a footnote reference looking like prose
+     and the token oracle reporting a definition that renders nothing.
+  5. It blanked code spans one line at a time, so a span crossing a line break — which
+     is what a paragraph *is* — was never found at all.
+  6. It did not skip definition lines wholesale when collecting references, so a whole
+     page written with bare `\r` line endings (one line to the renderer, so one
+     definition swallowing the document) still counted as a reference.
+  7. It had **one** notion of where a code block starts. There are two, and they are
+     entitled to differ: `forEachOutsideCode` is a flat toggle with no containers,
+     while the emitter recurses into list items and quotes with their own fence state.
+     An indented ``` inside a task item is a *continuation line of that item*, so it
+     opens a fence there and leaves the document outside code — and the flat scan read
+     it as an opener for the next twenty lines, taking a footnote with it. The oracle
+     now walks the same decision tree in the same order, over the same exported
+     patterns (`BLOCK_PATTERNS` in `lib/markdown/blocks.js`, internal and not part of
+     the public API), because a second copy of those patterns is a second answer to the
+     same question — which is how the emitter and the pre-scan came to disagree in the
+     first place.
+  8. `preScanView()` reported "the collector did not see this line" as one boolean,
+     which cannot express the difference between a **fence line** (filtered out, but
+     reported through `onFence`, so it *ends* an open definition) and a line **inside** a
+     fence (filtered out with no callback at all, so it can neither extend nor end one).
+     Skipping both is right for the second and wrong for the first, and the difference
+     is now carried as a per-line `kind`.
+  9. The orphan/`referenced` fixed point was *seeded* with every raw reference, so the
+     first round found no orphans and nothing was ever subtracted. That works only when
+     the reference sits on a definition line, which the scan skips wholesale; one line
+     lower, in a continuation of the definition's own body, `[^a]` is a reference to
+     itself and the note came out reported as a swallowed paragraph. It now grows
+     *upward from nothing* — a reference resolves if the line carrying it is rendered,
+     and a line is rendered if the definition hosting it is — which is monotone,
+     converges in at most one round per id, and makes a group of definitions citing
+     only each other resolve to "nothing", exactly as the renderer does.
+  10. `identifierOnlyTokens()` recorded the ids it matched and then filtered *those*,
+      which is the identity test rather than the position one. A marker inside the url
+      of `[a]: b[[[[Mk1]]` is not an id, so it was never exempted and the page was
+      reported as dropping a token it had correctly never been asked to show — the line
+      renders as nothing at all. It now decides by position: blank every identifier
+      position, and a marker gone from the result was in one. Lines inside a fence are
+      exempt from the blanking, since there a `[id]: url` is code and everything on it
+      is visible.
+
+      The rules have an order, and it is load-bearing in a way that is not obvious.
+      `[^id]` is blanked *first*, which is what stops the link-definition rule from
+      eating a footnote definition: after it, `[^a]: the note` is ` : the note`, and
+      `^\[` no longer matches. Run them the other way round and every footnote
+      definition is silently exempted, so the token oracle stops checking the one thing
+      it is best at — a referenced note's body is text the reader sees. The quoted-fence
+      rule is the renderer's `QUOTE_RE` dequoting the line, not a hand-written `>?` in the
+      pattern, because a second copy of a pattern is a second answer to the same question.
+  11. An author's unclosed tag leaves a **closing** tag whose attribute region runs on
+      across the rest of the paragraph — HTML allows newlines in attribute values — so
+      the browser reads `<sup … id="fnref-a">` as attribute names and discards them. The
+      token properties already exempted text found in `tagSyntax`; *attributes* needed
+      the same exemption, and the footnote-link and table-of-contents checks had neither,
+      so they reported the renderer's own correctly-emitted `id` as missing.
+
+  `proseOf()` models code the way the renderer does rather than the way CommonMark
+  does: the renderer's own `FENCE_OPEN_RE` for fences, and a mirror of its inline
+  rule, because the two disagree about backtick runs completely and the renderer is
+  what has to be predicted. A 21st property holds the model against the renderer in
+  both directions, because an oracle that trusts a heuristic nobody checks is just a
+  slower way to be wrong.
+- **One fuzz property was asserting a rule the renderer does not have.** "No dangerous
+  URL reaches an `href` or a `src`" banned `data:` outright, but `safeHref`'s
+  deliberate `data:image/` carve-out for images — an inline image being the one asset a
+  static site cannot ship as a file — means a correct render would have failed it. The
+  property now restates the renderer's actual rule and runs on markup-free documents,
+  since **raw HTML in Markdown is passed through on purpose** and the author's own
+  `<a href= data:…>` is not the renderer's to refuse. The generator gained the atoms
+  that make the carve-out testable in both directions: a `data:image/` URL in an image
+  (allowed), the same URL in a link (refused — it is a navigation), and
+  `data:text/html` in an image (refused). Both refusals were then confirmed by
+  re-breaking `safeHref` and watching the property go red.
+- **Two exemptions were placed where a reader would actually be looking.** A token
+  swallowed by the author's own markup is invisible *in a browser too*: HTML allows
+  newlines in attributes, so an unclosed `<b>x</b` produces a `</b …>` whose attribute
+  region runs on across the paragraph, and the browser parses those bytes as attribute
+  names and drops them. Nothing about that tag is malformed, so the exemption keys on
+  "inside tag syntax" rather than on a parse error — and it has to include *closing*
+  tags, which are exactly the ones that swallow. Likewise a fence's info string is an
+  identifier position, so `> ```lang` needs the quote marker dequeued before it can be
+  recognised as one.
+- Every fix listed above was validated by **mutation testing**: each was
+  re-broken in place and the suite had to go red. A few mutations survive *by
+  design* and are documented as such — the collector/emitter agreement is
+  redundantly defensive, so each half is individually inert and only the
+  historical combination was ever a bug.
+
+#### Incremental export
+
+- **`jprot export` no longer rebuilds unchanged pages.** It rebuilds only pages
+  whose own inputs changed, using a two-part cache key: a `global` hash (JPROT
+  version, site config, nav, docs nav, search index, and a `sourceFingerprint`
+  of the author's `theme/` tree and config files) plus a per-page `local` hash.
+  The split is safe by construction — a false negative costs redundant work,
+  never a stale page.
+- The manifest lives in `<root>/.cache/export-manifest.json`, never inside
+  `dist/`, and reuse additionally requires the output file to still hash-match,
+  so a hand-edited or truncated file is rebuilt rather than trusted.
+- `exportSite` keeps its `Promise<string>` return type; statistics go through
+  `onProgress`, and `jprot export --clean` forces a full rebuild.
+  `test/integration/export-incremental.test.js` pins the scenarios against
+  byte-identical full rebuilds.
+
+#### Documentation and contributor base
+
+- **`content/plugins.md`** — a new page documenting every hook, with three
+  complete copy-pasteable plugins (a reading-time injector, an Obsidian mirror,
+  and a redirect map), plus the honest boundaries: a custom 404 is
+  `content/404.md` and not a hook, because the built-in fallback is written
+  straight to the response.
+- **`CONTRIBUTING.md`** rewritten around what a newcomer actually needs: the
+  module map, the two rules the renderer's stage split implies (the collector and
+  the emitter must never disagree; a fence is a fence to every stage), the
+  deliberate raw-HTML passthrough, and how to add a property without
+  contradicting the design.
+- **`CODE_OF_CONDUCT.md`**, added to the published `files` list next to
+  `SECURITY.md`.
+- `content/configuration.md` gained an **RTL and direction** section covering the
+  `lang`/`dir` warning and where to put direction overrides.
+- `test/integration/rtl.test.js` — five tests, including one that fails if a
+  direction-dependent physical property is added back to the theme.
+- Seeded the repository with `markdown`, `rtl-i18n`, `security`, `breaking
+  change`, `needs discussion` and `documentation` labels alongside the existing
+  `good first issue` and `help wanted`.
+
+### Changed
+
+- **`core/server.js` was split into eight modules.** It had reached 1857 lines
+  holding the page pipeline, the client-side script bundler, the HTTP endpoints,
+  JSON-LD, asset serving, OG images, the plugin API and the 404 page. Those are
+  now `core/page.js`, `core/scripts.js`, `core/endpoints.js`, `core/jsonld.js`,
+  `core/assets.js`, `core/og.js`, `core/plugins-api.js` and `core/notfound.js`,
+  and `core/server.js` is 456 lines. The split follows the dependency DAG, so
+  `core/` has no import cycles at all. This is a pure move: all 31 exports of the
+  package root are unchanged, and `jprot export` output is byte-identical
+  (modulo the per-response CSP nonce, which is random by design).
+- Config key lists are derived from `core/schema.js` `CONFIG_KEYS` in both the
+  server and `scaffold.js`, so the "did you mean …" hint can never suggest a key
+  `jprot check` would reject, or miss one it accepts. `editDistance` is defined
+  once instead of three times.
+- README: added an authoring contract, the real limits of the Markdown engine,
+  and a note that **raw HTML in Markdown is passed through, not escaped**. It is
+  safe only because `script-src` carries a per-response nonce and no
+  `unsafe-inline`; that property is now pinned by a test.
+
 ## [0.8.1] - 2026-09-28
 
 ### Added

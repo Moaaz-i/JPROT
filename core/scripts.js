@@ -1,0 +1,472 @@
+// The client-side JavaScript, as strings.
+//
+// ~440 lines of browser code that used to sit in the middle of core/server.js
+// between the JSON-LD builder and the static file handlers, so a change to any
+// of it required reading (and re-reviewing) the whole server. Nothing here
+// imports anything: these are template strings, and the only coupling is the
+// `nonce` argument, which every script must carry to satisfy the page CSP.
+//
+// Anything non-trivial enough to deserve its own file should ship as a real
+// asset instead — see the customisation docs.
+
+export { scrollAnimScript, searchScript, spaScript, themeScript };
+
+/* ============ Scroll animation script ============ */
+
+const scrollAnimScript = (nonce) => `
+<script nonce="${nonce}">
+(function () {
+  if (!window.IntersectionObserver) return
+  function init() {
+    var targets = document.querySelectorAll('[data-animate], [data-stagger]')
+    if (!targets.length) return
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target) }
+      })
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' })
+    targets.forEach(function (el) { observer.observe(el) })
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init)
+  else init()
+})()
+</script>
+`;
+
+const themeScript = (nonce, configuredThemes) => {
+  const ids =
+    Array.isArray(configuredThemes) && configuredThemes.length
+      ? configuredThemes
+          .map((theme) => (typeof theme === "string" ? theme : theme.id))
+          .filter(Boolean)
+      : ["default", "minimal", "creative", "corporate"];
+  return `
+<script nonce="${nonce}">
+/* JPROT theme toggle — light / dark, persisted locally */
+(function () {
+  var KEY = 'jprot-theme'
+  var root = document.documentElement
+  var saved = null
+  try { saved = localStorage.getItem(KEY) } catch (e) {}
+  if (saved === 'dark' || (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    root.setAttribute('data-theme', 'dark')
+  }
+  window.jprotToggleTheme = function () {
+    var dark = root.getAttribute('data-theme') === 'dark'
+    root.setAttribute('data-theme', dark ? 'light' : 'dark')
+    try { localStorage.setItem(KEY, dark ? 'light' : 'dark') } catch (e) {}
+  }
+
+  /* JPROT variant cycle — cycles through theme variants (default → minimal → creative → corporate) */
+  var VARIANTS = ${JSON.stringify(ids)}
+  var VKEY = 'jprot-variant'
+  try {
+    var sv = localStorage.getItem(VKEY)
+    if (sv && sv !== 'default') root.setAttribute('data-variant', sv)
+  } catch (e) {}
+  window.jprotCycleVariant = function () {
+    var cur = root.getAttribute('data-variant') || 'default'
+    var idx = VARIANTS.indexOf(cur)
+    var next = VARIANTS[(idx + 1) % VARIANTS.length]
+    if (next === 'default') root.removeAttribute('data-variant')
+    else root.setAttribute('data-variant', next)
+    try { localStorage.setItem(VKEY, next) } catch (e) {}
+  }
+
+  // Event delegation for data-action buttons (keeps strict CSP: no inline JS).
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-action]')
+    if (btn) {
+      var action = btn.getAttribute('data-action')
+      if (action === 'toggle-theme') window.jprotToggleTheme()
+      else if (action === 'cycle-variant') window.jprotCycleVariant()
+      else if (action === 'search') window.jprotSearch && window.jprotSearch()
+      else if (action === 'print') window.print()
+      else if (action === 'toggle-nav') {
+        var hdr = document.querySelector('.site-header')
+        if (hdr) hdr.classList.toggle('nav-open')
+        btn.setAttribute('aria-expanded', hdr ? hdr.classList.contains('nav-open') : 'false')
+      }
+      else if (action === 'copy-code') {
+        var code = btn.parentElement && btn.parentElement.querySelector('code')
+        if (code && navigator.clipboard) {
+          navigator.clipboard.writeText(code.textContent).then(function () {
+            var old = btn.textContent
+            btn.textContent = 'Copied'
+            setTimeout(function () { btn.textContent = old }, 1200)
+          })
+        }
+      }
+      return
+    }
+    // theme picker swatches
+    var sw = e.target.closest && e.target.closest('.tp-swatch')
+    if (sw) {
+      var id = sw.getAttribute('data-variant')
+      var picker = sw.closest('.theme-picker')
+      if (picker) picker.querySelectorAll('.tp-swatch').forEach(function (b) { b.classList.remove('active') })
+      sw.classList.add('active')
+      if (id === 'default') root.removeAttribute('data-variant')
+      else root.setAttribute('data-variant', id)
+      try { localStorage.setItem(VKEY, id) } catch (e2) {}
+    }
+  })
+
+  // Mobile menu: close after picking a link, clicking outside, or hitting Escape.
+  function closeNav() {
+    var hdr = document.querySelector('.site-header')
+    if (!hdr) return
+    hdr.classList.remove('nav-open')
+    var t = hdr.querySelector('.nav-toggle')
+    if (t) t.setAttribute('aria-expanded', 'false')
+  }
+  document.addEventListener('click', function (e) {
+    if (!e.target) return
+    var inHeader = e.target.closest && e.target.closest('.site-header')
+    if (inHeader) {
+      if (e.target.closest && e.target.closest('.site-nav a')) closeNav()
+      return
+    }
+    closeNav()
+  })
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeNav()
+  })
+
+  // hydrate the theme picker's active swatch on load
+  function hydratePicker() {
+    var picker = document.querySelector('.theme-picker')
+    if (!picker) return
+    var saved = null
+    try { saved = localStorage.getItem(VKEY) } catch (e) {}
+    if (saved && saved !== 'default') {
+      picker.querySelectorAll('.tp-swatch').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-variant') === saved)
+      })
+    } else {
+      picker.querySelectorAll('.tp-swatch').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-variant') === 'default')
+      })
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hydratePicker)
+  else hydratePicker()
+})()
+</script>
+ `;
+};
+
+function searchScript(labels, nonce) {
+  const placeholder =
+    labels.searchPlaceholder || "Search pages, posts, tags...";
+  const empty = labels.searchEmpty || "No results";
+  return `
+<script nonce="${nonce}">
+/* JPROT instant search — indexes /@jprot/search.json, opens via jprotSearch() */
+(function () {
+  if (!window.fetch) return
+  var PLACEHOLDER = ${JSON.stringify(placeholder)}
+  var SEARCH_EMPTY = ${JSON.stringify(empty)}
+  function attr(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') }
+  var overlay = null
+  var input = null
+  var list = null
+  var index = null
+
+  function ensure() {
+    if (overlay) return
+    overlay = document.createElement('div')
+    overlay.className = 'search-overlay'
+    overlay.innerHTML = [
+      '<div class="search-box">',
+      '<div class="search-header">',
+      '<input class="search-input" type="search" placeholder="' + attr(PLACEHOLDER) + '" autocomplete="off">',
+      '<button class="search-close" type="button" aria-label="Close">&times;</button>',
+      '</div>',
+      '<div class="search-results"></div>',
+      '</div>',
+    ].join('')
+    document.body.appendChild(overlay)
+    input = overlay.querySelector('.search-input')
+    list = overlay.querySelector('.search-results')
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) close() })
+    overlay.querySelector('.search-close').addEventListener('click', close)
+    input.addEventListener('input', function () { render(input.value) })
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') close()
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        var rows = list.querySelectorAll('a')
+        if (!rows.length) return
+        var idx = findFocus()
+        if (e.key === 'ArrowDown') idx = (idx + 1) % rows.length
+        else idx = (idx - 1 + rows.length) % rows.length
+        e.preventDefault()
+        var next = rows[idx]
+        rows.forEach(function (a) { a.removeAttribute('data-active') })
+        next.setAttribute('data-active', '')
+        next.scrollIntoView({ block: 'nearest' })
+        return
+      }
+      if (e.key === 'Enter') {
+        var a = list.querySelector('a[data-active]') || list.querySelector('a')
+        if (a) { e.preventDefault(); openLink(a) }
+      }
+    })
+  }
+
+  function close() {
+    if (overlay) { overlay.classList.remove('open'); input.value = '' }
+  }
+
+  function openLink(a) {
+    var href = a.getAttribute('href')
+    close()
+    if (href) window.location.href = href // full nav to avoid SPA edge cases from modal
+  }
+
+  function norm(s) { return String(s || '').toLowerCase() }
+  function reEsc(q) { return q.replace(/[.*+?^()|[\]\\{}$]/g, '\\$&') }
+  function hl(s, q) {
+    if (!s) return ''
+    var e = String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    if (!q) return e
+    return e.replace(new RegExp('(' + reEsc(q) + ')', 'ig'), '<mark>$1</mark>')
+  }
+  function around(s, q) {
+    var str = String(s || '')
+    var i = norm(str).indexOf(q)
+    if (i === -1) return str.slice(0, 160)
+    var start = Math.max(0, i - 70)
+    return (start ? '…' : '') + str.slice(start, i + q.length + 90) + (start + 160 < str.length ? '…' : '')
+  }
+  function findFocus() {
+    var idx = -1
+    list.querySelectorAll('a').forEach(function (a, i) { if (a.hasAttribute('data-active')) idx = i })
+    return idx
+  }
+
+  function render(q) {
+    q = norm(q)
+    if (!q) { list.innerHTML = ''; return }
+    var data = index || []
+    var found = []
+    for (var i = 0; i < data.length; i++) {
+      var e = data[i]
+      // every field is searchable: title, url, date, tags, full body and all
+      // frontmatter — plus the unprocessed raw source so fence markers, link
+      // URLs and syntax that got stripped still count
+      var hay = [norm(e.title), norm(e.excerpt), norm(e.url), norm(e.date), norm(e.body), norm(e.frontmatter), norm(e.raw)]
+      var tags = e.tags || []
+      for (var t = 0; t < tags.length; t++) hay.push(norm(tags[t]))
+      var hit = false
+      for (var j = 0; j < hay.length; j++) { if (hay[j].indexOf(q) !== -1) { hit = true; break } }
+      if (hit) {
+        found.push(e)
+        if (found.length >= 12) break
+      }
+    }
+    if (!found.length) { list.innerHTML = '<div class="search-empty">' + attr(SEARCH_EMPTY) + '</div>'; return }
+    list.innerHTML = found.map(function (e) {
+      var title = hl(e.title, q)
+      var snippet = ''
+      if (e.body && norm(e.body).indexOf(q) !== -1) snippet = hl(around(e.body, q), q)
+      else if (e.raw && norm(e.raw).indexOf(q) !== -1) snippet = hl(around(e.raw, q), q)
+      else if (e.frontmatter && norm(e.frontmatter).indexOf(q) !== -1) snippet = hl('Config: ' + around(e.frontmatter, q), q)
+      if (!snippet && e.excerpt) snippet = hl(e.excerpt, q)
+      var tag = (e.tags && e.tags.length) ? '<span class="search-tags">' + e.tags.map(function (t) { return '<span>' + hl(t, q) + '</span>' }).join('') + '</span>' : ''
+      var excerpt = snippet ? '<span class="search-excerpt">' + snippet + '</span>' : ''
+      return '<a href="' + e.url + '" class="search-result"><span class="search-title">' + title + '</span>' + excerpt + tag + '</a>'
+    }).join('')
+  }
+
+  window.jprotSearch = async function () {
+    ensure()
+    overlay.classList.add('open')
+    input.focus()
+    if (index === null) {
+      try {
+        const res = await fetch('/@jprot/search.json')
+        index = (await res.json()) || []
+        render(input.value)
+      } catch {
+        index = []
+      }
+    } else {
+      render(input.value)
+    }
+  }
+  document.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); window.jprotSearch() }
+  })
+})()
+</script>
+`;
+}
+
+const spaScript = (nonce) => `
+<script nonce="${nonce}">
+/* JPROT SPA navigation — no full page reload on internal links */
+(function () {
+  if (!window.history || !window.fetch) return
+
+  var scrollMap = {}
+
+  function isSameOrigin(url) {
+    return url.origin === window.location.origin
+  }
+
+  function pathOf(url) {
+    return new URL(url, window.location.href).pathname
+  }
+
+  function setActiveLink() {
+    var path = window.location.pathname
+    document.querySelectorAll('.site-nav a[href], .sb-link[href]').forEach(function (a) {
+      var href = a.getAttribute('href') || ''
+      var hrefPath = href.split('#')[0].replace(/\\/$/, '')
+      var cur = path.replace(/\\/$/, '')
+      var active = hrefPath === cur || (hrefPath !== '/' && cur.startsWith(hrefPath))
+      a.classList.toggle('active', active)
+      if (active) a.setAttribute('aria-current', 'page')
+      else a.removeAttribute('aria-current')
+    })
+  }
+
+  // After a route change, move focus into the freshly loaded <main> and tell
+  // assistive tech which page we're on. Without this, a keyboard or
+  // screen-reader user follows a link and nothing announces that the page
+  // changed - they stay where they were on the old page.
+  function announceAndFocus() {
+    var live = document.getElementById('jprot-announce')
+    if (live) live.textContent = document.title
+    var main = document.querySelector('main')
+    if (!main) return
+    try { main.focus({ preventScroll: true }) }
+    catch (e) { /* old browser: focus without scroll locking; applyScroll below wins */ main.focus() }
+  }
+
+  function scrollToHash(hash) {
+    if (!hash) return
+    var el = document.getElementById(hash.replace('#', ''))
+    if (el) el.scrollIntoView()
+  }
+
+  function applyScroll(url, restore) {
+    if (restore) {
+      var saved = scrollMap[pathOf(url)]
+      window.scrollTo(0, saved || 0)
+      scrollToHash(new URL(url, window.location.href).hash)
+    } else {
+      window.scrollTo(0, 0)
+    }
+  }
+
+  async function loadPage(url, push, restore) {
+    try {
+      const res = await fetch(url, { headers: { 'X-JPROT-SPA': '1' } })
+      if (!res.ok) { window.location.href = url; return }
+      const html = await res.text()
+      // res.url is the final URL after any redirect (e.g. .md → clean URL),
+      // so the address bar, history and scroll map agree with what was served
+      var finalUrl = new URL(res.url || url, window.location.href).href
+      var doc = new DOMParser().parseFromString(html, 'text/html')
+      var nextMain = doc.querySelector('main')
+      var curMain = document.querySelector('main')
+      if (nextMain && curMain) {
+        curMain.outerHTML = nextMain.outerHTML
+      }
+      document.title = doc.title || document.title
+      if (push) { history.pushState({ path: finalUrl }, '', finalUrl) }
+      setActiveLink()
+      announceAndFocus()
+      applyScroll(finalUrl, restore)
+    } catch {
+      window.location.href = url
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    var target = e.target.closest ? e.target.closest('a[href]') : null
+    if (!target) return
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    if (target.hasAttribute('download') || target.target === '_blank') return
+
+    var url = new URL(target.href, window.location.href)
+    if (!isSameOrigin(url)) return
+
+    // same page with an anchor: just scroll to the element
+    if (pathOf(url.href) === pathOf(window.location.href)) {
+      if (url.hash) {
+        e.preventDefault()
+        scrollToHash(url.hash)
+        history.replaceState({ path: url.href }, '', url.href)
+      }
+      return
+    }
+
+    // remember where we were, so Back restores this position
+    scrollMap[window.location.pathname] = window.scrollY
+
+    e.preventDefault()
+    loadPage(url.href, true, false)
+  })
+
+  window.addEventListener('popstate', function () {
+    loadPage(window.location.href, false, true)
+  })
+
+  // project filter buttons (strict-CSP friendly: no inline scripts)
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('[data-filter]') : null
+    if (!btn) return
+    var f = btn.getAttribute('data-filter')
+    document.querySelectorAll('.filter-btn').forEach(function (b) {
+      b.classList.toggle('active', b === btn)
+    })
+    var showAll = f === '*'
+    document.querySelectorAll('.project-card').forEach(function (card) {
+      var tags = card.getAttribute('data-tags') || ''
+      card.style.display = (showAll || tags.split(' ').includes('tag-' + f)) ? '' : 'none'
+    })
+  })
+
+  // contact form submit via fetch (strict-CSP friendly: no inline scripts)
+  document.addEventListener('submit', function (e) {
+    var form = e.target.closest ? e.target.closest('.contact-form') : null
+    if (!form) return
+    e.preventDefault()
+    fetch(form.action, {
+      method: 'POST',
+      body: new FormData(form),
+      headers: { 'Accept': 'application/json' }
+    }).then(function (r) {
+      if (r.ok) {
+        form.style.display = 'none'
+        document.querySelector('.contact-success').style.display = 'block'
+      }
+    }).catch(function () {})
+  })
+
+  // scrollspy: highlight the sidebar link of the section in view
+  function updateSpy() {
+    var anchors = Array.from(document.querySelectorAll('.sb-anchor[href^="#"]'))
+    if (!anchors.length) return
+    var pos = window.scrollY + 120
+    var current = null
+    for (var i = 0; i < anchors.length; i++) {
+      var el = document.getElementById(anchors[i].getAttribute('href').slice(1))
+      if (el && el.offsetTop <= pos) current = anchors[i]
+    }
+    anchors.forEach(function (a) { a.classList.toggle('active', a === current) })
+  }
+  var spyTimer = null
+  window.addEventListener('scroll', function () {
+    clearTimeout(spyTimer)
+    spyTimer = setTimeout(updateSpy, 80)
+  })
+  setTimeout(updateSpy, 200)
+
+  setActiveLink()
+})()
+</script>
+`;

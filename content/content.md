@@ -193,7 +193,10 @@ Extras on top of CommonMark:
 
 - **Footnotes** — reference with `[^1]`, define anywhere with `[^1]: text`.
   A notes section with backlinks is appended automatically. Turn off with
-  `markdown.footnotes: false`.
+  `markdown.footnotes: false`. A definition continues onto the indented, non-blank
+  lines directly beneath it and stops at the first blank, unindented or fenced line —
+  so keep the note on one line unless you mean to indent the continuation.
+  A definition nothing references renders as nothing.
 - **Autolinks** — `<https://example.com>` and `<you@example.com>` become links
   automatically. Turn off with `markdown.autolinks: false`.
 - **Task lists** — `- [ ] todo` and `- [x] done` render as disabled

@@ -1,7 +1,7 @@
 ---
 title: Troubleshooting
 description: Fix common JPROT setup, content, export, and deployment problems.
-order: 11
+order: 12
 nav: Troubleshooting
 ---
 

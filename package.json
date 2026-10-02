@@ -1,6 +1,6 @@
 {
   "name": "jprot",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "A fully customizable Portfolio site generator that serves Markdown without a build step",
   "type": "module",
   "main": "./core/server.js",
@@ -35,7 +35,10 @@
     "lib",
     "theme",
     "examples",
-    "jprot.d.ts"
+    "jprot.d.ts",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "dev": "node core/cli.js",

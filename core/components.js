@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url'
 import { DEFAULT_THEME_DIR } from './config.js'
 import { parseFrontmatter } from '../lib/frontmatter.js'
 import { createMarkdown } from '../lib/markdown.js'
-import { slugify } from './utils.js'
+import { editDistance as distance, slugify } from './utils.js'
 
 async function listComponents(sourceDir) {
   const names = []
@@ -212,16 +212,4 @@ function suggestKey(keys, input) {
     if (score < bestScore) { bestScore = score; best = key }
   }
   return bestScore <= Math.max(2, Math.floor(target.length / 3)) ? best : null
-}
-
-function distance(a, b) {
-  const rows = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)])
-  for (let j = 0; j <= b.length; j++) rows[0][j] = j
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1
-      rows[i][j] = Math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + cost)
-    }
-  }
-  return rows[a.length][b.length]
 }

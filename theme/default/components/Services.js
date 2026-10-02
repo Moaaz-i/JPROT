@@ -1,4 +1,4 @@
-import { esc } from '../../../core/utils.js'
+import { esc, safeHref } from '../../../core/utils.js'
 
 export default function Services({ title = 'Services', subtitle = '', items = [] }) {
   let i = 0
@@ -11,7 +11,7 @@ export default function Services({ title = 'Services', subtitle = '', items = []
         ${iconHtml}
         <h3 class="service-title">${esc(it.title || '')}</h3>
         ${it.description ? `<p class="service-desc">${esc(it.description)}</p>` : ''}
-        ${it.link ? `<a class="service-link" href="${esc(it.link)}">Learn more →</a>` : ''}
+        ${it.link ? `<a class="service-link" href="${esc(safeHref(it.link))}">Learn more →</a>` : ''}
       </div>`
   }).join('')
 

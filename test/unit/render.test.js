@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseDocument, renderDocumentBody } from '../../core/render.js'
+import { parseDocument, renderDocumentBody, renderSections } from '../../core/render.js'
 import { createMarkdown } from '../../lib/markdown.js'
 
 const md = createMarkdown()
@@ -81,4 +81,66 @@ test('parseDocument produces markdown and shortcode nodes', () => {
   assert.deepEqual(nodes[1].attrs, { title: 'A' })
   assert.equal(nodes[1].children[0].type, 'markdown')
   assert.equal(nodes[1].line, 3)
+})
+
+test('renderSections passes framework context and the section props', async () => {
+  let seen = null
+  const html = await renderSections({
+    site: { title: 'Site' },
+    page: { url: '/p' },
+    nav: [{ label: 'Home' }],
+    projects: [],
+    posts: [],
+    sections: [{ component: 'Probe', title: 'Section title', count: 3 }],
+    components: {
+      Probe: async (props) => {
+        seen = props
+        return '<div></div>'
+      },
+    },
+  })
+  assert.match(html, /<div>/)
+  assert.equal(seen.title, 'Section title', 'section props must reach the component')
+  assert.equal(seen.count, 3)
+  assert.deepEqual(seen.site, { title: 'Site' })
+  assert.deepEqual(seen.nav, [{ label: 'Home' }])
+})
+
+// Author input must not be able to replace the render context a component is
+// supposed to be rendering against. `...rest` used to be spread last, so a
+// `site:` key inside a `sections:` entry won.
+test('a sections entry cannot override the framework context', async () => {
+  let seen = null
+  await renderSections({
+    site: { title: 'Real' },
+    page: { url: '/real' },
+    nav: [{ label: 'Real' }],
+    projects: [{ url: 'real' }],
+    posts: [{ slug: 'real' }],
+    sections: [{
+      component: 'Probe',
+      site: { title: 'Fake' },
+      page: { url: '/fake' },
+      nav: [],
+      projects: [],
+      posts: [],
+    }],
+    components: {
+      Probe: async (props) => { seen = props; return '' },
+    },
+  })
+  assert.deepEqual(seen.site, { title: 'Real' })
+  assert.equal(seen.page.url, '/real')
+  assert.deepEqual(seen.nav, [{ label: 'Real' }])
+  assert.deepEqual(seen.projects, [{ url: 'real' }])
+  assert.deepEqual(seen.posts, [{ slug: 'real' }])
+})
+
+test('a sections entry for an unknown component is skipped, not fatal', async () => {
+  const html = await renderSections({
+    site: {}, page: {}, nav: [], projects: [], posts: [],
+    sections: [{ component: 'DoesNotExist' }, { component: 'Card', title: 'ok' }],
+    components: { Card: comp },
+  })
+  assert.match(html, /ok/)
 })

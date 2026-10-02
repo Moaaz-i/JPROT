@@ -1,7 +1,7 @@
 ---
 title: JPROT vs VitePress
 description: Compare JPROT's no-build workflow with a build-time documentation framework.
-order: 14
+order: 15
 nav: Comparison
 ---
 

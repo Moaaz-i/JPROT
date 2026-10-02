@@ -172,7 +172,7 @@ export default {
 | `tagline` | string | — | Short site tagline |
 | `description` | string | — | Meta description for SEO |
 | `lang` | string | `'en'` | `<html lang>` attribute |
-| `dir` | string | `'ltr'` | Text direction (`'ltr'` or `'rtl'`) |
+| `dir` | string | `'ltr'` | Text direction (`'ltr'` or `'rtl'`). See [RTL and direction](#rtl-and-direction) |
 | `url` | string | — | Canonical site URL (for sitemap, Open Graph, RSS, canonical tags) |
 | `basePath` | string | — | Static export prefix for project sites, e.g. `/REPOSITORY` (folded into exported URLs and `manifest.json`) |
 | `docs` | boolean | `false` | Enable docs navigation: breadcrumbs, sidebar reading order, previous/next links |
@@ -214,7 +214,40 @@ export default {
 | `markdown` | object | all on | Toggle individual Markdown features |
 | `themes` | array | built-ins | Theme variants offered by the picker/cycle button |
 | `lint` | object | — | `{ ignore: string[] }` — globs of Markdown files `jprot lint` skips |
-| `plugins` | string[] | — | Plugin specifiers to run on every state build, e.g. `['./plugins/analytics.js']` (see [Plugins](customization.md#13-plugins)) |
+| `plugins` | string[] | — | Plugin specifiers to run on every state build, e.g. `['./plugins/analytics.js']` (see [Plugins](plugins.md)) |
+
+## RTL and direction
+
+Set `dir` to `'rtl'` and JPROT emits `dir="rtl"` on `<html>`. The built-in
+theme is written with logical CSS properties, so spacing, borders and the
+sidebar follow the direction with no extra work:
+
+```js
+export default {
+  title: 'موقعي',
+  lang: 'ar',
+  dir: 'rtl',
+}
+```
+
+**Set `dir` explicitly even when `lang` already implies it.** `dir` defaults to
+`'ltr'`, the same as a browser, so an Arabic page that only sets `lang` renders
+correctly and lays out backwards with nothing saying so. `jprot check` warns when
+`lang` is a right-to-left language and `dir` is not `'rtl'`:
+
+```
+⚠ dir — lang "ar" is right-to-left — set `dir: "rtl"` or the layout will be mirrored
+```
+
+It is a warning rather than an error on purpose: an Arabic interface inside an
+LTR shell is a legitimate choice, and one that the author should be the one to
+make.
+
+Everything direction-dependent is in one place. The theme has a single
+`[dir="rtl"]` block near the top for the cases CSS cannot express logically —
+`direction` and `translateX` — and one-line overrides beside the horizontal
+scroll animations. Add your own to the same block rather than scattering
+`[dir="rtl"]` rules through `theme/custom.css`.
 
 ## Validating your config
 

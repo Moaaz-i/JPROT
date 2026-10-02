@@ -25,9 +25,24 @@
   --radius: 12px;
   --space: 1.5rem;
 
-  /* Direction */
+  /* Direction.
+     `direction` and `text-align` take physical keywords, so they are the one
+     thing here that cannot be written logically in the declaration itself —
+     `--text-align: start` resolves against `direction`, which resolves against
+     `--dir`, which is what the `[dir="rtl"]` block below flips. Everything else
+     in this file uses logical properties (`padding-inline`, `inset-inline-end`,
+     `text-align: end`), so switching direction needs no other change. */
   --dir: ltr;
-  --text-align: left;
+  --text-align: start;
+}
+
+/* Right-to-left.
+   JPROT emits `dir` on <html> from `site.dir`, so this one selector is the
+   switch for every direction-dependent rule in the theme. Add RTL overrides
+   here rather than scattering `[dir="rtl"]` blocks through the file — a single
+   block is greppable, and the logical properties handle most cases already. */
+[dir="rtl"] {
+  --dir: rtl;
 }
 
 /* Dark theme — toggled with the ◐ button, or follows system pref */
@@ -210,7 +225,7 @@ a:hover { text-decoration: underline; }
   overflow-x: auto;
 }
 .copy-code {
-  position: absolute; top: 0.45rem; right: 0.5rem;
+  position: absolute; top: 0.45rem; inset-inline-end: 0.5rem;
   border: 1px solid var(--color-border); border-radius: 6px;
   background: var(--color-surface); color: var(--color-muted);
   padding: 0.2rem 0.45rem; font: inherit; font-size: 0.75rem; cursor: pointer;
@@ -233,7 +248,10 @@ a:hover { text-decoration: underline; }
 .docs-pagination a:hover { border-color: var(--color-accent); text-decoration: none; }
 .docs-pagination small { color: var(--color-muted); }
 .docs-pagination strong { color: var(--color-text); }
-.docs-next { text-align: right; }
+/* `end`, not `right`: the pagination row is `justify-content: space-between`, so
+   in RTL "next" is already the visually-left item and `end` is what matches it.
+   A hard `right` left the label reading against the arrow beside it. */
+.docs-next { text-align: end; }
 .page-content code {
   font-family: var(--font-mono);
   font-size: 0.9em;
@@ -492,8 +510,7 @@ a:hover { text-decoration: underline; }
   .site-nav {
     position: absolute;
     top: 100%;
-    left: 0;
-    right: 0;
+    inset-inline: 0;
     height: 100vh;
     display: none;
     flex-direction: column;
@@ -784,7 +801,7 @@ a:hover { text-decoration: underline; }
   --color-border: #1e293b;
   --color-code-bg: #1e293b;
 }
-[data-variant="corporate"] .project-card { border-left: 3px solid var(--color-accent); }
+[data-variant="corporate"] .project-card { border-inline-start: 3px solid var(--color-accent); }
 [data-variant="corporate"] .btn {
   text-transform: uppercase;
   font-size: 0.875rem;
@@ -897,6 +914,10 @@ a:hover { text-decoration: underline; }
   from { opacity: 0; transform: translateX(-24px); }
   to { opacity: 1; transform: translateX(0); }
 }
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
 .hero { animation: fadeIn 0.6s ease; }
 .hero-title { animation: fadeInUp 0.7s ease 0.1s both; }
 .hero-subtitle { animation: fadeInUp 0.7s ease 0.25s both; }
@@ -913,6 +934,16 @@ a:hover { text-decoration: underline; }
 [data-animate="slide-right"] { opacity: 0; transform: translateX(30px); }
 [data-animate="scale"] { opacity: 0; transform: scale(0.95); }
 [data-animate].visible { opacity: 1; transform: none; }
+
+/* The horizontal animations are the one place `translateX` cannot be made
+   logical: the property has no `inline-start` form. The names are relative to
+   the *reading* direction, so in RTL a "slide-left" element should arrive from
+   the right. `prefers-reduced-motion` below zeroes these, which is a no-op in
+   either direction. */
+[dir="rtl"] [data-animate="slide-left"] { transform: translateX(30px); }
+[dir="rtl"] [data-animate="slide-right"] { transform: translateX(-30px); }
+[dir="rtl"] .slide-in-left { animation-name: slideInRight; }
+[dir="rtl"] .slide-in-right { animation-name: slideInLeft; }
 
 /* Stagger children */
 [data-stagger] > * { opacity: 0; transform: translateY(16px); transition: opacity 0.4s ease, transform 0.4s ease; }
@@ -1086,11 +1117,12 @@ a:hover { text-decoration: underline; }
 
 /* ---------- Accessibility ---------- */
 /* Skip link: visually hidden until focused with the keyboard, then pinned to
-   the top-left corner above everything else. */
+   the top-inline-start corner above everything else — so it lands where the
+   reading direction starts, in both LTR and RTL. */
 .skip-link {
   position: absolute;
   top: -100%;
-  left: 0;
+  inset-inline-start: 0;
   z-index: 1001;
   padding: 0.6rem 1rem;
   font-weight: 700;

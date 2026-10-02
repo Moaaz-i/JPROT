@@ -66,9 +66,36 @@ function projectRoot() {
   return resolve(process.cwd());
 }
 
+// Flags that consume the token after them, so it is a value and never a command.
+const VALUE_FLAGS = new Set([
+  "--port", "--root", "--out", "--base-path", "--template", "--from",
+  "--palette", "--format",
+]);
+
+/**
+ * The positional arguments, in order, with flags and their values removed.
+ *
+ * Dispatch must not read `args[0]`: `jprot --root ./site new page foo` puts a
+ * flag there, so every `args[0] === "…"` check missed and the CLI fell through
+ * to starting the dev server. Two bugs of that shape shipped: this one, and
+ * `args.includes("lint")` matching the word inside `jprot new page "lint"`.
+ */
+function positionals(args) {
+  const out = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (VALUE_FLAGS.has(a)) { i++; continue; }
+    if (a.startsWith("-")) continue;
+    out.push(a);
+  }
+  return out;
+}
+
 export async function bootstrap() {
   const { createJprot } = await import("./server.js");
   const args = process.argv.slice(2);
+  const pos = positionals(args);
+  const command = pos[0];
   if (args.includes("-h") || args.includes("--help")) {
     printHelp();
     return;
@@ -78,7 +105,7 @@ export async function bootstrap() {
     return;
   }
 
-  if (args[0] === "search" || args[0] === "add") {
+  if (command === "search" || command === "add") {
     const { searchCatalog, addCatalogElement, resolveCatalogUrl, catalogHelp } = await import("./catalog.js");
     const fromIdx = args.indexOf("--from");
     const catalogUrl = await resolveCatalogUrl({ projectRoot: projectRoot(), from: fromIdx >= 0 ? args[fromIdx + 1] : undefined });
@@ -88,8 +115,8 @@ export async function bootstrap() {
       process.exitCode = 1;
       return;
     }
-    if (args[0] === "search") {
-      const query = args[1];
+    if (command === "search") {
+      const query = pos[1];
       try {
         const { items, meta } = await searchCatalog({ catalogUrl: catalogUrl, query });
         console.log(`  ${items.length} element(s)` + (query ? ` for "${query}"` : "") + ` — catalog v${meta.version || "?"} (${catalogUrl})`);
@@ -106,7 +133,7 @@ export async function bootstrap() {
       }
       return;
     }
-    const name = args[1];
+    const name = pos[1];
     if (!name || !/^[A-Za-z][A-Za-z0-9]*$/.test(name)) {
       console.error("  Usage: jprot add <ComponentName>   e.g. jprot add SplitHero");
       process.exitCode = 1;
@@ -123,32 +150,49 @@ export async function bootstrap() {
     return;
   }
 
-  if (args[0] === "export" || args.includes("--export")) {
+  if (command === "export" || args.includes("--export")) {
     const { exportSite } = await import("./export.js");
     const outIdx = args.indexOf("--out");
     const outDir = outIdx >= 0 ? args[outIdx + 1] : undefined;
     const baseIdx = args.indexOf("--base-path");
     const basePath = baseIdx >= 0 ? args[baseIdx + 1] : undefined;
-    const dest = await exportSite({ root: projectRoot(), outDir, basePath });
+    // `--clean` throws away the incremental cache and rebuilds every page, for
+    // when a bug (rather than a content change) is suspected.
+    const clean = args.includes("--clean");
+    const started = Date.now();
+    const dest = await exportSite({
+      root: projectRoot(),
+      outDir,
+      basePath,
+      clean,
+      onProgress: ({ rendered, reused, written }) => {
+        const ms = Date.now() - started;
+        const parts = [`${rendered} page(s) rendered`];
+        // Reuse is the point of the cache, so say so when it happened.
+        if (reused) parts.push(`${reused} unchanged (reused)`);
+        if (written) parts.push(`${written} file(s) written`);
+        console.log(`  ${parts.join(', ')} in ${ms}ms`);
+      },
+    });
     console.log(`  Exported site to: ${dest}`);
     return;
   }
 
-  if (args[0] === "check") {
+  if (command === "check") {
     const { runCheck } = await import("./check.js");
     const code = await runCheck({ root: projectRoot(), strict: args.includes("--strict") });
     process.exitCode = code;
     return;
   }
 
-  if (args.includes("lint")) {
+  if (command === "lint") {
     const { runLint } = await import("./lint.js");
     const code = await runLint({ root: projectRoot() });
     process.exitCode = code;
     return;
   }
 
-  if (args[0] === "init") {
+  if (command === "init") {
     const { scaffoldSite } = await import("./scaffold.js");
     const type = args.find((a) => ["--portfolio", "--docs", "--resume"].includes(a))?.replace("--", "") || "portfolio";
     const root = projectRoot();
@@ -161,10 +205,10 @@ export async function bootstrap() {
     return;
   }
 
-  if (args[0] === "new") {
+  if (command === "new") {
     const { scaffoldNew } = await import("./scaffold.js");
-    const kind = args[1];
-    const title = args[2];
+    const kind = pos[1];
+    const title = pos[2];
     const draft = args.includes("--draft");
     const tIdx = args.indexOf("--template");
     const template = tIdx >= 0 ? args[tIdx + 1] : undefined;
@@ -178,16 +222,16 @@ export async function bootstrap() {
     return;
   }
 
-  if (args[0] === "g" || args[0] === "generate") {
+  if (command === "g" || command === "generate") {
     const { componentPaletteList } = await import("./scaffold.js");
-    if (args[1] === "list") {
+    if (pos[1] === "list") {
       console.log("  Component templates:");
       for (const t of componentPaletteList()) console.log(`    ${t.id.padEnd(9)} ${t.desc}`);
       return;
     }
-    if (args[1] === "component") {
+    if (pos[1] === "component") {
       const { scaffoldComponent } = await import("./scaffold.js");
-      const name = args[2];
+      const name = pos[2];
       const pIdx = args.indexOf("--palette");
       const palette = pIdx >= 0 ? args[pIdx + 1] : "section";
       const fIdx = args.indexOf("--format");
@@ -225,8 +269,8 @@ export async function bootstrap() {
 
   // Anything that is not a known subcommand, a flag, or a positional port
   // number is a typo — do not silently start the dev server.
-  const unknown = args[0];
-  if (unknown && !unknown.startsWith("-") && !/^\d+$/.test(unknown)) {
+  const unknown = command;
+  if (unknown && !/^\d+$/.test(unknown)) {
     console.error(`  \u2716 unknown command "${unknown}"`);
     printHelp();
     process.exitCode = 1;
@@ -244,6 +288,11 @@ export async function bootstrap() {
   const port = Number.isFinite(portArg) && portArg > 0 ? portArg : 4114;
   const allowEmbed = args.includes("--allow-embed");
   const app = await createJprot({
+    // `--root` was documented and honoured by every subcommand except this one:
+    // it was simply never passed through, so `jprot --root ../other` served the
+    // current directory instead. Every other command already used
+    // projectRoot(), so the dev server now does too.
+    root: projectRoot(),
     port,
     host,
     watch: !noWatch,
@@ -279,5 +328,20 @@ function isMainModule() {
 }
 
 if (isMainModule()) {
-  await bootstrap();
+  // A config that cannot be loaded is a user error, not a crash. Print the
+  // reason and the fix instead of an unhandled stack trace, and exit non-zero
+  // so `jprot --prod` in a script or a CI job actually fails.
+  try {
+    await bootstrap();
+  } catch (err) {
+    if (err && err.name === "ConfigLoadError") {
+      console.error(`  ✖ ${err.message}`);
+      console.error("");
+      console.error(`    Run \`jprot check\` for a line-numbered report.`);
+      console.error("");
+      process.exitCode = 1;
+    } else {
+      throw err;
+    }
+  }
 }

@@ -1,4 +1,4 @@
-import { esc } from '../../../core/utils.js'
+import { esc, safeHref } from '../../../core/utils.js'
 
 export default function Contact(props) {
   const { site, page } = props
@@ -10,7 +10,7 @@ export default function Contact(props) {
   const subtitle = d.subtitle || L.contactSubtitle || ''
 
   const formHtml = action
-    ? `<form class="contact-form" action="${esc(action)}" method="POST" target="_blank">
+    ? `<form class="contact-form" action="${esc(safeHref(action))}" method="POST" target="_blank">
         <div class="form-row">
           <label for="cf-name">${esc(L.name || 'Name')}</label>
           <input id="cf-name" name="name" type="text" required placeholder="${esc(L.namePlaceholder || 'Your name')}">

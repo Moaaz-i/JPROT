@@ -550,7 +550,47 @@ export interface JprotOptions {
   publicDir?: string
 }
 
-export function exportSite(options?: { root?: string; outDir?: string }): Promise<string>
+/** What one export did, reported through {@link ExportOptions.onProgress}. */
+export interface ExportStats {
+  /** Pages fetched from the server and rendered this run. */
+  rendered: number
+  /** Pages skipped because nothing that can affect them had changed. */
+  reused: number
+  /** Files whose bytes actually changed on disk. */
+  written: number
+  /** The output directory. */
+  dest: string
+}
+
+export interface ExportOptions {
+  root?: string
+  outDir?: string
+  basePath?: string
+  /**
+   * Ignore the incremental cache and render every page. Use when a change you
+   * did not make is suspected (a JPROT upgrade, a hand-edited `dist/`).
+   */
+  clean?: boolean
+  /**
+   * Called once per completed export. Progress is a reporting concern, not part
+   * of the result, so it does not change the `Promise<string>` return type.
+   */
+  onProgress?: (stats: ExportStats) => void
+}
+
+/**
+ * Render the whole site to a directory.
+ *
+ * Incremental by default: a build whose inputs are unchanged reuses the
+ * previous run's output files instead of re-rendering them. The cache lives in
+ * `<root>/.cache/export-manifest.json` — never inside the output directory, so
+ * nothing extra is deployed. Safe by construction: a page is only ever skipped
+ * when neither its own content nor anything site-wide (config, theme,
+ * stylesheets, JPROT version) has changed *and* its output file is still
+ * byte-for-byte what was written last time. A stale or hand-edited file is
+ * rebuilt rather than trusted.
+ */
+export function exportSite(options?: ExportOptions): Promise<string>
 
 export function runLint(options?: { root?: string }): Promise<number>
 

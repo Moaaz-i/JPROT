@@ -6,9 +6,17 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 // other. AsyncLocalStorage propagates correctly across our async helpers.
 const als = new AsyncLocalStorage()
 
-// Fallback store used when renderPage()/helpers are called outside of a
-// request context (e.g. the standalone programmatic API). Within a request,
-// the AsyncLocalStorage store always takes precedence.
+// Fallback store, used ONLY when a helper is called outside a request context
+// (the standalone programmatic API, `jprot export`'s post-run hooks). Within a
+// request the AsyncLocalStorage store always takes precedence, and
+// test/unit/state.test.js pins that guarantee.
+//
+// It is still one module-level slot, so two instances in the same process have
+// no way to keep separate fallbacks: the last `createJprot()` wins for any
+// unscoped read. That is fine for the CLI (one instance per process) and for
+// the dev server (every request is scoped), but a host embedding several JPROT
+// instances must route every call through its own request scope rather than
+// calling the bare helpers concurrently.
 let fallbackState = {}
 
 export function state() {

@@ -27,7 +27,33 @@ import { runPlugins } from './plugins.js'
  */
 export async function checkConfig({ root, config: configOption, strict = false } = {}) {
   const projectRoot = root || process.cwd()
-  const { config, file, source } = await loadConfigWithSource(projectRoot, configOption, true)
+
+  // A config that cannot even be loaded is the first thing to report, and the
+  // one thing that makes every other check meaningless — so return early with
+  // just that error rather than throwing.
+  let loaded
+  try {
+    loaded = await loadConfigWithSource(projectRoot, configOption, true)
+  } catch (e) {
+    const file = (e && e.file) || 'jprot.config.js'
+    return {
+      ok: false,
+      errors: [{
+        level: 'error',
+        path: 'config',
+        message: `could not be loaded — ${e.message}`,
+        file,
+        line: 0,
+      }],
+      warnings: [],
+      sections: [],
+      plugins: [],
+      config: {},
+      file,
+    }
+  }
+
+  const { config, file, source } = loaded
   const result = validateConfig(config, { file, source })
   const errors = [...result.errors]
   const warnings = [...result.warnings]
@@ -114,16 +140,26 @@ export async function runCheck({ root, strict = false } = {}) {
   const report = await checkConfig({ root, strict })
   const { errors, warnings, file } = report
 
+  // `file` is empty when the project has no config file at all. Every key is
+  // optional, so that is valid — but saying "jprot.config.js is valid" about a
+  // file that does not exist is a lie, and it used to be exactly that.
+  const subject = file || 'no config file (defaults in use)'
+
   if (!errors.length && !warnings.length) {
-    console.log(`✔ check: ${file} is valid`)
+    if (!file) {
+      console.log(`✔ check: no jprot.config.js — every setting is optional, so this is valid.`)
+      console.log(`  Run \`jprot init\` to create one.`)
+    } else {
+      console.log(`✔ check: ${file} is valid`)
+    }
     return 0
   }
 
   if (errors.length) {
-    console.log(`✖ check: ${errors.length} error(s) in ${file}`)
+    console.log(`✖ check: ${errors.length} error(s) in ${subject}`)
     console.log(formatConfigIssues({ errors, warnings: [] }))
   } else {
-    console.log(`⚠ check: ${file} is valid with ${warnings.length} warning(s)`)
+    console.log(`⚠ check: ${subject} is valid with ${warnings.length} warning(s)`)
   }
   if (warnings.length) {
     if (errors.length) console.log('  ── warnings')

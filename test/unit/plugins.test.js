@@ -25,6 +25,31 @@ test('HOOKS documents every event, with its arguments', () => {
   assert.ok('endpoint:json' in HOOKS)
 })
 
+// Every hook a plugin can register must actually be dispatched. Three of the
+// eight used to be declared, accepted by `on()`, and then never fired — so a
+// plugin author's correct code silently did nothing.
+test('every declared hook is dispatched at least once in core/', async () => {
+  const { readFile, readdir } = await import('node:fs/promises')
+  const { join } = await import('node:path')
+  const { REPO_ROOT } = await import('../helpers/site.js')
+
+  const dir = join(REPO_ROOT, 'core')
+  const sources = []
+  for (const name of await readdir(dir)) {
+    if (name.endsWith('.js')) sources.push(await readFile(join(dir, name), 'utf8'))
+  }
+  const all = sources.join('\n')
+
+  const undispatched = []
+  for (const name of Object.keys(HOOKS)) {
+    // A hook counts as dispatched if the server dispatches it by name through
+    // the shared `fireHook` helper, or applies its handler list directly.
+    const fired = all.includes(`"${name}"`) || all.includes(`'${name}'`) || all.includes(`\`${name}\``)
+    if (!fired) undispatched.push(name)
+  }
+  assert.deepEqual(undispatched, [], 'declared hooks must be dispatched somewhere in core/')
+})
+
 test('resolvePlugin finds a project-relative file', async () => {
   const site = await makeSite({ files: plugin('export default { setup() {} }') })
   const resolved = await resolvePlugin('./plugins/p.js', site.root)

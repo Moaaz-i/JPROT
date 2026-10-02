@@ -2,39 +2,21 @@
 // snippet bundles. Everything here is zero-dependency and writes plain files.
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { slugify } from './utils.js'
-
-const CONFIG_KEYS = [
-  'title', 'tagline', 'description', 'url', 'basePath', 'docs', 'lang', 'dir', 'author', 'avatar',
-  'email', 'themeColor', 'ogImage', 'ogColor', 'ogTextColor', 'logo', 'searchUrl',
-  'twitter', 'ogLocale', 'sameAs', 'alternateLangs', 'icon', 'head', 'footerText',
-  'blogDir', 'projectsDir', 'defaultLayout', 'homeLayout', 'sidebar', 'showNav',
-  'themePicker', 'projectsTitle', 'formspree', 'social', 'nav', 'hero', 'sections',
-  'themes', 'labels', 'markdown', 'catalogUrl',
-]
-
-// levenshtein ≤ 2 → warn "did you mean …"
-function editDistance(a, b) {
-  if (!a.length) return b.length
-  if (!b.length) return a.length
-  const m = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)])
-  for (let j = 0; j <= b.length; j++) m[0][j] = j
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      m[i][j] = a[i - 1] === b[j - 1]
-        ? m[i - 1][j - 1]
-        : Math.min(m[i - 1][j], m[i][j - 1], m[i - 1][j - 1]) + 1
-    }
-  }
-  return m[a.length][b.length]
-}
+import { editDistance, slugify } from './utils.js'
+import { CONFIG_KEYS } from './schema.js'
 
 // Suggest the nearest known config key for a typo.
+//
+// CONFIG_KEYS is the single source of truth: core/schema.js validates against
+// the same list, so the hint checker can never suggest a key `jprot check`
+// would reject (or miss one it accepts). `sections` is a scaffold-only key.
+const HINT_KEYS = CONFIG_KEYS.includes('sections') ? CONFIG_KEYS : [...CONFIG_KEYS, 'sections']
+
 export function suggestConfigKey(key) {
-  if (CONFIG_KEYS.includes(key)) return null
+  if (HINT_KEYS.includes(key)) return null
   let best = null
   let bestDist = Infinity
-  for (const k of CONFIG_KEYS) {
+  for (const k of HINT_KEYS) {
     const d = editDistance(key.toLowerCase(), k.toLowerCase())
     if (d < bestDist) { bestDist = d; best = k }
   }

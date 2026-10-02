@@ -1,10 +1,4 @@
-import { esc } from '../../../core/utils.js'
-
-function safeHref(url) {
-  const s = String(url || '')
-  if (!s || /^(?:javascript:|vbscript:|data:)/i.test(s)) return '#'
-  return s
-}
+import { esc, safeHref } from '../../../core/utils.js'
 
 export default function HomePage(props) {
   const { site, page, content, projects, sectionsHtml } = props
@@ -16,7 +10,7 @@ export default function HomePage(props) {
   const L = site.labels || {}
 
   const avatarHtml = avatar
-    ? `<div class="hero-avatar"><img src="${esc(avatar)}" alt="" /></div>`
+    ? `<div class="hero-avatar"><img src="${esc(safeHref(avatar, { image: true }))}" alt="" /></div>`
     : ''
   const badgeHtml = badge
     ? `<span class="hero-badge"><span class="dot" aria-hidden="true"></span>${esc(badge)}</span>`
@@ -33,7 +27,7 @@ export default function HomePage(props) {
     const tagAttrs = Array.isArray(p.data.tags) ? p.data.tags.map((t) => `tag-${esc(t)}`).join(' ') : ''
     const desc = p.data.excerpt || p.data.description || p.body.split('\n').slice(0, 3).join(' ')
     const cover = p.data.cover
-      ? `<img src="${esc(p.data.cover)}" alt="${esc(p.data.title || '')}" loading="lazy" />`
+      ? `<img src="${esc(safeHref(p.data.cover, { image: true }))}" alt="${esc(p.data.title || '')}" loading="lazy" />`
       : `<span class="project-cover-fallback" aria-hidden="true">${esc(String((p.data.title || '?')[0]).toUpperCase())}</span>`
     return `
       <article class="project-card" data-tags="${tagAttrs}">

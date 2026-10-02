@@ -1,7 +1,7 @@
 ---
 title: API reference
 description: Use JPROT programmatically from Node.js and TypeScript.
-order: 9
+order: 10
 nav: API reference
 ---
 

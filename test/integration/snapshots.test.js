@@ -111,7 +111,9 @@ for (const [name, path] of Object.entries(PAGES)) {
       match,
       created
         ? `snapshot created at ${file} — re-run the test to compare`
-        : `snapshot mismatch for ${path}\n${firstDiff(expected, canonical(await get(path)))}`,
+        : expected === null
+          ? `no snapshot at ${file} — record it deliberately with UPDATE_SNAPSHOTS=1 (npm run test:update)`
+          : `snapshot mismatch for ${path}\n${firstDiff(expected, canonical(await get(path)))}`,
     )
   })
 }
@@ -136,10 +138,33 @@ for (const [name, path] of Object.entries(ENDPOINTS)) {
       match,
       created
         ? `snapshot created at ${file} — re-run the test to compare`
-        : `snapshot mismatch for ${path}\n${firstDiff(expected, canonical(await get(path)))}`,
+        : expected === null
+          ? `no snapshot at ${file} — record it deliberately with UPDATE_SNAPSHOTS=1 (npm run test:update)`
+          : `snapshot mismatch for ${path}\n${firstDiff(expected, canonical(await get(path)))}`,
     )
   })
 }
+
+// The helper's own contract. It used to *create* a missing snapshot and report
+// `match: true`, so a renamed page or a moved fixture silently turned every
+// affected assertion green instead of red.
+test('a missing snapshot is a failure, not a silent pass', async (t) => {
+  // In an update run the helper legitimately writes every snapshot, so the
+  // contract under test (missing ⇒ fail, no side effect) does not apply.
+  if (process.env.UPDATE_SNAPSHOTS === '1') {
+    return t.skip('the helper is in deliberate-update mode')
+  }
+  const { match, path: file, expected, missing } = await matchSnapshot(
+    'this-snapshot-does-not-exist.html',
+    'anything',
+  )
+  assert.equal(match, false, 'an absent snapshot must not report a match')
+  assert.equal(missing, true)
+  assert.equal(expected, null)
+  // ...and it must NOT have written itself, or the next run would pass.
+  const { stat } = await import('node:fs/promises')
+  await assert.rejects(() => stat(file), 'the helper must not create the file as a side effect')
+})
 
 test('drafts never reach the search index or the sitemap', async () => {
   const search = JSON.parse(await get('/@jprot/search.json'))

@@ -1,4 +1,4 @@
-import { esc } from '../../../core/utils.js'
+import { esc, safeHref } from '../../../core/utils.js'
 
 export default function Resume(props) {
   const { site, page, content, posts } = props
@@ -10,7 +10,7 @@ export default function Resume(props) {
     d.email ? `<a href="mailto:${esc(d.email)}">${esc(d.email)}</a>` : '',
     d.phone ? esc(d.phone) : '',
     d.location ? esc(d.location) : '',
-    ...(Array.isArray(d.social) ? d.social.map((s) => `<a href="${esc(s.url)}">${esc(s.label)}</a>`) : []),
+    ...(Array.isArray(d.social) ? d.social.map((s) => `<a href="${esc(safeHref(s.url))}">${esc(s.label)}</a>`) : []),
   ].filter(Boolean).join(' · ')
 
   const blocks = (name, items) => (Array.isArray(items) && items.length

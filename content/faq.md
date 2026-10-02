@@ -1,7 +1,7 @@
 ---
 title: FAQ
 description: Simple answers to common JPROT questions — from absolute beginners onward.
-order: 12
+order: 13
 nav: FAQ
 ---
 

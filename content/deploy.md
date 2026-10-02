@@ -1,7 +1,7 @@
 ---
 title: Publishing
 description: Export your JPROT site to static files and deploy to GitHub Pages, Netlify, Cloudflare Pages, or any host.
-order: 6
+order: 7
 nav: Publish
 ---
 

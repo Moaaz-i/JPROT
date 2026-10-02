@@ -88,24 +88,29 @@ export async function captureLogs(run) {
  *
  * Run with `UPDATE_SNAPSHOTS=1` (or `npm run test:update`) to rewrite the
  * snapshot files after an intentional rendering change, then read the diff —
- * a snapshot that can be silently regenerated is worth very little.
+ * a snapshot that can be silently regenerated is worth very little. A snapshot
+ * that does not exist yet FAILS; it is only ever created by an explicit update
+ * run, so a missing file can never quietly turn an assertion green.
  *
  * @param {string} name  snapshot file name, without the extension
  * @param {string} actual
  * @param {object} [options]
  * @param {boolean} [options.normalize] collapse volatile values (nonces, ports)
- * @returns {Promise<{match: boolean, path: string, expected: string}>}
+ * @returns {Promise<{match: boolean, path: string, expected: string|null, missing?: boolean}>}
  */
 export async function matchSnapshot(name, actual, { normalize = defaultNormalize } = {}) {
   const path = join(SNAPSHOTS, `${name}.snap`)
   const value = normalize(String(actual))
   const expected = await readFile(path, 'utf8').catch(() => null)
-  if (process.env.UPDATE_SNAPSHOTS === '1' || expected === null) {
+  if (process.env.UPDATE_SNAPSHOTS === '1') {
     await mkdir(dirname(path), { recursive: true })
     await writeFile(path, value)
     return { match: true, path, expected: value, created: expected === null }
   }
-  return { match: expected === value, path, expected }
+  // A missing snapshot is a FAILURE, not a silent pass. It used to be written
+  // and reported as `match: true`, so a renamed page or a moved fixture turned
+  // every affected assertion green instead of red.
+  return { match: expected !== null && expected === value, path, expected, missing: expected === null }
 }
 
 // Volatile by design: a CSP nonce is random per response and a port is

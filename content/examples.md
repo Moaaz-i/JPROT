@@ -1,7 +1,7 @@
 ---
 title: Examples
 description: Copy-paste configurations, themes, and component examples.
-order: 10
+order: 11
 nav: Examples
 ---
 

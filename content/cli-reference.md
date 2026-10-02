@@ -1,7 +1,7 @@
 ---
 title: CLI reference
 description: Complete reference for the jprot command-line interface.
-order: 8
+order: 9
 nav: CLI reference
 ---
 
@@ -26,7 +26,7 @@ Run `jprot --help` at any time for the short version.
 | `jprot add <Name>` | Install a catalog element into `theme/components/` |
 | `jprot check` | Validate `jprot.config.js` and every plugin against the schema |
 | `jprot lint` | Check metadata, links, images, and content |
-| `jprot export --out dist` | Export static HTML |
+| `jprot export --out dist [--clean]` | Export static HTML |
 | `jprot --prod --no-watch` | Serve with production caching and no drafts |
 | `jprot --export` | Alias for `jprot export` |
 | `jprot --root <dir>` | Act on a project other than the current directory |
@@ -37,6 +37,7 @@ Run `jprot --help` at any time for the short version.
 ```bash
 jprot --port 5000
 jprot export --out dist --base-path /my-repository
+jprot export --clean                  # rebuild every page, ignoring the cache
 jprot check --strict
 jprot lint --root ./site          # lint a project other than the cwd
 jprot new post "Release notes" --template meetup
@@ -51,6 +52,21 @@ jprot check --strict
 ```
 
 `HOST`, `PORT`, and `NO_WATCH=1` are also supported environment variables.
+`jprot export` is **incremental**: it keeps a manifest in `<root>/.cache/`
+and re-renders only the pages whose content, or the site-wide inputs that
+affect them (your config, your theme directory, your stylesheets, the JPROT
+version), have changed. Every export prints what it did:
+
+```
+  2 page(s) rendered, 18 unchanged (reused), 2 file(s) written in 214ms
+```
+
+Editing a page's prose re-renders just that page. Renaming it, adding a page or
+touching a component re-renders everything, because those changes reach the
+navigation and the list pages. Deleted pages are removed from `dist/`, including
+the directory they left behind. The cache is never written inside `dist/`, so
+nothing extra is deployed. Pass `--clean` to throw it away and rebuild from
+scratch — worth doing after upgrading JPROT.
 `--root <dir>` points a command at a project other than the current directory
 (`check`, `lint`, `export`, `search`, and `add`), which is what makes these usable
 from a monorepo CI job.

@@ -1,7 +1,7 @@
 ---
 title: Catalog elements
 description: How to install ready-made components into your site with jprot add.
-order: 7
+order: 8
 nav: Catalog elements
 ---
 

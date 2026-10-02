@@ -1,10 +1,4 @@
-import { esc } from '../../../core/utils.js'
-
-function safeHref(url) {
-  const s = String(url || '')
-  if (!s || /^(?:javascript:|vbscript:|data:)/i.test(s)) return '#'
-  return s
-}
+import { esc, safeHref } from '../../../core/utils.js'
 
 export default function Header(props) {
   const { page, nav, site, sidebar } = props

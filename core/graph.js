@@ -41,10 +41,36 @@ export async function readParsed(file) {
   return value
 }
 
-// Evict cache entries for files that no longer exist on disk.
-export function evictStaleCache() {
-  for (const [file] of parsedCache) {
-    try { stat(file) } catch { parsedCache.delete(file) }
+// Drop cache entries for files that no longer exist on disk, and cap the map so
+// a long-lived process (a dev server hot-reloading for hours, or the VS Code
+// preview re-parsing on every keystroke) cannot grow it without bound.
+//
+// `evictStaleCache` used to be exported and never called, and its synchronous
+// `try { stat(file) } catch` could never fire because a missing file rejects the
+// returned promise rather than throwing — so nothing was ever removed. It is
+// now awaited and called on every graph build.
+const MAX_PARSED_ENTRIES = 2048
+
+export async function evictStaleCache() {
+  // `stat` is async, so it has to be awaited: the synchronous `try/catch` this
+  // used to have never caught anything, because a missing file rejects the
+  // returned promise rather than throwing. Entries were therefore never
+  // actually removed.
+  await Promise.all(
+    [...parsedCache.keys()].map(async (file) => {
+      try {
+        await stat(file)
+      } catch {
+        parsedCache.delete(file)
+      }
+    }),
+  )
+  // Eviction is by insertion order (Map preserves it), so the oldest parses go
+  // first. Entries are re-created on demand by readParsed.
+  while (parsedCache.size > MAX_PARSED_ENTRIES) {
+    const oldest = parsedCache.keys().next()
+    if (oldest.done) break
+    parsedCache.delete(oldest.value)
   }
 }
 
@@ -365,6 +391,11 @@ export async function loadContentGraph({ contentDir, blogDir, projectsDir, docs 
       tags: tagsOf(e.data.tags),
       date: e.data.date || '',
       image: e.data.image || '',
+      // `body` is what the client search snippet is built from; `raw` is the
+      // untouched Markdown source, used only when `body` does not contain the
+      // query. Both are required, so the index does hold two copies of every
+      // content file — that is the memory cost of an offline, zero-dependency
+      // search, and it is paid once per visible page, not per request.
       body: stripMarkdown(e.body),
       raw: String(e.body || '').trim(),
       frontmatter: stripMarkdown(JSON.stringify(e.data)),
@@ -455,6 +486,9 @@ export async function getContentGraph(options = {}) {
   const signature = signatureOf(files)
   const cached = graphCache.get(key)
   if (cached && cached.signature === signature) return cached.graph
+  // Reclaim per-file parse entries before building, so a project that has had
+  // many files deleted does not keep their parsed bodies in memory.
+  await evictStaleCache()
   const graph = await loadContentGraph({ ...options, files })
   graphCache.set(key, { signature, graph })
   return graph

@@ -1,10 +1,13 @@
-import { esc } from '../../../core/utils.js'
+import { esc, safeHref } from '../../../core/utils.js'
 
 export default function Gallery({ title = 'Gallery', subtitle = '', items = [] }) {
   const tiles = (items || []).map((it) => {
-    const src = typeof it === 'string' ? it : it.src
+    const raw = typeof it === 'string' ? it : it.src
     const alt = typeof it === 'string' ? '' : it.alt || it.caption || ''
-    return `<a class="gallery-item" href="${esc(src)}"><img src="${esc(src)}" alt="${esc(alt)}" loading="lazy"></a>`
+    // An <img> src may be an inline data: image; the lightbox link may not.
+    const src = esc(safeHref(raw, { image: true }))
+    const href = esc(safeHref(raw))
+    return `<a class="gallery-item" href="${href}"><img src="${src}" alt="${esc(alt)}" loading="lazy"></a>`
   }).join('')
 
   return `

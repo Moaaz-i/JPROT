@@ -23,8 +23,12 @@ export async function renderSections({ site, page, nav, projects, posts, section
     const name = sec.component || sec.type || ''
     const comp = components[name]
     if (typeof comp !== 'function') continue
-    const { component: _component, type: _type, ...rest } = sec;
-    const html = await comp({ site, page, nav, projects, posts, ...rest })
+    const { component: _component, type: _type, site: _site, page: _page, nav: _nav, projects: _projects, posts: _posts, ...rest } = sec;
+    // `...rest` is spread FIRST: the framework context wins. Spreading it last
+    // let a `sections:` entry in frontmatter or config replace `site`/`page`/
+    // `nav` for that one component call, which is author input silently
+    // overriding what the component is supposed to be rendering against.
+    const html = await comp({ ...rest, site, page, nav, projects, posts })
     if (html) out += html + '\n'
   }
   return out

@@ -33,6 +33,11 @@ export const CSP = (nonce, extraOrigins = []) => {
     `base-uri 'self'; form-action ${allowed}`
 }
 
+// `nonce` is empty only for responses that are not documents — static files,
+// JSON, feeds. A CSP is deliberately NOT invented for those: a stylesheet's own
+// CSP governs the fonts and images it references, so a restrictive default
+// would break real pages. Document responses pass a nonce, and the error
+// helpers below do too, so every path a browser parses as markup carries one.
 export function sendWithSecurity(res, status, contentType, body, nonce = '', opts = {}) {
   const headers = { ...SECURITY_HEADERS, 'Cache-Control': opts.cache || 'no-cache' }
   if (frameAncestors.length) {
@@ -55,9 +60,9 @@ export function etagOf(body) {
 }
 
 export function badRequest(res, message = 'Bad request') {
-  sendWithSecurity(res, 400, 'text/plain; charset=utf-8', message)
+  sendWithSecurity(res, 400, 'text/plain; charset=utf-8', message, newNonce())
 }
 
 export function methodNotAllowed(res, message = 'Method not allowed') {
-  sendWithSecurity(res, 405, 'text/plain; charset=utf-8', message)
+  sendWithSecurity(res, 405, 'text/plain; charset=utf-8', message, newNonce())
 }

@@ -1,3 +1,5 @@
+import { editDistance as distance } from './utils.js'
+
 // Runtime validation for jprot.config.js.
 //
 // `jprot.d.ts` gives editor autocomplete, but a type error only shows up when
@@ -211,6 +213,11 @@ export function validateConfig(config, { file = 'jprot.config.js', source = '', 
     }
   }
 
+  // Languages written right-to-left. A prefix match, because a script subtag
+  // still carries the language: `ar`, `ar-EG`, `he`, `fa-IR`, `ur`, `ps`, `dv`,
+  // `ku`, `yi` and `sd` are all RTL, and `ckb` is Sorani.
+  const RTL_LANGS = /^(?:ar|he|fa|ur|ps|dv|ku|yi|sd|ckb)(?:-|$)/i
+
   // Value rules a type cannot express.
   if (config.url && !/^https?:\/\//i.test(String(config.url))) {
     add(warnings, 'url', 'should be an absolute URL including the scheme, e.g. https://example.com')
@@ -223,6 +230,15 @@ export function validateConfig(config, { file = 'jprot.config.js', source = '', 
   }
   if (config.lang === '') {
     add(errors, 'lang', 'must not be empty — use `dir: "rtl"` for right-to-left scripts')
+  }
+  // A right-to-left `lang` with no matching `dir` renders a correct page in the
+  // wrong direction: `dir` defaults to "ltr" because that is what a browser
+  // does, so nothing complains and the site looks subtly wrong. Inferred `dir` is
+  // deliberately *not* applied — an explicit declaration the author can grep for
+  // beats a guess that silently overrides them — but the mismatch is worth a
+  // warning, because the fix is one line.
+  if (RTL_LANGS.test(String(config.lang || '')) && config.dir !== 'rtl') {
+    add(warnings, 'dir', `lang "${config.lang}" is right-to-left — set \`dir: "rtl"\` or the layout will be mirrored`)
   }
   for (const [i, item] of (config.nav || []).entries()) {
     if (typeof item === 'string') continue
@@ -269,18 +285,6 @@ function suggestConfigKey(key) {
     if (score < bestScore) { bestScore = score; best = candidate }
   }
   return bestScore <= 2 ? best : undefined
-}
-
-function distance(a, b) {
-  const rows = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)])
-  for (let j = 0; j <= b.length; j++) rows[0][j] = j
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1
-      rows[i][j] = Math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + cost)
-    }
-  }
-  return rows[a.length][b.length]
 }
 
 /** Render a validation result for the terminal. */

@@ -25,6 +25,7 @@ jprot export                  # static output to dist/
 
 - **[Configuration](configuration.md)** — site identity, nav, SEO, labels, markdown.
 - **[Customization](customization.md)** — CSS variables, components, themes, sections.
+- **[Plugins](plugins.md)** — extend the site with one JavaScript file.
 - **[Publish](deploy.md)** — export to GitHub Pages, Netlify, Cloudflare, or any host.
 
 ## Reference

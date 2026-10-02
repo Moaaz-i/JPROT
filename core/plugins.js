@@ -48,8 +48,10 @@ export const HOOKS = {
   'html:body-end': { args: ['html', 'page'], returns: 'html', description: 'inject markup before </body>' },
   // JSON endpoints (search.json, manifest.json). `data` is a parsed object.
   'endpoint:json': { args: ['data', 'path'], returns: 'data', description: 'add keys to a JSON response' },
-  // Lifecycle only.
-  build: { args: [], returns: 'void', description: 'any state build, before rendering' },
+  // A completed state build, once `state` is frozen and installed. Receives the
+  // same object as `state:build`, after rendering context is final.
+  build: { args: ['state'], returns: 'void', description: 'a state build finished, before rendering' },
+  // `jprot export` finished writing to `dest`. Fires from core/export.js.
   export: { args: ['dest'], returns: 'void', description: 'a static export finished writing to dest' },
 }
 
