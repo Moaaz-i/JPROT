@@ -46,6 +46,13 @@ function sameIgnoringNonce(a, b) {
 
 async function makeSite(name) {
   const dir = await mkdtemp(join(tmpdir(), `jprot-inc-${name}-`))
+  // Same contract as test/helpers/site.js: a real site is an ES module
+  // (`jprot init` writes this file), and without `"type": "module"` the
+  // `theme/components/*.js` written below is parsed as CommonJS and dies with
+  // "Unexpected token 'export'" on Node 18 (Node 20.19+/22 sniff the syntax,
+  // so the failure only shows up on 18 — see commit 7e55b4e, which fixed the
+  // shared helper while this file's local makeSite went unnoticed).
+  await writeFile(join(dir, 'package.json'), '{ "private": true, "type": "module" }\n')
   await mkdir(join(dir, 'content', 'blog'), { recursive: true })
   const post = (n, body = `Body ${n}.`) =>
     `---\ntitle: Post ${n}\ndescription: d${n}\ndate: 2026-01-0${n}\n---\n${body}\n`
