@@ -3,6 +3,28 @@
 All notable changes to this extension are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.1] - 2026-10-03
+
+### Fixed — the grammar was registered against a scope that does not exist
+
+The highlighting rules never reached any editor, for two reasons, both fixed
+here:
+
+- `injectTo` said `source.markdown`. No VS Code or Cursor build has ever
+  shipped a Markdown grammar with that scope — the built-in one is
+  `text.html.markdown` — so the injection was registered against a name
+  nothing resolves, and the rules were silently unreachable. It now injects
+  into `text.html.markdown`, matching the grammar's own `injectionSelector`.
+- The contribution also claimed `language: "markdown"`. A grammar that claims
+  a language *is* that language: it would have replaced the built-in Markdown
+  grammar for every `.md` file with these four JPROT-specific rules, dropping
+  headings, emphasis, links and code blocks. The field is removed; injection
+  grammars select their host through `injectTo` alone.
+
+`test/grammar.test.js` now pins both (`injectTo` deep-equals
+`["text.html.markdown"]`, no `language` field, `injectionSelector` agrees), so
+neither can ship again unnoticed.
+
 ## [0.2.0] - 2026-09-28
 
 ### Removed — the live preview is gone

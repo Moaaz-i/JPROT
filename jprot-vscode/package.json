@@ -2,7 +2,7 @@
   "name": "jprot-vscode",
   "displayName": "JPROT",
   "description": "JPROT Markdown syntax highlighting (frontmatter, :::Component shortcodes, [value] placeholders) and snippets for pages, posts, projects, resumes and jprot.config.js. No runtime code.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "moaaz-i",
   "license": "MIT",
   "icon": "media/jprot-icon.png",
@@ -36,11 +36,10 @@
   "contributes": {
     "grammars": [
       {
-        "language": "markdown",
         "scopeName": "source.markdown.jprot",
         "path": "./syntaxes/jprot-markdown.tmLanguage.json",
         "injectTo": [
-          "source.markdown"
+          "text.html.markdown"
         ],
         "embeddedLanguages": {
           "meta.embedded.block.frontmatter": "yaml"

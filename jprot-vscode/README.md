@@ -9,8 +9,8 @@ start, nothing to configure, nothing to break.
 
 ### 🎨 JPROT Markdown highlighting
 
-A scoped TextMate grammar (injected into plain `source.markdown`) makes the
-pieces that are *JPROT* stand out:
+A scoped TextMate grammar (injected into the built-in Markdown scope,
+`text.html.markdown`) makes the pieces that are *JPROT* stand out:
 
 - `---` YAML frontmatter, embedded as YAML so keys, strings and booleans colour
   like YAML
@@ -41,8 +41,8 @@ Runnable in Markdown and JavaScript files where it matters:
    folder:
 
    ```bash
-   npm run package            # produces jprot-vscode-0.2.0.vsix
-   code --install-extension jprot-vscode-0.2.0.vsix
+   npm run package            # produces jprot-vscode-<version>.vsix
+   code --install-extension jprot-vscode-*.vsix
    ```
 
 2. Open any JPROT project — highlighting applies to Markdown files and

@@ -28,12 +28,42 @@ test('grammar is valid JSON carrying the JPROT marks', () => {
     readFileSync(resolve(root, 'syntaxes', 'jprot-markdown.tmLanguage.json'), 'utf8')
   )
   assert.equal(grammar.scopeName, 'source.markdown.jprot')
-  assert.ok(grammar.injectionSelector, 'injects into source.markdown')
+  assert.ok(grammar.injectionSelector, 'injectionSelector is declared')
   assert.ok(Array.isArray(grammar.patterns) && grammar.patterns.length > 0)
   const serialized = JSON.stringify(grammar)
   assert.match(serialized, /frontmatter/i, 'frontmatter delimiters are matched')
   assert.ok(serialized.includes(':::'), ':::Component shortcodes are matched')
   assert.ok(serialized.includes('placeholder') || serialized.includes('[value]'), '[value] placeholders are matched')
+})
+
+// The grammar never runs on its own: VS Code only consults it if it is
+// injected into the scope the built-in Markdown grammar actually owns.
+// Registering `injectTo: ["source.markdown"]` (a scope no VS Code build has
+// ever shipped) leaves the rules permanently unreachable, and claiming
+// `language: "markdown"` here would make this 4-rule grammar *replace* the
+// built-in Markdown grammar for every .md file. Both failures shipped once,
+// so both are pinned here.
+test('grammar is injected into the real Markdown scope without claiming the language', () => {
+  const manifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
+  const contribution = manifest.contributes.grammars.find(
+    (g) => g.scopeName === 'source.markdown.jprot'
+  )
+  assert.ok(contribution, 'grammar contribution exists in package.json')
+  assert.deepEqual(
+    contribution.injectTo,
+    ['text.html.markdown'],
+    'injectTo must be the built-in Markdown scope (text.html.markdown)'
+  )
+  assert.equal(contribution.language, undefined, 'must not claim language "markdown"')
+
+  const grammar = JSON.parse(
+    readFileSync(resolve(root, 'syntaxes', 'jprot-markdown.tmLanguage.json'), 'utf8')
+  )
+  assert.equal(
+    grammar.injectionSelector,
+    'L:text.html.markdown',
+    'injectionSelector must agree with injectTo'
+  )
 })
 
 test('markdown snippet prefixes exist', () => {
