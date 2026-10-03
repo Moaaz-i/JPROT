@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "JPROT Markdown",
   "scopeName": "source.markdown.jprot",
-  "injectionSelector": "L:text.html.markdown",
+  "injectionSelector": "L:text.html.markdown - meta.embedded.block.frontmatter",
   "patterns": [
     {
       "include": "#frontmatter"
@@ -20,7 +20,7 @@
   "repository": {
     "frontmatter": {
       "name": "meta.embedded.block.frontmatter",
-      "begin": "^---\\s*$",
+      "begin": "\\A---\\s*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.frontmatter.jprot"

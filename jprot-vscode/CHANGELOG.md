@@ -3,6 +3,39 @@
 All notable changes to this extension are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.2] - 2026-10-03
+
+### Fixed — the frontmatter rule never closed and erased all Markdown highlighting
+
+0.2.1 made the grammar reachable for the first time, which exposed the next
+bug in it. The `frontmatter` rule used the *same* regex for `begin` and `end`
+(`^---\s*$`). Inside an injected rule that means the closing `---` can be read
+as an opener, and it was: the region re-entered itself instead of closing, so
+`meta.embedded.block.frontmatter` stayed open to the end of the file. Because
+that scope is `meta.embedded`, the built-in Markdown grammar's own rules
+stopped matching — every heading, link, bold span and fenced block after the
+frontmatter rendered with no highlighting at all.
+
+- The opener is now anchored to the start of the document (`\A---\s*$`).
+  Frontmatter is only legal as the first block of a file, so the rule can no
+  longer be re-entered mid-document, and the closer is reachable. A setext
+  heading (`Title` + `---`) later in a file also stays a heading instead of
+  opening a phantom region.
+- `injectionSelector` now excludes the region it opens
+  (`L:text.html.markdown - meta.embedded.block.frontmatter`). Without this the
+  injected `[value]` placeholder rule matched YAML flow sequences inside
+  frontmatter (`tags: [a, b]` highlighted as placeholders). Rules such as
+  shortcodes stay out of the frontmatter block, where they are meaningless.
+
+Verified against the real built-in Markdown grammar with `vscode-textmate` +
+`vscode-oniguruma`: frontmatter opens at line 1 and closes on the second
+`---`, YAML inside it tokenizes as YAML, and headings, links, emphasis, fenced
+code, `:::` shortcodes and `[value]` placeholders all keep their scopes
+afterwards.
+
+`test/grammar.test.js` pins the anchor and the selector, and fails if the
+opener is ever reverted to `^---\s*$`.
+
 ## [0.2.1] - 2026-10-03
 
 ### Fixed — the grammar was registered against a scope that does not exist

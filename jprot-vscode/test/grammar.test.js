@@ -61,9 +61,35 @@ test('grammar is injected into the real Markdown scope without claiming the lang
   )
   assert.equal(
     grammar.injectionSelector,
-    'L:text.html.markdown',
-    'injectionSelector must agree with injectTo'
+    'L:text.html.markdown - meta.embedded.block.frontmatter',
+    'injectionSelector must agree with injectTo, and must stay out of the frontmatter region'
   )
+})
+
+// The frontmatter rule once began with `^---\s*$`, the *same* regex it ends
+// with. Inside an injection the closing `---` therefore re-entered the rule it
+// was supposed to close, and `meta.embedded.block.frontmatter` stayed open to
+// end-of-file: every heading, link, bold span and fenced block after the
+// frontmatter lost all highlighting. Anchoring the opener to the start of the
+// document (`\A`) is what makes the closer reachable, so both are pinned here.
+test('frontmatter region opens once at the document start and can close', () => {
+  const grammar = JSON.parse(
+    readFileSync(resolve(root, 'syntaxes', 'jprot-markdown.tmLanguage.json'), 'utf8')
+  )
+  const rule = grammar.repository.frontmatter
+  assert.ok(rule, 'frontmatter rule exists')
+  assert.match(rule.begin, /^\\A/, 'begin must be anchored to the document start')
+  assert.notEqual(
+    rule.begin.replace(/^\\A/, ''),
+    rule.end,
+    'begin must differ from end or the closing --- re-opens the region'
+  )
+  assert.ok(rule.end.includes('---'), 'frontmatter still closes on ---')
+
+  // The opener must not be reachable from anywhere but the first line, so a
+  // setext heading (`Title` + `---`) later in the document stays a heading.
+  const opener = new RegExp(rule.begin.replace(/^\\A/, '').replace(/\\/g, '\\'), 'm')
+  assert.ok(opener.test('---'), 'opener still matches a --- line')
 })
 
 test('markdown snippet prefixes exist', () => {
