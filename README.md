@@ -209,6 +209,25 @@ code --install-extension jprot-vscode-0.1.0.vsix   # from jprot-vscode/
 Open any JPROT project, press the **JPROT** activity-bar panel, and the preview
 follows the Markdown file you're editing — save and it re-renders instantly.
 
+## Showcase — JPROT in production
+
+Two live sites built with JPROT, covering the two deployment shapes it supports:
+
+| Site | Hosting | What it demonstrates |
+|------|---------|----------------------|
+| [نُور — Noor](https://moaaz-i.github.io/Noor/) | GitHub Pages | Arabic-first bilingual site: `lang: 'ar'` + `dir: 'rtl'`, a language chooser at the project root (`basePath: '/Noor'`), custom components, site search, dark mode, generated `sitemap.xml` |
+| [moaaz-i.vercel.app](https://moaaz-i.vercel.app/) | Vercel | Full developer portfolio at the domain root: hero + `sections` homepage, projects, a printable `layout: resume`, a blog, a `/repos` page driven by a custom component, and component overrides in `theme/components/` |
+
+Both are pure static output — Markdown in `content/`, one `jprot.config.js`,
+then:
+
+```bash
+jprot export --out dist   # what those two sites deploy
+```
+
+No build pipeline, no server code. Shipped something with JPROT? Open a pull
+request and add it to the table.
+
 ## Documentation
 
 | Page | Covers |
