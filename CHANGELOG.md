@@ -6,6 +6,52 @@ aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Frontmatter could be detected in the middle of a file.** The opening regex
+  in `parseFrontmatter` carried the `m` flag, so `^---` matched the first line
+  that *looked* like a fence anywhere in the document — while `body` was sliced
+  from `match[0].length`, which assumes index 0. Any page with a fenced
+  `--- / key: value / ---` example lost its opening bytes on load, and
+  `content/frontmatter.md`, which documents that very rule, silently dropped its
+  first 19 characters (`"ence\n\nThe block between…"`). The block is now
+  required at byte 0, as documented, and `body` is sliced from `match.index`, so
+  an index that ever is not 0 becomes a wrong result rather than a truncated
+  document. Three tests cover it, one reading the shipped reference page from
+  disk so the parser and its own documentation cannot drift apart.
+- **The VS Code extension's highlighting never reached an editor** (`jprot-vscode`
+  0.2.1, 0.2.2). `injectTo` targeted `source.markdown`, a scope no VS Code or
+  Cursor build has ever shipped, and the contribution also claimed
+  `language: "markdown"` — which would have made four JPROT rules *replace* the
+  built-in Markdown grammar for every `.md` file. With that repaired the next
+  bug surfaced: the frontmatter rule used one regex for `begin` and `end`, so the
+  closing `---` reopened it, `meta.embedded.block.frontmatter` stayed open to
+  end-of-file, and every heading, link and fenced block after the frontmatter
+  lost all highlighting. `jprot-vscode/test/grammar.test.js` now pins the scope,
+  the anchor and the selector; details in `jprot-vscode/CHANGELOG.md`.
+- **The incremental-export fixture failed on Node 18 only.** The site fixture
+  wrote `theme/components/Footer.js` and a `jprot.config.js` into a temp dir with
+  no `package.json`, so Node 18 parsed them as CommonJS
+  (`[jprot] could not load component "Footer" … Unexpected token 'export'`).
+  Node 20.19+/22 sniff ESM, which is why only the Node 18 leg of the matrix went
+  red. The fixture now writes `{ "private": true, "type": "module" }`, the same
+  thing `scaffoldSite` has always written.
+
+### Changed
+
+- **README — editor tooling now describes the extension that exists.** It still
+  advertised the 0.1.0 live preview, the activity-bar panel and a
+  `jprot-vscode-0.1.0.vsix` install command; the preview was removed in
+  `jprot-vscode` 0.2.0 and the VSIX is at 0.2.2. The section now covers
+  highlighting and snippets, how to build the current VSIX, and the project
+  layout line no longer lists the preview.
+- **README — new "Showcase — JPROT in production" section.** Two live sites,
+  [Noor](https://moaaz-i.github.io/Noor/) (GitHub Pages, `basePath: '/Noor'`,
+  Arabic RTL + English) and
+  [moaaz-i.vercel.app](https://moaaz-i.vercel.app/) (Vercel, portfolio with
+  resume, blog and a custom `/repos` page), each with the JPROT features it
+  demonstrates.
+
 ## [0.9.0] - 2026-10-02
 
 A correctness and security pass over the whole framework. Nothing here changes

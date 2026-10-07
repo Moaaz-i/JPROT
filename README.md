@@ -196,18 +196,29 @@ to a config file for autocomplete.
 
 ## Editor tooling
 
-**JPROT for Visual Studio Code** — install from the Marketplace (or build the
-VSIX in `jprot-vscode/`). It gives you a live side-by-side preview of your site,
-JPROT Markdown highlighting (frontmatter, `:::Component` shortcodes,
-`[value]` placeholders) and snippets for pages, posts, projects, resumes and
-`jprot.config.js` — all by driving the project's own jprot server:
+**JPROT for Visual Studio Code** — a grammar + snippets extension living in
+`jprot-vscode/`, with **no runtime code**: nothing to start, nothing to
+configure. Build its VSIX and install it:
 
 ```bash
-code --install-extension jprot-vscode-0.1.0.vsix   # from jprot-vscode/
+cd jprot-vscode
+npm run package                             # → jprot-vscode-0.2.2.vsix
+code --install-extension jprot-vscode-*.vsix
 ```
 
-Open any JPROT project, press the **JPROT** activity-bar panel, and the preview
-follows the Markdown file you're editing — save and it re-renders instantly.
+What you get:
+
+- **JPROT Markdown highlighting** — frontmatter tokenized as YAML, plus
+  `:::Component` shortcodes and `[value]` placeholders. It is an *injection*
+  into the built-in `text.html.markdown` grammar, so headings, emphasis, links
+  and fenced code keep the highlighting they already had.
+- **Snippets** for pages, posts, projects, resumes and `jprot.config.js`
+  (`jprot-page`, `jprot-post`, `jprot-project`, `jprot-resume`, `jprot-config`,
+  `jprot-shortcode`, …).
+
+0.1.0 also advertised a live preview that followed the file you were editing.
+That preview could not work inside VS Code, and was removed in 0.2.0 rather
+than half-fixed — `jprot-vscode/CHANGELOG.md` records why.
 
 ## Showcase — JPROT in production
 
@@ -279,7 +290,7 @@ examples/             Theme packs and component examples
 test/unit/            Pure-logic tests
 test/integration/     End-to-end tests + HTML/JSON snapshots
 jprot.d.ts            TypeScript definitions
-jprot-vscode/         VSCode extension (preview, highlighting, snippets)
+jprot-vscode/         VSCode extension (highlighting + snippets, no runtime)
 CHANGELOG.md          Release notes
 ```
 
