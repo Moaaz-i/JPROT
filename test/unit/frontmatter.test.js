@@ -8,6 +8,7 @@
 // explicitly rather than trusting prose.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { parseFrontmatter } from '../../lib/frontmatter.js'
 
 /* ---------------- the documented subset, table-driven ---------------- */
@@ -266,4 +267,34 @@ test('parse → serialize → parse is stable for the supported subset', () => {
     assert.deepEqual(diagnostics, [], `no diagnostics during round-trip`)
     assert.deepEqual(serialize(data), once, `serialization is deterministic`)
   }
+})
+
+/* ---------------- the opening fence must be at byte 0 ---------------- */
+
+test('a --- fence that is not at byte 0 is not frontmatter', () => {
+  // Regression: the opening regex carried the `m` flag, so `^---` matched the
+  // first line that looked like a fence *anywhere* in the file, while `body`
+  // was sliced from `match[0].length` assuming index 0. Any page containing a
+  // fenced `--- / key: value / ---` example was truncated on load — and
+  // content/frontmatter.md, which documents exactly this rule, lost its first
+  // 19 characters: "ence\n\nThe block between two `---` lines…".
+  const src = '# Frontmatter reference\n\nExample:\n\n```\n---\nkey: value\n---\n```\n\nBody.\n'
+  const { data, body, diagnostics } = parseFrontmatter(src)
+  assert.deepEqual(data, {}, 'nothing mid-file is mistaken for frontmatter')
+  assert.equal(body, src, 'the document is returned whole')
+  assert.deepEqual(diagnostics, [], 'and no diagnostic is raised for a fence inside a code block')
+})
+
+test('frontmatter at byte 0 still parses', () => {
+  const { data, body } = parseFrontmatter('---\ntitle: T\n---\nbody\n')
+  assert.deepEqual(data, { title: 'T' })
+  assert.equal(body, 'body\n')
+})
+
+test('the shipped frontmatter reference page round-trips through its own parser', () => {
+  const src = readFileSync(new URL('../../content/frontmatter.md', import.meta.url), 'utf8')
+  const { data, body, diagnostics } = parseFrontmatter(src)
+  assert.deepEqual(data, {}, 'the page has no frontmatter of its own')
+  assert.equal(body, src, 'the whole page comes back — no leading text consumed')
+  assert.deepEqual(diagnostics, [], 'and nothing to report')
 })
