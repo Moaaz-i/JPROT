@@ -6,6 +6,12 @@ aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-07
+
+A focused correctness release: a content-parsing bug that silently truncated
+pages, the VS Code extension's highlighting finally reaching editors, and a
+README that now describes the extension that exists.
+
 ### Fixed
 
 - **Frontmatter could be detected in the middle of a file.** The opening regex
