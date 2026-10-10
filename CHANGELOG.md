@@ -6,6 +6,8 @@ aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-10
+
 A Markdown release: nine things writers actually type now render the way the
 spec says, measured against CommonMark 0.31.2 — 225 → 274 examples identical and
 365 → 408 usable (56.0% → 62.6%), with the five "unlicensed damage" cases
