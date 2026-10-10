@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { runLint, analyzeSite } from '../../core/lint.js'
+import { runLint, analyzeSite } from '../../core/tooling/lint.js'
 import { captureLogs, makeSite, page } from '../helpers/site.js'
 
 const BROKEN_MD = page({

@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { join } from 'node:path'
-import { HOOKS, loadPlugins, resolvePlugin, runPlugins } from '../../core/plugins.js'
+import { HOOKS, loadPlugins, resolvePlugin, runPlugins } from '../../core/runtime/plugins.js'
 import { makeSite } from '../helpers/site.js'
 
 // Write a plugin module and return the specifier a config would use.
@@ -35,9 +35,16 @@ test('every declared hook is dispatched at least once in core/', async () => {
 
   const dir = join(REPO_ROOT, 'core')
   const sources = []
-  for (const name of await readdir(dir)) {
-    if (name.endsWith('.js')) sources.push(await readFile(join(dir, name), 'utf8'))
+  // Recursive: `core/` is grouped into layers now, and a hook dispatched only
+  // from a nested module would be invisible to a flat listing.
+  const walk = async (at) => {
+    for (const entry of await readdir(at, { withFileTypes: true })) {
+      const full = join(at, entry.name)
+      if (entry.isDirectory()) await walk(full)
+      else if (entry.name.endsWith('.js')) sources.push(await readFile(full, 'utf8'))
+    }
   }
+  await walk(dir)
   const all = sources.join('\n')
 
   const undispatched = []

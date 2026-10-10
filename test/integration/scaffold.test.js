@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createJprot } from '../../core/server.js'
-import { scaffoldSite, scaffoldNew, scaffoldComponent, componentPaletteList } from '../../core/scaffold.js'
+import { scaffoldSite, scaffoldNew, scaffoldComponent, componentPaletteList } from '../../core/tooling/scaffold.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 

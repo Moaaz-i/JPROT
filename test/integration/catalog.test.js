@@ -8,7 +8,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { addCatalogElement, resolveCatalogUrl, searchCatalog } from '../../core/catalog.js'
+import { addCatalogElement, resolveCatalogUrl, searchCatalog } from '../../core/tooling/catalog.js'
 
 const execFileAsync = promisify(execFile)
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')

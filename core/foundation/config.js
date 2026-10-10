@@ -2,7 +2,10 @@ import { readFile, stat } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-const jprotRoot = dirname(dirname(fileURLToPath(import.meta.url)))
+// The package root: this file lives at `core/foundation/config.js`, so it is
+// three levels below it. Everything the package ships (theme/, content/, …)
+// hangs off this, which is why the depth is written out rather than guessed.
+const jprotRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))))
 
 // Where the built-in default theme ships inside this package.
 export const DEFAULT_THEME_DIR = join(jprotRoot, 'theme', 'default')

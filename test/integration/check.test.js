@@ -6,9 +6,9 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync, statSync, re
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { REPO_ROOT, makeSite, captureLogs } from '../helpers/site.js'
-import { checkConfig, runCheck } from '../../core/check.js'
-import { validateConfig, CONFIG_KEYS } from '../../core/schema.js'
-import { scaffoldSite } from '../../core/scaffold.js'
+import { checkConfig, runCheck } from '../../core/tooling/check.js'
+import { validateConfig, CONFIG_KEYS } from '../../core/content/schema.js'
+import { scaffoldSite } from '../../core/tooling/scaffold.js'
 
 const exec = promisify(execFile)
 const jprot = (...args) => exec(process.execPath, ['core/cli.js', ...args], { cwd: REPO_ROOT })
@@ -124,7 +124,7 @@ test('every key the scaffold writes is in CONFIG_KEYS', async () => {
   try {
     const root = join(dir, 'site')
     await scaffoldSite({ root, type: 'portfolio' })
-    const { loadConfigWithSource } = await import('../../core/config.js')
+    const { loadConfigWithSource } = await import('../../core/foundation/config.js')
     const { config } = await loadConfigWithSource(root, undefined, true)
     const unknown = Object.keys(config).filter((k) => !CONFIG_KEYS.includes(k))
     assert.deepEqual(unknown, [], `scaffolded config has keys the schema rejects: ${unknown.join(', ')}`)

@@ -8,11 +8,11 @@ import { execFile } from "node:child_process";
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
 
-import { contentGraph, stripMarkdown } from "./graph.js";
-import { sendWithSecurity, newNonce } from "./http.js";
-import { state } from "./state.js";
-import { esc, safeColor } from "./utils.js";
-import { applyJsonHooks } from "./plugins-api.js";
+import { contentGraph, stripMarkdown } from "../content/graph.js";
+import { sendWithSecurity, newNonce } from "../foundation/http.js";
+import { state } from "../foundation/state.js";
+import { esc, safeColor } from "../../lib/utils.js";
+import { applyJsonHooks } from "../runtime/plugins-api.js";
 
 export {
   homepageSearchEntry,

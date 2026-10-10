@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { contentGraph, getContentGraph, listMarkdown, postItems, projectItems, resolveContent } from '../../core/graph.js'
-import { setFallbackState } from '../../core/state.js'
+import { contentGraph, getContentGraph, listMarkdown, postItems, projectItems, resolveContent } from '../../core/content/graph.js'
+import { setFallbackState } from '../../core/foundation/state.js'
 
 let dir
 

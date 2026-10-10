@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createDeployment, deployUrlFor, normalizeBasePath, resolveDeployment } from '../../core/deploy.js'
+import { createDeployment, deployUrlFor, normalizeBasePath, resolveDeployment } from '../../core/tooling/deploy.js'
 import { makeSite } from '../helpers/site.js'
 
 test('normalizeBasePath canonicalizes to either nothing or /segment', () => {

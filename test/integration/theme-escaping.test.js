@@ -14,7 +14,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { loadComponents } from '../../core/components.js'
+import { loadComponents } from '../../core/content/components.js'
 import { createMarkdown } from '../../lib/markdown.js'
 import { REPO_ROOT } from '../helpers/site.js'
 
@@ -190,5 +190,5 @@ test('no component re-declares its own safeHref or scheme check', async () => {
       offenders.push(name)
     }
   }
-  assert.deepEqual(offenders, [], 'import safeHref from core/utils.js instead of reimplementing it')
+  assert.deepEqual(offenders, [], 'import safeHref from lib/utils.js instead of reimplementing it')
 })

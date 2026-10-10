@@ -1,4 +1,4 @@
-import { editDistance as distance } from './utils.js'
+import { editDistance as distance } from '../../lib/utils.js'
 
 // Runtime validation for jprot.config.js.
 //

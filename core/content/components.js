@@ -1,10 +1,10 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { DEFAULT_THEME_DIR } from './config.js'
-import { parseFrontmatter } from '../lib/frontmatter.js'
-import { createMarkdown } from '../lib/markdown.js'
-import { editDistance as distance, slugify } from './utils.js'
+import { DEFAULT_THEME_DIR } from '../foundation/config.js'
+import { parseFrontmatter } from '../../lib/frontmatter.js'
+import { createMarkdown } from '../../lib/markdown.js'
+import { editDistance as distance, slugify } from '../../lib/utils.js'
 
 async function listComponents(sourceDir) {
   const names = []

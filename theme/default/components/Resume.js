@@ -1,4 +1,4 @@
-import { esc, safeHref } from '../../../core/utils.js'
+import { esc, safeHref } from '../../../lib/utils.js'
 
 export default function Resume(props) {
   const { site, page, content, posts } = props

@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { join, sep } from 'node:path'
-import { createChangeClassifier } from '../../core/watch.js'
+import { createChangeClassifier } from '../../core/runtime/watch.js'
 import { makeSite } from '../helpers/site.js'
 
 const ROOT = join(sep, 'site')

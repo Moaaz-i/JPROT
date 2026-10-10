@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { esc, isInside, slugify, MIME, safeHref, safeColor, editDistance } from '../../core/utils.js'
-import { resolveRelativeUrl } from '../../core/urls.js'
+import { esc, isInside, slugify, MIME, safeHref, safeColor, editDistance } from '../../lib/utils.js'
+import { resolveRelativeUrl } from '../../core/foundation/urls.js'
 import { safeUrl, escapeHtml } from '../../lib/markdown/sanitize.js'
 
 test('esc escapes HTML metacharacters', () => {

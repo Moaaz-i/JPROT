@@ -6,7 +6,7 @@
 //
 // A throwing handler is reported and skipped everywhere: one bad plugin must not
 // take the site down.
-import { state } from "./state.js";
+import { state } from "../foundation/state.js";
 
 /**
  * Run the plugin `html:*` hooks over a rendered page.

@@ -60,7 +60,7 @@ test('a right-to-left lang with no dir is warned about, not silently mirrored', 
   // browser does by default. What was missing was the *warning* — an Arabic
   // author who set only `lang` got a correctly-rendered page laid out in the
   // wrong direction, with nothing anywhere saying so.
-  const { validateConfig } = await import('../../core/schema.js')
+  const { validateConfig } = await import('../../core/content/schema.js')
 
   const messages = (config) =>
     validateConfig({ title: 'T', ...config }).warnings.map((w) => `${w.path}: ${w.message}`).join('\n')

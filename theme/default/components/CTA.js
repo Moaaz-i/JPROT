@@ -1,4 +1,4 @@
-import { esc, safeHref } from '../../../core/utils.js'
+import { esc, safeHref } from '../../../lib/utils.js'
 
 export default function CTA({ title = '', text = '', label = 'Get in touch', url = '/contact' }) {
   return `

@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { realpathSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join, resolve } from "node:path";
-import { originFor } from "./urls.js";
+import { originFor } from "./foundation/urls.js";
 
 function printHelp() {
   console.log(`
@@ -106,7 +106,7 @@ export async function bootstrap() {
   }
 
   if (command === "search" || command === "add") {
-    const { searchCatalog, addCatalogElement, resolveCatalogUrl, catalogHelp } = await import("./catalog.js");
+    const { searchCatalog, addCatalogElement, resolveCatalogUrl, catalogHelp } = await import("./tooling/catalog.js");
     const fromIdx = args.indexOf("--from");
     const catalogUrl = await resolveCatalogUrl({ projectRoot: projectRoot(), from: fromIdx >= 0 ? args[fromIdx + 1] : undefined });
     if (!catalogUrl) {
@@ -179,21 +179,21 @@ export async function bootstrap() {
   }
 
   if (command === "check") {
-    const { runCheck } = await import("./check.js");
+    const { runCheck } = await import("./tooling/check.js");
     const code = await runCheck({ root: projectRoot(), strict: args.includes("--strict") });
     process.exitCode = code;
     return;
   }
 
   if (command === "lint") {
-    const { runLint } = await import("./lint.js");
+    const { runLint } = await import("./tooling/lint.js");
     const code = await runLint({ root: projectRoot() });
     process.exitCode = code;
     return;
   }
 
   if (command === "init") {
-    const { scaffoldSite } = await import("./scaffold.js");
+    const { scaffoldSite } = await import("./tooling/scaffold.js");
     const type = args.find((a) => ["--portfolio", "--docs", "--resume"].includes(a))?.replace("--", "") || "portfolio";
     const root = projectRoot();
     await scaffoldSite({ type, root });
@@ -206,7 +206,7 @@ export async function bootstrap() {
   }
 
   if (command === "new") {
-    const { scaffoldNew } = await import("./scaffold.js");
+    const { scaffoldNew } = await import("./tooling/scaffold.js");
     const kind = pos[1];
     const title = pos[2];
     const draft = args.includes("--draft");
@@ -223,14 +223,14 @@ export async function bootstrap() {
   }
 
   if (command === "g" || command === "generate") {
-    const { componentPaletteList } = await import("./scaffold.js");
+    const { componentPaletteList } = await import("./tooling/scaffold.js");
     if (pos[1] === "list") {
       console.log("  Component templates:");
       for (const t of componentPaletteList()) console.log(`    ${t.id.padEnd(9)} ${t.desc}`);
       return;
     }
     if (pos[1] === "component") {
-      const { scaffoldComponent } = await import("./scaffold.js");
+      const { scaffoldComponent } = await import("./tooling/scaffold.js");
       const name = pos[2];
       const pIdx = args.indexOf("--palette");
       const palette = pIdx >= 0 ? args[pIdx + 1] : "section";

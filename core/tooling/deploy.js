@@ -10,7 +10,7 @@
 // `/`, so the base path only ever appears in exported output: every href, src,
 // canonical URL, feed item, sitemap entry and search result has to grow the
 // prefix or the deployed site 404s on itself.
-import { loadSiteConfig } from './config.js'
+import { loadSiteConfig } from '../foundation/config.js'
 
 /** Normalize user input into a canonical base path: `''` or `/segment`. */
 export function normalizeBasePath(value) {

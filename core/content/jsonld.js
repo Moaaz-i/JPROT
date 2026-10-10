@@ -4,7 +4,7 @@
 // — they are the part of the output most likely to be silently wrong and the
 // least likely to be noticed, because a broken JSON-LD block still renders a
 // perfectly good-looking page.
-import { absUrl } from "./urls.js";
+import { absUrl } from "../foundation/urls.js";
 
 export { generateJsonLd, htmlToText };
 

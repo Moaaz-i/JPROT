@@ -8,10 +8,10 @@
 import { createHash } from 'node:crypto'
 import { mkdir, writeFile, readFile, cp, stat, rm, rmdir, readdir } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
-import { createJprot } from './server.js'
-import { resolveDeployment } from './deploy.js'
-import { state } from './state.js'
-import { JPROT_VERSION } from './version.js'
+import { createJprot } from './site/app.js'
+import { resolveDeployment } from './tooling/deploy.js'
+import { state } from './foundation/state.js'
+import { JPROT_VERSION } from './foundation/version.js'
 
 function sha(b) {
   return createHash('sha256').update(b).digest('hex').slice(0, 16)

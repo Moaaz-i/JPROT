@@ -8,9 +8,9 @@ import { createHash } from "node:crypto";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { absUrl } from "./urls.js";
-import { state } from "./state.js";
-import { isInside, safeColor } from "./utils.js";
+import { absUrl } from "../foundation/urls.js";
+import { state } from "../foundation/state.js";
+import { isInside, safeColor } from "../../lib/utils.js";
 import { notFound } from "./notfound.js";
 import { serveFile } from "./assets.js";
 

@@ -3,11 +3,11 @@ import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { loadComponents, interpolateMdValues } from '../../core/components.js'
-import { renderSections, renderDocumentBody } from '../../core/render.js'
+import { loadComponents, interpolateMdValues } from '../../core/content/components.js'
+import { renderSections, renderDocumentBody } from '../../core/content/render.js'
 import { createMarkdown } from '../../lib/markdown.js'
 import { createJprot } from '../../core/server.js'
-import { scaffoldSite } from '../../core/scaffold.js'
+import { scaffoldSite } from '../../core/tooling/scaffold.js'
 
 const md = createMarkdown()
 

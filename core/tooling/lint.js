@@ -14,9 +14,9 @@
 // fail the command, so `jprot lint` stays usable as a CI gate.
 import { readdir, stat } from 'node:fs/promises'
 import { basename, dirname, join, relative } from 'node:path'
-import { loadComponents, validateProps } from './components.js'
-import { loadSiteConfig } from './config.js'
-import { canonPath, decodeHref, isExternalTarget, loadContentGraph, resolveInternalTarget } from './graph.js'
+import { loadComponents, validateProps } from '../content/components.js'
+import { loadSiteConfig } from '../foundation/config.js'
+import { canonPath, decodeHref, isExternalTarget, loadContentGraph, resolveInternalTarget } from '../content/graph.js'
 
 const SIZE_LIMIT = 400 * 1024
 // Extensions worth reporting as "unused" in public/ — never stray dotfiles or

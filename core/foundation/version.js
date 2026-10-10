@@ -8,4 +8,4 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 
-export const JPROT_VERSION = require("../package.json").version;
+export const JPROT_VERSION = require("../../package.json").version;

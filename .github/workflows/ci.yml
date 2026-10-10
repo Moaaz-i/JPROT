@@ -53,7 +53,7 @@ jobs:
           # the type definitions must ship; private notes must not.
           tar -tzf "$tar_file" > packed-files.txt
           grep -qx 'package/core/server.js' packed-files.txt
-          grep -qx 'package/core/graph.js' packed-files.txt
+          grep -qx 'package/core/content/graph.js' packed-files.txt
           grep -qx 'package/lib/frontmatter.js' packed-files.txt
           grep -qx 'package/theme/default/styles.css' packed-files.txt
           grep -qx 'package/jprot.d.ts' packed-files.txt

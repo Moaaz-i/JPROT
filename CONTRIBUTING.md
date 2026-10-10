@@ -29,9 +29,9 @@ tests to run — everything uses the Node built-in test runner.
 | `core/cli.js` | CLI entry point: `init`, `new`, `check`, `lint`, `add`, `export`, and the dev server |
 | `core/server.js` | HTTP server, routing order, state build |
 | `core/export.js` | Static export, incremental rebuild via `.cache/export-manifest.json` |
-| `core/graph.js` | One walk of `content/` that produces nav, search index and sitemap data |
-| `core/plugins.js` | Plugin loading and the plugin API (`on`, `addComponent`, `addRoute`, `extendMarkdown`) |
-| `core/page.js` | Turning a content file into a rendered page |
+| `core/content/graph.js` | One walk of `content/` that produces nav, search index and sitemap data |
+| `core/runtime/plugins.js` | Plugin loading and the plugin API (`on`, `addComponent`, `addRoute`, `extendMarkdown`) |
+| `core/site/page.js` | Turning a content file into a rendered page |
 | `lib/markdown/` | The Markdown renderer, split by stage |
 | `lib/frontmatter.js` | Front matter parsing and diagnostics |
 | `theme/default/` | The built-in theme, including `styles.css` |

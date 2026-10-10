@@ -1,4 +1,4 @@
-import { esc } from '../../../core/utils.js'
+import { esc } from '../../../lib/utils.js'
 
 const THEMES = [
   { id: 'default', label: 'Default', swatch: '#4f46e5' },

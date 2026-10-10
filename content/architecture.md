@@ -58,14 +58,14 @@ Each file owns one question, and only that question:
 | Output | `export.js` | What gets written to disk? |
 | Confidence | `check.js`, `lint.js` | Is this site actually correct? |
 
-`core/graph.js` is the one module that owns content. The old `core/content.js`
+`core/content/graph.js` is the one module that owns content. The old `core/content.js`
 facade was retired in 0.8.x: the instance views it provided (`contentGraph`,
 `postItems`, `projectItems`, `resolveContent`) now live here, and the dependency
 arrows point one way (`server → graph → lib`) with no import cycle.
 
 ## The Content Graph
 
-`core/graph.js` is the single place that reads `content/`. One pass produces
+`core/content/graph.js` is the single place that reads `content/`. One pass produces
 every derived structure the rest of the server needs:
 
 ```
@@ -101,7 +101,7 @@ what the browser does, and what the server's own 301s assume.
    - Resolves the path through the content graph.
    - Parses **frontmatter** (`lib/frontmatter.js`).
    - Renders the body to HTML — first expanding `:::Component` **shortcodes**
-     into an AST (`core/render.js`), then running the classic Markdown pass
+     into an AST (`core/content/render.js`), then running the classic Markdown pass
      (`lib/markdown/`).
    - Picks the matching **component** (`Home`, `Page`, or a custom layout).
    - In `docs` mode, the graph's `docsNavigation` supplies the sidebar and the
@@ -147,7 +147,7 @@ systems.
 
 ## The component contract
 
-`core/components.js` normalizes every component into one shape, so a component
+`core/content/components.js` normalizes every component into one shape, so a component
 can be written in whichever form reads best:
 
 ```js
@@ -196,7 +196,7 @@ export default {
 }
 ```
 
-Every hook is listed with its arguments in `HOOKS` (`core/plugins.js`), so the
+Every hook is listed with its arguments in `HOOKS` (`core/runtime/plugins.js`), so the
 docs, `jprot.d.ts` and the error message for a typo all come from one source.
 `on('htlm:head')` fails at setup time, loudly, rather than silently never firing.
 
@@ -223,7 +223,7 @@ functions stay clean and reusable — hot-reload rebuilds this store in place.
 4. Empty defaults
 
 Right after loading, the server validates the config against the schema in
-`core/schema.js` and prints **startup hints**: unknown `sections[].component`
+`core/content/schema.js` and prints **startup hints**: unknown `sections[].component`
 names (with the available list) and config keys that look like typos (with a
 did-you-mean suggestion).
 
@@ -237,7 +237,7 @@ check` catches them in CI.
 These used to be one file, and mixing them is how a base-path bug survives for
 months. They are now separate questions:
 
-- **`core/deploy.js` — where does the site live?** `normalizeBasePath()`,
+- **`core/tooling/deploy.js` — where does the site live?** `normalizeBasePath()`,
   `deployUrlFor()`, and a `createDeployment()` object that knows how to rewrite
   HTML, the search index, and the PWA manifest for a given base path and origin.
 - **`core/export.js` — what gets written?** It asks for the page URLs from the

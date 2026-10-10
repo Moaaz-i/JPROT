@@ -23,7 +23,7 @@
     },
     "./scaffold": {
       "types": "./jprot.d.ts",
-      "default": "./core/scaffold.js"
+      "default": "./core/tooling/scaffold.js"
     },
     "./package.json": "./package.json"
   },

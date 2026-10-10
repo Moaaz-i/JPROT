@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { join } from 'node:path'
 import { readFile } from 'node:fs/promises'
 import { createJprot } from '../../core/server.js'
-import { HOOKS } from '../../core/plugins.js'
+import { HOOKS } from '../../core/runtime/plugins.js'
 import { makeSite } from '../helpers/site.js'
 
 // Writes a plugin that records every hook it sees, then runs a site that

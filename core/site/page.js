@@ -9,17 +9,17 @@
 import { basename, join } from "node:path";
 
 import { collectCss, isFile } from "./assets.js";
-import { contentGraph, postItems, projectItems, readParsed } from "./graph.js";
-import { newNonce, sendWithSecurity } from "./http.js";
-import { generateJsonLd, htmlToText } from "./jsonld.js";
+import { contentGraph, postItems, projectItems, readParsed } from "../content/graph.js";
+import { newNonce, sendWithSecurity } from "../foundation/http.js";
+import { generateJsonLd, htmlToText } from "../content/jsonld.js";
 import { notFound } from "./notfound.js";
 import { ogImageFor } from "./og.js";
-import { applyHtmlHooks } from "./plugins-api.js";
-import { renderDocumentBody, renderSections } from "./render.js";
-import { scrollAnimScript, searchScript, spaScript, themeScript } from "./scripts.js";
-import { state } from "./state.js";
-import { absUrl } from "./urls.js";
-import { esc, safeColor } from "./utils.js";
+import { applyHtmlHooks } from "../runtime/plugins-api.js";
+import { renderDocumentBody, renderSections } from "../content/render.js";
+import { scrollAnimScript, searchScript, spaScript, themeScript } from "../runtime/scripts/index.js";
+import { state } from "../foundation/state.js";
+import { absUrl } from "../foundation/urls.js";
+import { esc, safeColor } from "../../lib/utils.js";
 
 
 function inProdMode() {

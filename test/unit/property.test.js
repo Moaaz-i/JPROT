@@ -19,7 +19,7 @@ import assert from 'node:assert/strict'
 
 import { createMarkdown, escapeHtml, slugify } from '../../lib/markdown.js'
 import { parseFrontmatter } from '../../lib/frontmatter.js'
-import { esc, safeHref, slugify as utilsSlugify } from '../../core/utils.js'
+import { esc, safeHref, slugify as utilsSlugify } from '../../lib/utils.js'
 
 /* ---------------- the generator ---------------- */
 

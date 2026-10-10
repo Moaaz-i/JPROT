@@ -1,4 +1,4 @@
-import { esc } from '../../../core/utils.js'
+import { esc } from '../../../lib/utils.js'
 
 export default function Footer(props) {
   const { site } = props

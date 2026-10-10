@@ -10,10 +10,10 @@
 // It is the cheap half of `jprot lint` (which reads content) and is meant to
 // run first: a bad config makes every other check meaningless.
 import { join } from 'node:path'
-import { loadConfigWithSource } from './config.js'
-import { loadComponents, normalizeComponent } from './components.js'
-import { formatConfigIssues, validateConfig } from './schema.js'
-import { runPlugins } from './plugins.js'
+import { loadConfigWithSource } from '../foundation/config.js'
+import { loadComponents, normalizeComponent } from '../content/components.js'
+import { formatConfigIssues, validateConfig } from '../content/schema.js'
+import { runPlugins } from '../runtime/plugins.js'
 
 /**
  * Analyze a project's configuration.

@@ -9,8 +9,8 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { makeSite, REPO_ROOT } from '../helpers/site.js'
 import { createJprot } from '../../core/server.js'
-import { checkConfig } from '../../core/check.js'
-import { loadSiteConfig, ConfigLoadError } from '../../core/config.js'
+import { checkConfig } from '../../core/tooling/check.js'
+import { loadSiteConfig, ConfigLoadError } from '../../core/foundation/config.js'
 
 const exec = promisify(execFile)
 const jprot = (...args) => exec(process.execPath, ['core/cli.js', ...args], { cwd: REPO_ROOT })

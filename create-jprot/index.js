@@ -17,7 +17,7 @@ async function loadScaffold() {
   try {
     return await import('jprot/scaffold')
   } catch {
-    return await import('../core/scaffold.js')
+    return await import('../core/tooling/scaffold.js')
   }
 }
 

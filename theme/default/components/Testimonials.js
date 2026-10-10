@@ -1,4 +1,4 @@
-import { esc } from '../../../core/utils.js'
+import { esc } from '../../../lib/utils.js'
 
 export default function Testimonials({ title = 'Testimonials', subtitle = '', items = [] }) {
   const cards = (items || []).map((it) => `

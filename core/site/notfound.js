@@ -4,9 +4,9 @@
 // function at the bottom of it. It is a leaf: it reads `state()` for the brand,
 // the labels and the accent colour, and nothing imports it except the handlers
 // that have nothing better to serve.
-import { CSP, SECURITY_HEADERS, newNonce } from "./http.js";
-import { state } from "./state.js";
-import { esc, safeColor } from "./utils.js";
+import { CSP, SECURITY_HEADERS, newNonce } from "../foundation/http.js";
+import { state } from "../foundation/state.js";
+import { esc, safeColor } from "../../lib/utils.js";
 
 export function notFound(res, url) {
   const { site, labels } = state();

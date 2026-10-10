@@ -7,9 +7,9 @@
 import { readFile, stat } from "node:fs/promises";
 import { extname } from "node:path";
 
-import { SECURITY_HEADERS, etagOf, sendWithSecurity } from "./http.js";
-import { state } from "./state.js";
-import { MIME, isInside } from "./utils.js";
+import { SECURITY_HEADERS, etagOf, sendWithSecurity } from "../foundation/http.js";
+import { state } from "../foundation/state.js";
+import { MIME, isInside } from "../../lib/utils.js";
 import { notFound } from "./notfound.js";
 
 export { collectCss, isFile, serveCss, serveFile, serveThemeCss };

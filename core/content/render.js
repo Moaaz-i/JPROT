@@ -15,7 +15,7 @@
 //
 //   { type: 'markdown',  value: '…' }
 //   { type: 'shortcode', name: 'Tabs', attrs: {}, children: [ … ], line: 1 }
-import { esc } from './utils.js'
+import { esc } from '../../lib/utils.js'
 
 export async function renderSections({ site, page, nav, projects, posts, sections, components = {} }) {
   let out = ''

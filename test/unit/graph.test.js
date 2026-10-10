@@ -12,7 +12,7 @@ import {
   loadContentGraph,
   resolveInternalTarget,
   stripMarkdown,
-} from '../../core/graph.js'
+} from '../../core/content/graph.js'
 import { makeSite, page } from '../helpers/site.js'
 
 /* ---------------- pure helpers ---------------- */
