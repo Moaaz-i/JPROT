@@ -29,7 +29,13 @@ import assert from 'node:assert/strict'
 
 import { createMarkdown } from '../../lib/markdown.js'
 import { parseFrontmatter } from '../../lib/frontmatter.js'
-import { FENCE_OPEN_RE } from '../../lib/markdown/fence.js'
+import { FENCE_OPEN_RE, fenceStep, newFenceState } from '../../lib/markdown/fence.js'
+// The renderer's own code-span rule. `blankCodeSpans` has to answer "is this
+// `[^a]` inside a span?" with the same pairing the renderer acts on, and the two
+// were written separately: this one used to be "the next backtick anywhere",
+// which on a line with an unclosed run swallowed every line beneath it and
+// reported a reference the page correctly did not have.
+import { CODE_SPAN_RE } from '../../lib/markdown/inline.js'
 import { BLOCK_PATTERNS } from '../../lib/markdown/blocks.js'
 import {
   FOOTNOTE_DEF_RE, LINK_DEF_RE, collectFootnoteDefs, collectLinkDefs,
@@ -51,6 +57,11 @@ const ALLOWED_TAGS = new Set([
   'ul', 'ol', 'li', 'input', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
   'hr', 'blockquote', 'aside', 'strong', 'em', 'del', 'a', 'img', 'sup',
   'section',
+  // A hard line break: two trailing spaces or a trailing backslash, turned into
+  // markup by the renderer rather than passed through as the author's own HTML —
+  // so it is the renderer's tag and belongs in this list, unlike every `<br>` a
+  // document writes for itself, which counts as source text reaching the output.
+  'br',
 ])
 
 /** Text that must never appear in rendered output. `undefined` and `null` mean a
@@ -221,22 +232,14 @@ function splitLines(src) {
  * way, on documents that were a stray backtick run and a footnote.
  */
 function blankCodeSpans(text) {
-  let out = ''
-  let i = 0
-  while (i < text.length) {
-    if (text[i] === '`') {
-      const close = text.indexOf('`', i + 1)
-      // `close === i + 1` is the empty-inner match: `[^`]+` needs one character, so
-      // an adjacent pair fails and the scan resumes one position along.
-      if (close !== -1 && close !== i + 1) {
-        out += text.slice(i, close + 1).replace(/[^\n]/g, ' ')
-        i = close + 1
-        continue
-      }
-    }
-    out += text[i++]
-  }
-  return out
+  // `CODE_SPAN_RE` is the renderer's own rule, imported rather than re-typed: a
+  // run of backticks, a body, and the *same* run again. The hand-rolled scan this
+  // replaced paired from the first backtick to the next one anywhere, so an
+  // unclosed run on one line closed three lines later and blanked a reference the
+  // renderer had left as prose — and the model then reported a footnote the page
+  // correctly did not have. Newlines survive the replacement, so the result still
+  // splits back into exactly one piece per source line.
+  return text.replace(CODE_SPAN_RE, (m) => m.replace(/[^\n]/g, ' '))
 }
 
 /** `CALLOUT_RE` and `TASK_RE`, which the emitter tests before anything else. Neither
@@ -346,8 +349,12 @@ function inlineScopes(lines) {
  * the "the prose model agrees with the renderer" property exists to test rather than
  * assume.
  *
- * `~~~` is deliberately not blanked — it is not a fence in this renderer, and
- * masking one would hide a reference the renderer does act on.
+ * `~~~` is blanked exactly when the renderer treats it as a fence — which is now
+ * every time, since `FENCE_OPEN_RE` grew a tilde alternative. Both sides ask the
+ * same `fenceStep`, so a document showing a tilde fence inside a backtick one is
+ * read the same way by this model and by the emitter; when `~~~` was only
+ * strikethrough to the renderer, blanking it here would have hidden a reference
+ * the renderer did act on.
  *
  * The alignment is load-bearing. `orphanFootnoteTokens` has to know which definition
  * a line belongs to in order to know whether a reference on that line is one the
@@ -406,10 +413,14 @@ function proseOf(src) {
  * masking for the references, where being wrong is free.
  */
 function outsideFences(src) {
-  let inFence = false
+  const state = newFenceState()
   return splitLines(src).map((line) => {
-    if (FENCE_OPEN_RE.test(line)) { inFence = !inFence; return '' }
-    return inFence ? '' : line
+    // `fenceStep` also reports `'inside'`, for a fence-shaped line that belongs to
+    // the fence already open — truthy either way, so both are blanked. What the
+    // step buys over a bare toggle is that a `~~~` line no longer *closes* a ```
+    // fence, which is the case where the model and the renderer disagreed.
+    if (fenceStep(state, line)) return ''
+    return state.inCode ? '' : line
   })
 }
 
@@ -434,11 +445,17 @@ function outsideFences(src) {
 function preScanView(src) {
   const text = []
   const kind = []
-  let inFence = false
+  const state = newFenceState()
   for (const line of splitLines(src)) {
-    if (FENCE_OPEN_RE.test(line)) { inFence = !inFence; text.push(''); kind.push('fence'); continue }
-    text.push(inFence ? '' : line)
-    kind.push(inFence ? 'inside' : 'prose')
+    const step = fenceStep(state, line)
+    // Only the lines that *toggled* the fence are fence lines here — the same
+    // ones `forEachOutsideCode` reports through `onFence`. A fence-shaped line
+    // inside a fence of the other character is ordinary code: it neither ends a
+    // definition nor opens one, and calling it a fence would end the definition
+    // one line early while the emitter still has that line to skip.
+    if (step === 'open' || step === 'close') { text.push(''); kind.push('fence'); continue }
+    text.push(state.inCode ? '' : line)
+    kind.push(state.inCode ? 'inside' : 'prose')
   }
   return { text, kind }
 }
@@ -489,11 +506,12 @@ function codeLines(src) {
   /** `items` is `[{ text, at }]`; `at` is the source line index, or -1 for filler. */
   function walk(items, topLevel) {
     let j = 0
-    let inCode = false
+    const fenceState = newFenceState()
     while (j < items.length) {
       const { text: line, at } = items[j]
-      if (FENCE_OPEN_RE.test(line)) { inCode = !inCode; j++; continue }
-      if (inCode) { if (at >= 0) code[at] = true; j++; continue }
+      const step = fenceStep(fenceState, line)
+      if (step === 'open' || step === 'close') { j++; continue }
+      if (fenceState.inCode) { if (at >= 0) code[at] = true; j++; continue }
       if (line.trim() === '') { j++; continue }
 
       const footnote = FOOTNOTE_DEF_RE.exec(line)

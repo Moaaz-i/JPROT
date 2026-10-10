@@ -336,6 +336,31 @@ test('pathological delimiter runs stay literal', () => {
   assert.doesNotMatch(html, /<strong>|<em>/)
 })
 
+// A bold link is written `**[text](url)**`, so the delimiters sit *around* tags
+// that already exist by the time emphasis runs. Refusing any match whose content
+// holds a tag made every one of them print its asterisks — the index page's whole
+// link list came out as `**<a …>Quick start</a>**`. Nesting is the real question:
+// wrapping whole tags is fine, opening an element inside a tag and closing it
+// outside is not.
+test('emphasis wraps tags that are already in the string', () => {
+  assert.match(md.render('**[Quick start](quick-start.md)** — five minutes'),
+    /<strong><a href="quick-start">Quick start<\/a><\/strong>/)
+  assert.match(md.render('**![moon](moon.jpg)** and **see <https://x.dev> now**'),
+    /<strong><img src="moon\.jpg" alt="moon"><\/strong>/)
+  assert.match(md.render('**see <https://x.dev> now**'), /<strong>see <a href="https:\/\/x\.dev">/)
+  assert.match(md.render('**foo [bar](/url)**'), /<strong>foo <a href="\/url">bar<\/a><\/strong>/)
+})
+
+// The other half: a pair that would open inside a tag and close outside it must
+// still be refused, otherwise the browser repairs markup nobody wrote.
+test('emphasis does not cross a tag boundary', () => {
+  const crossed = md.render('<a href="/x">foo **</a> bar**')
+  assert.doesNotMatch(crossed, /<strong>/)
+  assert.match(crossed, /\*\*<\/a> bar\*\*/)
+  // …while the balanced form — bold *inside* the anchor — is untouched.
+  assert.match(md.render('<a href="/x">**foo**</a>'), /<a href="\/x"><strong>foo<\/strong><\/a>/)
+})
+
 test('reference-style links resolve from definitions', () => {
   const html = md.render('[text][id] [collapsed][] [shortcut]\n\n[id]: https://x.dev\n[collapsed]: /page.md\n[shortcut]: https://y.dev')
   assert.match(html, /<a href="https:\/\/x\.dev">text<\/a>/)
@@ -481,4 +506,147 @@ test('a table at top level *is* stopped by a definition', () => {
   const html = md.render(['See [^a] here.', '', '| a |', '|---|', '| b |', '[^a]: the note Mk1'].join('\n'))
   assert.match(html, /<li id="fn-a">the note Mk1</)
   assert.doesNotMatch(html, /<td>the note Mk1<\/td>/)
+})
+
+/* --- delimiter runs: `****bold****` and friends ------------------------------ */
+
+test('a run of four or more delimiters nests instead of shedding one', () => {
+  // The single-run rules each saw only their own slice of a longer run, so the
+  // `***` rule started one character into a run of four and left a literal `*`
+  // on either side of the page. Four is two strongs; five wraps an emphasis
+  // around them — both are what CommonMark says, and both render as bold, which
+  // is what anyone writing `****…****` asked for.
+  assert.match(md.render('****bold****'), /<strong><strong>bold<\/strong><\/strong>/)
+  assert.match(md.render('____bold____'), /<strong><strong>bold<\/strong><\/strong>/)
+  assert.match(md.render('*****both*****'), /<em><strong><strong>both<\/strong><\/strong><\/em>/)
+  assert.match(md.render('___gone___'), /<strong><em>gone<\/em><\/strong>/)
+  // Three is a tested answer and stays the one it had.
+  assert.match(md.render('***both***'), /<strong><em>both<\/em><\/strong>/)
+  // A run of `_` around a word is emphasis… but only outside one. The run rule
+  // carries the same intraword guard the single `_` rule always had, so an
+  // identifier is still an identifier — `snake_case` never gains markup from it.
+  assert.match(md.render('a ____bar____ b'), /a <strong><strong>bar<\/strong><\/strong> b/)
+  assert.match(md.render('BLOCK_PATTERNS here'), /BLOCK_PATTERNS here/)
+  // …and the existing answers for the short runs do not move.
+  assert.match(md.render('**a *b* c**'), /<strong>a <em>b<\/em> c<\/strong>/)
+  assert.match(md.render('*em* and __strong__'), /<em>em<\/em> and <strong>strong<\/strong>/)
+})
+
+/* --- setext headings --------------------------------------------------------- */
+
+test('a line of = or - under a paragraph is a heading, not a rule', () => {
+  assert.match(md.render('Heading\n==='), /<h1 id="heading">Heading<\/h1>/)
+  assert.match(md.render('Heading\n---'), /<h2 id="heading">Heading<\/h2>/)
+  // Both lines of the paragraph belong to the heading.
+  assert.match(md.render('Foo\nbar\n==='), /<h1[^>]*>Foo\nbar<\/h1>/)
+  // A blank line ends the paragraph, so a rule *between* paragraphs is still a
+  // rule — the blank is what the author used to say so.
+  assert.match(md.render('alpha\n\n---\n\nbeta'), /<p>alpha<\/p>\n<hr>\n<p>beta<\/p>/)
+  // A rule after a list, not under a line of text, is also still a rule.
+  assert.match(md.render('- foo\n---'), /<ul>\n<li>foo<\/li>\n<\/ul>\n<hr>/)
+  // …but four spaces of indent is not an underline — the run has to start
+  // within three, and an indented line renders as the prose it is.
+  assert.match(md.render('Heading\n    ==='), /<p>Heading\n===<\/p>/)
+})
+
+/* --- tilde fences ------------------------------------------------------------ */
+
+test('a tilde fence is a fence, and it does not close a backtick one', () => {
+  assert.match(md.render('~~~\nconst x = 1\n~~~'), /<code>const x = 1<\/code>/)
+  // The case that motivated matching the *character*: a document showing a
+  // tilde fence inside a backtick one. Reading the inner `~~~` as a closer
+  // would end the block early and leave the rest of the page as prose.
+  const shown = md.render(['```md', '~~~', 'inner', '~~~', '```'].join('\n'))
+  assert.equal(shown.match(/<pre/g).length, 1)
+  assert.match(shown, /<code[^>]*>~~~\ninner\n~~~<\/code>/)
+  // …and the mirror of it.
+  const mirror = md.render(['~~~', '```', 'inner', '```', '~~~'].join('\n'))
+  assert.equal(mirror.match(/<pre/g).length, 1)
+  assert.match(mirror, /<code[^>]*>```\ninner\n```<\/code>/)
+  // An unclosed tilde fence still keeps its contents away from the other rules.
+  assert.match(md.render('~~~\n**not bold**'), /<code>\*\*not bold\*\*<\/code>/)
+})
+
+/* --- indented source lines --------------------------------------------------- */
+
+test('an indented line stays prose, because a flat scan cannot see where it is', () => {
+  // Indented code blocks are deliberately not supported — see the comment on
+  // `SETTEXT_RE` in `blocks.js`. "Four spaces starts code, unless a paragraph is
+  // running, unless we are inside a list item whose indent was already dedented"
+  // is answered from the emitter's position in the container tree, and the
+  // definition pre-scan and the prose model read the source one line at a time.
+  //
+  // They disagreed exactly once, and the cost was concrete: a `[^a]` on an
+  // indented line was prose to the model and code to the emitter, so the model
+  // expected a note the page could not have — while the emitter skipped the
+  // definition beneath it and rendered its body nowhere. Text left the page with
+  // no error anywhere, which is the failure this whole file is built to catch.
+  assert.match(md.render('para\n\n    indented, not code'), /<p>para<\/p>\n<p>indented, not code<\/p>/)
+  assert.doesNotMatch(md.render('para\n\n    indented, not code'), /<pre/)
+  // The property that broke: a reference on an indented line still resolves, so
+  // the definition it points at still has somewhere to be shown.
+  const noted = md.render(['See [^a] here.', '', '    See [^a] here.', '', '[^a]: the note'].join('\n'))
+  assert.match(noted, /<li id="fn-a">the note</)
+  assert.equal((noted.match(/<a href="#fn-a">/g) || []).length, 2)
+})
+
+/* --- hard line breaks -------------------------------------------------------- */
+
+test('two trailing spaces or a trailing backslash break the line', () => {
+  assert.match(md.render('line one  \nline two'), /<p>line one<br>\nline two<\/p>/)
+  assert.match(md.render('line one\\\nline two'), /<p>line one<br>\nline two<\/p>/)
+  // One space is not enough, and trailing spaces on the *last* line of a
+  // paragraph have nothing to break to — that is where a stray pair is most
+  // likely to be typed, and it must not grow a `<br>`.
+  assert.doesNotMatch(md.render('one \ntwo'), /<br>/)
+  assert.doesNotMatch(md.render('just one line  '), /<br>/)
+  // `\\` at the end of a line is an escaped backslash, not a break: it is
+  // already a placeholder by the time the break rule runs, so the break rule
+  // never sees a backslash before the newline.
+  const escaped = md.render('a\\\\\nb')
+  assert.doesNotMatch(escaped, /<br>/)
+  assert.match(escaped, /<p>a\\\nb<\/p>/)
+})
+
+/* --- links: the angle form, the empty form, and bare URLs -------------------- */
+
+test('a destination may be written in angle brackets or left empty', () => {
+  assert.match(md.render('[a](<https://x.com/a b>)'), /<a href="https:\/\/x.com\/a b">a<\/a>/)
+  assert.match(md.render('[a]()'), /<a href="">a<\/a>/)
+  assert.match(md.render('![a]()'), /<img src="" alt="a">/)
+  // The ordinary forms are untouched by the wider pattern.
+  assert.match(md.render('[a](/url "t")'), /<a href="\/url" title="t">a<\/a>/)
+  assert.match(md.render('![a](/img.png)'), /<img src="\/img.png" alt="a">/)
+})
+
+test('a bare URL becomes a link, but only once and only where a person wrote it', () => {
+  assert.match(md.render('visit https://example.com now'),
+    /visit <a href="https:\/\/example.com">https:\/\/example.com<\/a> now/)
+  // Trailing punctuation belongs to the sentence.
+  assert.match(md.render('see https://example.com.'), /https:\/\/example\.com<\/a>\./)
+  assert.match(md.render('(see https://x.com/a_(b))'), /https:\/\/x\.com\/a_\(b\)<\/a>\)/)
+  // The URL inside an anchor the renderer just built must not get a second one —
+  // neither the href nor the link's own text.
+  const linked = md.render('[docs](https://example.com)')
+  assert.equal(linked.match(/<a /g).length, 1)
+  const bare = md.render('go https://example.com')
+  assert.equal(bare.match(/<a /g).length, 1)
+  // Raw HTML the author wrote keeps its attribute and its text unchanged.
+  const raw = md.render('<a href="https://example.com">https://example.com</a>')
+  assert.equal(raw.match(/<a /g).length, 1)
+  // Nor does one inside an image source — the tag is lifted whole, so its
+  // attribute never reaches the rule at all.
+  assert.equal(md.render('![x](https://example.com/a.png)').match(/<a /g)?.length ?? 0, 0)
+})
+
+/* --- code spans -------------------------------------------------------------- */
+
+test('a code span may hold a backtick when the delimiters are longer', () => {
+  assert.match(md.render('`` a ` b ``'), /<code> a ` b <\/code>/)
+  // The one-backtick rule is unchanged: a body still cannot hold a backtick,
+  // and the delimiters still shield their contents from every text rule.
+  assert.match(md.render('`**not bold**`'), /<code>\*\*not bold\*\*<\/code>/)
+  assert.match(md.render('`a` and `b`'), /<code>a<\/code> and <code>b<\/code>/)
+  // An unmatched run of two is text, not a span that swallows the rest.
+  assert.match(md.render('a``b'), /a``b/)
 })
