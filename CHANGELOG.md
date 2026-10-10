@@ -6,6 +6,76 @@ aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+A Markdown release: nine things writers actually type now render the way the
+spec says, measured against CommonMark 0.31.2 — 225 → 274 examples identical and
+365 → 408 usable (56.0% → 62.6%), with the five "unlicensed damage" cases
+unchanged at 0.8%.
+
+### Added
+
+- **Setext headings.** `Heading\n===` and `Heading\n---` render as `<h1>`/`<h2>`.
+  The rule is tested *before* the thematic break, so a rule between two
+  paragraphs still renders as one — the blank line is what says so — and `- foo`
+  followed by `---` is still a list and then a rule, as the spec has it.
+- **`~~~` code fences**, matched on the opening character: a document that shows
+  a tilde fence inside a backtick one no longer gets cut in half. `fence.js` now
+  exports one `fenceStep()` state machine, used by the block emitter, the
+  definition pre-scan and the fuzz suite's prose model alike. They used to
+  re-type the toggle independently, and a fence one side can see while another
+  cannot is a line that is counted but never stored — text leaving the page with
+  no error anywhere.
+- **Hard line breaks** from a trailing backslash as well as two trailing spaces.
+  Both are resolved after escapes and code spans have been lifted, so `\\` at the
+  end of a line stays a literal backslash, spaces inside a code span stay inside
+  the span, and trailing spaces on the *last* line of a paragraph produce
+  nothing.
+- **Bare-URL autolinks** (`visit https://example.com`), behind the existing
+  `markdown.autolinks` flag. Every tag is lifted first, so the `href` inside an
+  anchor the renderer just built — and that anchor's own text — never gains a
+  second one, and an `<img src="https://…">` is left alone. Trailing punctuation
+  returns to the sentence, and a closing bracket only when it has no opener
+  inside the URL.
+- **`<…>` link destinations** — `[a](<https://x.com/a b>)`, the one form that may
+  contain a space — and **the empty form**, `[a]()`, which now writes `href=""`
+  instead of being read as a rejected URL and left as text.
+- **Code spans delimited by a longer run of backticks**, so a span can hold a
+  backtick of its own without ending early. The single-backtick rule is
+  unchanged, so no existing span changes meaning.
+
+### Fixed
+
+- **A bold link printed its own asterisks: `**[Quick start](quick-start.md)**`
+  came out as `**<a href="…">Quick start</a>**`.** Emphasis refuses any pair
+  whose content holds a tag, so that the pair cannot open an element inside a tag
+  and close it outside it — but that refusal was on *presence*, and a delimiter
+  pair sitting around a whole link is exactly the balanced case. Every bold link
+  on the index page rendered as literal asterisks. The test is now nesting: the
+  placeholders inside the match are walked for depth, a closing tag is one level
+  out and an opening tag one level in (a void `<img>` neither), and a negative
+  depth or one still open at the end still refuses the pair. Emphasis wrapping a
+  link, an image or an autolink now matches, as CommonMark has it; an emphasis
+  pair crossing an anchor's boundary stays literal.
+- **`****bold****` came out as `*<strong><em>bold</em></strong>*`.** Each
+  single-run rule saw only its own slice of a longer run, so the `***` rule
+  started one character into a run of four and left a literal `*` on either side
+  of the page. Runs of three or more are now paired as a whole, which is what
+  CommonMark says: four is two strongs, five wraps an emphasis around them.
+  `____bold____` and `___bold___` were wrong the same way. The intraword guard on
+  `_` was kept, so `snake_case` is still an identifier.
+- **A code span containing a backtick was read as three pieces of stray
+  punctuation.** The old rule allowed a body with no backtick at all and matched
+  from the second backtick of a double.
+
+### Not added, deliberately
+
+- **Indented code blocks.** Four spaces of indent render as prose. Every other
+  block rule is answered from one line at a time, which is what lets the
+  definition pre-scan and the prose model re-derive the same answer; this one is
+  answered from the emitter's position in the container tree, which a flat scan
+  cannot see. Tried, and the fuzz suite failed 29 of 30 seeds for it: a `[^a]` on
+  an indented line was prose to the model and code to the emitter, so the
+  definition beneath it was skipped with its body rendered nowhere.
+
 ## [0.9.1] - 2026-10-07
 
 A focused correctness release: a content-parsing bug that silently truncated
@@ -74,7 +144,7 @@ docs sidebar now works by default (see below).
   `href`) had the same class of bug and are fixed too.
 - **One `safeHref` instead of four.** Three drifted copies existed in theme
   components (no control-character check; `data:` allowed even for links). They
-  were replaced by a single implementation in `core/utils.js`, shared with the
+  were replaced by a single implementation in `lib/utils.js`, shared with the
   Markdown renderer's `safeUrl`. A behavioural test now renders every component
   with hostile props, so a new component cannot reintroduce the class of bug.
 - **`themeColor` could break out of `<style>` and the SVG attributes.** The 404
@@ -267,9 +337,9 @@ theme is text quietly leaving the page while the renderer reported success.
      and the note it cites never gets a superscript. Orphans nest, so the two sets are
      resolved together to a fixed point.
   4. Its code-span scan resumed one backtick *pair* after a failed match. A global
-     regex resumes at the next *position*, so in `true```` the fourth backtick opens
-     the span and not the first — the miss left a footnote reference looking like prose
-     and the token oracle reporting a definition that renders nothing.
+     regex resumes at the next *position*, so on a run of four backticks the fourth
+     one opens the span and not the first — the miss left a footnote reference looking
+     like prose and the token oracle reporting a definition that renders nothing.
   5. It blanked code spans one line at a time, so a span crossing a line break — which
      is what a paragraph *is* — was never found at all.
   6. It did not skip definition lines wholesale when collecting references, so a whole
@@ -278,11 +348,11 @@ theme is text quietly leaving the page while the renderer reported success.
   7. It had **one** notion of where a code block starts. There are two, and they are
      entitled to differ: `forEachOutsideCode` is a flat toggle with no containers,
      while the emitter recurses into list items and quotes with their own fence state.
-     An indented ``` inside a task item is a *continuation line of that item*, so it
-     opens a fence there and leaves the document outside code — and the flat scan read
-     it as an opener for the next twenty lines, taking a footnote with it. The oracle
-     now walks the same decision tree in the same order, over the same exported
-     patterns (`BLOCK_PATTERNS` in `lib/markdown/blocks.js`, internal and not part of
+     An indented backtick fence inside a task item is a *continuation line of that
+     item*, so it opens a fence there and leaves the document outside code — and the
+     flat scan read it as an opener for the next twenty lines, taking a footnote with
+     it. The oracle now walks the same decision tree in the same order, over the same
+     exported patterns (`BLOCK_PATTERNS` in `lib/markdown/blocks.js`, internal and not part of
      the public API), because a second copy of those patterns is a second answer to the
      same question — which is how the emitter and the pre-scan came to disagree in the
      first place.
@@ -349,8 +419,8 @@ theme is text quietly leaving the page while the renderer reported success.
   names and drops them. Nothing about that tag is malformed, so the exemption keys on
   "inside tag syntax" rather than on a parse error — and it has to include *closing*
   tags, which are exactly the ones that swallow. Likewise a fence's info string is an
-  identifier position, so `> ```lang` needs the quote marker dequeued before it can be
-  recognised as one.
+  identifier position, so an info string written behind a quote marker needs that
+  marker dequeued before it can be recognised as one.
 - Every fix listed above was validated by **mutation testing**: each was
   re-broken in place and the suite had to go red. A few mutations survive *by
   design* and are documented as such — the collector/emitter agreement is
@@ -400,13 +470,13 @@ theme is text quietly leaving the page while the renderer reported success.
 - **`core/server.js` was split into eight modules.** It had reached 1857 lines
   holding the page pipeline, the client-side script bundler, the HTTP endpoints,
   JSON-LD, asset serving, OG images, the plugin API and the 404 page. Those are
-  now `core/page.js`, `core/scripts.js`, `core/endpoints.js`, `core/jsonld.js`,
-  `core/assets.js`, `core/og.js`, `core/plugins-api.js` and `core/notfound.js`,
+  now `core/site/page.js`, `core/runtime/scripts.js`, `core/site/endpoints.js`, `core/content/jsonld.js`,
+  `core/site/assets.js`, `core/site/og.js`, `core/runtime/plugins-api.js` and `core/site/notfound.js`,
   and `core/server.js` is 456 lines. The split follows the dependency DAG, so
   `core/` has no import cycles at all. This is a pure move: all 31 exports of the
   package root are unchanged, and `jprot export` output is byte-identical
   (modulo the per-response CSP nonce, which is random by design).
-- Config key lists are derived from `core/schema.js` `CONFIG_KEYS` in both the
+- Config key lists are derived from `core/content/schema.js` `CONFIG_KEYS` in both the
   server and `scaffold.js`, so the "did you mean …" hint can never suggest a key
   `jprot check` would reject, or miss one it accepts. `editDistance` is defined
   once instead of three times.
@@ -447,7 +517,7 @@ theme is text quietly leaving the page while the renderer reported success.
 
 - **`core/content.js` retired.** Its `contentGraph`, `postItems`,
   `projectItems` and `resolveContent` (plus the `legacyItem`/`graphOptions`
-  shims) moved into `core/graph.js`, and `core/server.js` now imports from
+  shims) moved into `core/content/graph.js`, and `core/server.js` now imports from
   there. **Breaking for anyone importing `core/content.js` directly** — the
   migration is a one-line import change (`~0.6` users included). The layout
   table in the README and `content/architecture.md` were updated.
@@ -508,7 +578,7 @@ theme is text quietly leaving the page while the renderer reported success.
 - **`--root <dir>`**: points `check`, `lint`, `export`, `init`, `new`, `g
   component`, `search`, and `add` at a project other than the current directory,
   so they are usable from a monorepo CI job.
-- **Plugin API** (`core/plugins.js`): a plugin is now a single file exporting
+- **Plugin API** (`core/runtime/plugins.js`): a plugin is now a single file exporting
   `setup(jprot)`, declared in `jprot.config.js` under `plugins: [...]`.
   `setup` receives `addComponent`, `addRoute`, `extendMarkdown`, `on`, and the
   loaded config — and nothing else, so the surface stays small enough to promise
@@ -543,7 +613,7 @@ theme is text quietly leaving the page while the renderer reported success.
 
 ### Changed
 
-- **The Content Graph** (`core/graph.js`): one pass over `content/` now produces
+- **The Content Graph** (`core/content/graph.js`): one pass over `content/` now produces
   every derived structure the server needs — pages, posts, projects, routes,
   navigation, docs navigation, the search index, the internal link graph, and
   orphan detection. Routing, the sitemap, the feed, `jprot lint` and
@@ -565,7 +635,7 @@ theme is text quietly leaving the page while the renderer reported success.
   the outer component as `children`), and a component that throws or a
   shortcode that names something unregistered now degrades to a visible marker
   for that one block instead of failing the page.
-- **Export and deploy are separate concerns.** `core/deploy.js` owns everything
+- **Export and deploy are separate concerns.** `core/tooling/deploy.js` owns everything
   about *where* the site lives — `normalizeBasePath`, `deployUrlFor`, and a
   deployment object that rewrites HTML, the search index, and the PWA manifest
   for a given base path and origin. `core/export.js` now only decides *what*
@@ -577,7 +647,7 @@ theme is text quietly leaving the page while the renderer reported success.
 - **`lib/markdown/`** is split by concern — `definitions`, `blocks`, `inline`,
   `links`, `footnotes`, `sanitize`, `slugify`, with `index.js` owning the pass
   order. `lib/markdown.js` remains as a back-compat re-export.
-- **The component contract** (`core/components.js`): components may be a
+- **The component contract** (`core/content/components.js`): components may be a
   function or `{ name, props, render }`, normalized to one internal shape.
   Declaring `props` is optional and is what lets lint flag a section key a
   component silently ignores.

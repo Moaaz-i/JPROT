@@ -258,40 +258,33 @@ request and add it to the table.
 
 ## Project layout
 
+The full map, the layer rules and a "change this → edit that" table live in
+[ARCHITECTURE.md](ARCHITECTURE.md).
+
 ```
-core/cli.js           CLI entry (server + init/new/g/check/lint/export)
-core/server.js        HTTP server, routing, virtual endpoints, SEO, public API
-core/graph.js         The Content Graph — one parsed index of every page
-core/render.js        Shortcode AST + section rendering
-core/components.js    Component loading and the component contract
-core/plugins.js       The plugin API
-core/schema.js        Config schema + validation (the CONFIG_KEYS source of truth)
-core/check.js         jprot check (config + plugins)
-core/lint.js          jprot lint (site-aware content checks)
-core/deploy.js        Where the site lives (basePath, canonical URLs)
-core/export.js        What gets written to dist/
-core/watch.js         Dependency-aware file watcher
-core/scaffold.js      init/new/g scaffolds + snippets + hints
-core/catalog.js       The remote component catalog (jprot search / jprot add)
-core/config.js        Locating and loading jprot.config.js / .json
-core/http.js          Security headers, CSP, nonces — the whole header policy
-core/state.js         Per-request state via AsyncLocalStorage
-core/urls.js          URL resolution and canonicalization
-core/utils.js         esc / safeHref / safeColor / slugify / editDistance / MIME
-lib/markdown/         Markdown → HTML, split by concern
-lib/frontmatter.js    YAML frontmatter parser
-lib/markdown.js       Back-compat shim; prefer lib/markdown/index.js
-theme/default/        Built-in theme (components + styles)
-theme/custom.css      Your CSS overrides
-theme/components/     Your component overrides
-content/              Your Markdown content
-public/               Static assets (images, fonts, files)
-examples/             Theme packs and component examples
-test/unit/            Pure-logic tests
-test/integration/     End-to-end tests + HTML/JSON snapshots
-jprot.d.ts            TypeScript definitions
-jprot-vscode/         VSCode extension (highlighting + snippets, no runtime)
-CHANGELOG.md          Release notes
+core/cli.js            CLI entry (init/new/g/check/lint/export)
+core/server.js         Public API barrel — re-exports only, no implementation
+core/export.js         What gets written to dist/
+core/foundation/       urls, state (request scope), http (headers/CSP), config, version
+core/runtime/          plugins, watcher, client scripts (scroll/theme/search/spa)
+core/content/          Content Graph (scan/extract/graph), render, components, schema, jsonld
+core/site/             app (request lifecycle), page, endpoints, assets, og, 404
+core/tooling/          scaffold + templates, lint, check, deploy, catalog
+lib/utils.js           esc / safeHref / safeColor / slugify / editDistance / MIME
+lib/markdown/          Markdown → HTML, split by concern
+lib/frontmatter.js     YAML frontmatter parser
+lib/markdown.js        Back-compat shim; prefer lib/markdown/index.js
+theme/default/         Built-in theme (components + styles)
+theme/custom.css       Your CSS overrides
+theme/components/      Your component overrides
+content/               Your Markdown content
+public/                Static assets (images, fonts, files)
+examples/              Theme packs and component examples
+test/unit/             Pure-logic tests, including the architecture rules
+test/integration/      End-to-end tests + HTML/JSON snapshots
+jprot.d.ts             TypeScript definitions
+jprot-vscode/          VSCode extension (highlighting + snippets, no runtime)
+CHANGELOG.md           Release notes
 ```
 
 ## Authoring contract
@@ -306,7 +299,7 @@ Two rules a custom component has to follow, both enforced by
    `key="value"` shortcode attributes are all author-controlled, and a
    component that interpolates any of them raw is a stored XSS.
 2. **Use the shared helpers.** `esc` and `safeHref` are imported from
-   `core/utils.js`. Do not reimplement either locally: three copies of
+   `lib/utils.js`. Do not reimplement either locally: three copies of
    `safeHref` existed and had already drifted from each other.
 
 `safeColor()` is the third, for brand colors that land inside a `<style>` block
@@ -315,17 +308,53 @@ still live.
 
 ### Known limits of the Markdown engine
 
-JPROT's renderer is a deliberately small CommonMark subset, not GFM. Worth
-knowing before you migrate content:
+JPROT's renderer is a deliberately small CommonMark subset, not GFM. It is
+*measured* rather than asserted: every change runs the official CommonMark 0.31.2
+suite (652 examples) and sorts the result into three tiers — identical to the
+spec, the same visible text in a different shape, and content that differs.
 
-- Inline parsing is regex-based, so `~~a~~ and ~~b~~` on one line and nested
-  emphasis are not rendered the way GitHub would.
+| | before | now |
+| --- | ---: | ---: |
+| Identical to the spec | 225 | **274** |
+| Usable — identical *or* same visible text | 365 (56.0%) | **408 (62.6%)** |
+| The author's words changed or lost | 287 | **244** |
+| Lost with no documented reason | 5 (0.8%) | **5 (0.8%)** |
+
+That last row is the only one that matters for "did my document survive", and it
+has not moved. All five are known: two link shapes JPROT never licensed (an image
+inside a link, and a reference link wrapping nested brackets) and three places
+where a quote from the source reaches an `href`.
+
+What moved, all of it CommonMark-shaped: `****bold****` and `____bold____` (a run
+of four is two strongs, five adds an emphasis around them), **emphasis wrapping a
+link, an image or an autolink** (`**[Quick start](quick-start.md)**` used to print
+its own asterisks), setext headings
+(`Heading\n===` and `Heading\n---`), `~~~` code fences — which no longer close a
+backtick fence, or the reverse — hard line breaks from either two trailing spaces or a
+trailing backslash, bare-URL autolinks, `<…>` link destinations, the empty
+`[a]()`, and code spans whose delimiters are a longer run of backticks.
+
+Worth knowing before you migrate content:
+
+- **Indented code blocks are not supported** — four spaces of indent render as
+  prose. Every other block rule is answered from one line at a time, which is
+  what lets the definition pre-scan and the prose model re-derive the same
+  answer; "four spaces starts code, unless a paragraph is running, unless we are
+  inside a list item whose indent was already dedented" is answered from the
+  emitter's position in the tree, and a flat scan cannot see that position.
+- **Inline parsing is regex-based** and runs in a fixed order, so an unusual
+  interleaving pairs differently than GitHub would: an image inside a link stays
+  text, and emphasis cannot close *across* a link's tags — it may wrap one, but
+  not open inside the anchor and close outside it.
+- **A code span's body cannot contain a backtick** unless the delimiters are a
+  longer run than any run inside them, and one leading and trailing space are
+  kept rather than stripped the way CommonMark strips them.
+- **HTML blocks are paragraphs.** A `<div>` on its own line passes through, but
+  inside `<p>` — the raw-HTML passthrough below covers the security side of that,
+  not the block-level shape.
 - Frontmatter is a YAML subset: scalars, quoted strings, arrays and one level of
   nesting. Block scalars (`|` and `>`), anchors, aliases and multi-line flow
   collections are not supported.
-- Link destinations are matched with a non-greedy regex, so a URL containing
-  balanced parentheses — `[x](https://en.wikipedia.org/wiki/Foo_(bar))` — stops
-  at the first `)` and leaves the remainder as text.
 
 ### Raw HTML in Markdown
 
